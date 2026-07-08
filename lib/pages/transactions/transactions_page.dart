@@ -17,6 +17,7 @@ import '../../core/database/database.dart';
 import '../../widgets/common/glassmorphism_card.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/pdf_report_helper.dart';
+import '../../core/utils/category_icon_helper.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 
@@ -799,15 +800,6 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                               if (categories.isNotEmpty) ...[
                                 const SizedBox(width: 8),
                                 _buildCategorySelectorChip(categories),
-                                if (txState.filterCategoryId != null) ...[
-                                  for (var sublist in [
-                                    categories.where((c) => c.parentId == txState.filterCategoryId).toList()
-                                  ])
-                                    if (sublist.isNotEmpty) ...[
-                                      const SizedBox(width: 8),
-                                      _buildSubcategorySelectorChip(context, sublist),
-                                    ]
-                                ]
                               ],
                               const SizedBox(width: 8),
                               _buildDateRangeSelectorChip(context),
@@ -1117,146 +1109,233 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
   Widget _buildCategorySelectorChip(List<Category> categories) {
     final txState = ref.watch(transactionsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final selectedCategory = categories.firstWhere(
-      (c) => c.id == txState.filterCategoryId,
-      orElse: () => const Category(name: 'All Categories', icon: '', color: '', isDefault: false, type: 'both'),
-    );
-    
-    final isSelected = txState.filterCategoryId != null;
-    
-    return Theme(
-      data: Theme.of(context).copyWith(canvasColor: isDark ? const Color(0xFF161625) : Colors.white),
-      child: PopupMenuButton<int?>(
-        initialValue: txState.filterCategoryId,
-        onSelected: (id) {
-          ref.read(transactionsProvider.notifier).setFilterCategory(id);
-        },
-        itemBuilder: (context) {
-          final items = <PopupMenuEntry<int?>>[
-            const PopupMenuItem<int?>(
-              value: null,
-              child: Text('All Categories', style: TextStyle(fontSize: 13)),
-            ),
-            const PopupMenuDivider(),
-          ];
-          items.addAll(categories.where((c) => c.parentId == null).map((c) {
-            return PopupMenuItem<int?>(
-              value: c.id,
-              child: Text(c.name, style: const TextStyle(fontSize: 13)),
-            );
-          }));
-          return items;
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected 
-                ? const Color(0xFFE53935) 
-                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected 
-                  ? const Color(0xFFE53935) 
-                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                selectedCategory.name,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_drop_down,
-                size: 14,
-                color: isSelected ? Colors.white : Colors.grey,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildSubcategorySelectorChip(BuildContext context, List<Category> subcategories) {
-    final txState = ref.watch(transactionsProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasParent = txState.filterCategoryId != null;
+    final hasSub = txState.filterSubcategoryId != null;
 
-    final selectedSubcategory = subcategories.firstWhere(
-      (c) => c.id == txState.filterSubcategoryId,
-      orElse: () => const Category(name: 'All Subcategories', icon: '', color: '', isDefault: false, type: 'both'),
-    );
+    String label = 'All Categories';
+    Color chipColor = isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02);
+    bool isSelected = false;
 
-    final isSelected = txState.filterSubcategoryId != null;
+    if (hasParent) {
+      isSelected = true;
+      final parent = categories.firstWhere(
+        (c) => c.id == txState.filterCategoryId,
+        orElse: () => const Category(name: '', icon: '', color: '', isDefault: false, type: 'both'),
+      );
+      if (hasSub) {
+        final sub = categories.firstWhere(
+          (c) => c.id == txState.filterSubcategoryId,
+          orElse: () => const Category(name: '', icon: '', color: '', isDefault: false, type: 'both'),
+        );
+        label = '${parent.name} > ${sub.name}';
+      } else {
+        label = parent.name;
+      }
+      if (parent.color.isNotEmpty) {
+        chipColor = Color(int.parse('0xFF${parent.color}')).withValues(alpha: 0.15);
+      } else {
+        chipColor = const Color(0xFFE53935);
+      }
+    }
 
-    return Theme(
-      data: Theme.of(context).copyWith(canvasColor: isDark ? const Color(0xFF161625) : Colors.white),
-      child: PopupMenuButton<int?>(
-        initialValue: txState.filterSubcategoryId,
-        onSelected: (id) {
-          ref.read(transactionsProvider.notifier).setFilterSubcategory(id);
-        },
-        itemBuilder: (context) {
-          final items = <PopupMenuEntry<int?>>[
-            const PopupMenuItem<int?>(
-              value: null,
-              child: Text('All Subcategories', style: TextStyle(fontSize: 13)),
-            ),
-            const PopupMenuDivider(),
-          ];
-          items.addAll(subcategories.map((c) {
-            return PopupMenuItem<int?>(
-              value: c.id,
-              child: Text(c.name, style: const TextStyle(fontSize: 13)),
-            );
-          }));
-          return items;
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () => _showCategoryFilterSheet(context, categories),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? chipColor : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
             color: isSelected
-                ? const Color(0xFFE53935)
-                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFFE53935)
-                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
-            ),
+                ? (hasParent && categories.any((c) => c.id == txState.filterCategoryId && c.color.isNotEmpty)
+                    ? Color(int.parse('0xFF${categories.firstWhere((c) => c.id == txState.filterCategoryId).color}')).withValues(alpha: 0.5)
+                    : const Color(0xFFE53935))
+                : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                selectedSubcategory.name,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              const SizedBox(width: 4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasParent) ...[
               Icon(
-                Icons.arrow_drop_down,
-                size: 14,
-                color: isSelected ? Colors.white : Colors.grey,
+                CategoryIconHelper.getIcon(categories.firstWhere((c) => c.id == txState.filterCategoryId).icon),
+                size: 13,
+                color: isDark ? Colors.white : Colors.black87,
               ),
+              const SizedBox(width: 6),
             ],
-          ),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? (isDark ? Colors.white : Colors.black87) : (isDark ? Colors.white70 : Colors.black87),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontFamily: 'Inter',
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 14,
+              color: isSelected ? (isDark ? Colors.white70 : Colors.black54) : Colors.grey,
+            ),
+          ],
         ),
       ),
     );
   }
+
+  void _showCategoryFilterSheet(BuildContext context, List<Category> categories) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final parentCategories = categories.where((c) => c.parentId == null).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final txState = ref.watch(transactionsProvider);
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 24),
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Filter by Category',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(transactionsProvider.notifier).setFilterCategory(null);
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Clear Filter', style: TextStyle(color: Color(0xFFE53935), fontSize: 13)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: parentCategories.length,
+                      itemBuilder: (context, index) {
+                        final parent = parentCategories[index];
+                        final sublist = categories.where((c) => c.parentId == parent.id).toList();
+                        final isParentSelected = txState.filterCategoryId == parent.id && txState.filterSubcategoryId == null;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: Color(int.parse('0xFF${parent.color}')).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  CategoryIconHelper.getIcon(parent.icon),
+                                  color: Color(int.parse('0xFF${parent.color}')),
+                                  size: 18,
+                                ),
+                              ),
+                              title: Text(
+                                parent.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: txState.filterCategoryId == parent.id ? FontWeight.bold : FontWeight.normal,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                              trailing: isParentSelected
+                                  ? const Icon(Icons.check_circle, color: Color(0xFFE53935), size: 20)
+                                  : null,
+                              onTap: () {
+                                ref.read(transactionsProvider.notifier).setFilterCategory(parent.id);
+                                Navigator.pop(context);
+                              },
+                            ),
+                            if (sublist.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(left: 48, bottom: 8),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: sublist.map((sub) {
+                                    final isSubSelected = txState.filterSubcategoryId == sub.id;
+                                    return ChoiceChip(
+                                      label: Text(sub.name, style: const TextStyle(fontSize: 11, fontFamily: 'Inter')),
+                                      selected: isSubSelected,
+                                      labelStyle: TextStyle(
+                                        color: isSubSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                        fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal,
+                                      ),
+                                      selectedColor: const Color(0xFFE53935),
+                                      backgroundColor: isDark ? const Color(0xFF161625) : Colors.black.withValues(alpha: 0.02),
+                                      checkmarkColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        side: BorderSide(
+                                          color: isSubSelected
+                                              ? const Color(0xFFE53935)
+                                              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+                                        ),
+                                      ),
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          ref.read(transactionsProvider.notifier).setFilterCategory(parent.id);
+                                          ref.read(transactionsProvider.notifier).setFilterSubcategory(sub.id);
+                                        } else {
+                                          ref.read(transactionsProvider.notifier).setFilterCategory(parent.id);
+                                        }
+                                        Navigator.pop(context);
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                            const Divider(height: 1),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
 
   Widget _buildDateRangeSelectorChip(BuildContext context) {
     final txState = ref.watch(transactionsProvider);
@@ -1277,7 +1356,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       final endDay = DateTime(end.year, end.month, end.day);
       final todayMidnight = DateTime(now.year, now.month, now.day);
 
-      if (startDay == DateTime(thisMonthStart.year, thisMonthStart.month, thisMonthStart.day) &&
+      if (start.day == 1 && DateTime(start.year, start.month + 1, 0).day == end.day && start.month == end.month) {
+        dateLabel = DateFormat('MMMM yyyy').format(start);
+      } else if (startDay == DateTime(thisMonthStart.year, thisMonthStart.month, thisMonthStart.day) &&
           endDay == DateTime(thisMonthEnd.year, thisMonthEnd.month, thisMonthEnd.day)) {
         dateLabel = 'This Month';
       } else if (startDay == DateTime(sevenDaysAgo.year, sevenDaysAgo.month, sevenDaysAgo.day) &&
@@ -1317,6 +1398,11 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             ref.read(transactionsProvider.notifier).setFilterDateRange(
               tp.DateTimeRange(start: start, end: todayMidnight),
             );
+          } else if (val == 'select_month') {
+            final picked = await _showMonthYearPickerDialog(context);
+            if (picked != null) {
+              ref.read(transactionsProvider.notifier).setFilterDateRange(picked);
+            }
           } else if (val == 'custom') {
             final picked = await showDateRangePicker(
               context: context,
@@ -1353,6 +1439,10 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             PopupMenuItem<String>(
               value: '30_days',
               child: Text('Last 30 Days', style: TextStyle(fontSize: 13)),
+            ),
+            PopupMenuItem<String>(
+              value: 'select_month',
+              child: Text('Select Month...', style: TextStyle(fontSize: 13)),
             ),
             PopupMenuDivider(),
             PopupMenuItem<String>(
@@ -1402,6 +1492,118 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<tp.DateTimeRange?> _showMonthYearPickerDialog(BuildContext context) async {
+    final now = DateTime.now();
+    int selectedYear = now.year;
+    int selectedMonth = now.month;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    return showDialog<tp.DateTimeRange>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              title: const Text('Select Month', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Inter')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: () {
+                          setDialogState(() {
+                            selectedYear--;
+                          });
+                        },
+                      ),
+                      Text(
+                        '$selectedYear',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: () {
+                          setDialogState(() {
+                            selectedYear++;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 1.5,
+                    ),
+                    itemCount: 12,
+                    itemBuilder: (context, index) {
+                      final monthNum = index + 1;
+                      final isSelected = selectedMonth == monthNum;
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            selectedMonth = monthNum;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFFE53935) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02)),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected ? const Color(0xFFE53935) : Colors.transparent,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            months[index],
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final start = DateTime(selectedYear, selectedMonth, 1);
+                    final end = DateTime(selectedYear, selectedMonth + 1, 0, 23, 59, 59);
+                    Navigator.pop(context, tp.DateTimeRange(start: start, end: end));
+                  },
+                  child: const Text('Select', style: TextStyle(color: Color(0xFFE53935), fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

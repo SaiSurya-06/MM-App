@@ -20,6 +20,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
   DateTimeRange? _customRange;
   int _selectedTab = 0;
   bool _showGuide = true;
+  int _selectedYoYMonth = DateTime.now().month;
 
   Future<List<Map<String, dynamic>>> _fetchCategoryTimeline() async {
     final db = await AppDatabase.instance.database;
@@ -66,9 +67,10 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
 
     final List<Map<String, dynamic>> yoyData = [];
 
-    for (int yearOffset = 0; yearOffset < 3; yearOffset++) {
+    // Chronologically oldest first: yearOffset = 2 (2 years ago), 1 (last year), 0 (this year)
+    for (int yearOffset = 2; yearOffset >= 0; yearOffset--) {
       final year = now.year - yearOffset;
-      final monthStr = '$year-${now.month.toString().padLeft(2, '0')}';
+      final monthStr = '$year-${_selectedYoYMonth.toString().padLeft(2, '0')}';
 
       final result = await db.rawQuery('''
         SELECT
@@ -76,7 +78,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
           SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END) as expenses
         FROM transaction_log t
         INNER JOIN category c ON t.category_id = c.id
-        WHERE strftime('%Y-%m', t.date) = ? AND c.type != 'person'
+        WHERE substr(t.date, 1, 7) = ? AND c.type != 'person'
       ''', [monthStr]);
 
       final income = (result.isNotEmpty ? (result.first['income'] as num?)?.toDouble() ?? 0.0 : 0.0);
@@ -84,7 +86,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
 
       yoyData.add({
         'year': year.toString(),
-        'month': DateFormat('MMM').format(DateTime(year, now.month)),
+        'month': DateFormat('MMM').format(DateTime(year, _selectedYoYMonth)),
         'income': income,
         'expenses': expenses,
         'net': income - expenses,
@@ -494,107 +496,184 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
   }
 
   Widget _buildYoYTab(String currency, bool isDark) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchYoYComparison(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final yoyData = snapshot.data!;
+    final months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
 
-        if (yoyData.every((d) => (d['income'] as double) == 0 && (d['expenses'] as double) == 0)) {
-          return const Center(child: Text('No YoY data available.', style: TextStyle(color: Colors.grey)));
-        }
+    return Column(
+      children: [
+        // Month Selector Header
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'YoY Month:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, fontFamily: 'Inter'),
+              ),
+              DropdownButton<int>(
+                value: _selectedYoYMonth,
+                dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                underline: const SizedBox(),
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  fontFamily: 'Inter',
+                ),
+                items: List.generate(12, (index) {
+                  return DropdownMenuItem<int>(
+                    value: index + 1,
+                    child: Text(months[index]),
+                  );
+                }),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _selectedYoYMonth = val;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _fetchYoYComparison(),
+            key: ValueKey(_selectedYoYMonth), // Force rebuild when month changes
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: Text('Error loading data.', style: TextStyle(color: Colors.grey)));
+              }
+              final yoyData = snapshot.data!;
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Bar chart for YoY
-            GlassmorphismCard(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                height: 200,
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    barGroups: yoyData.asMap().entries.map((e) {
-                      final idx = e.key;
-                      final data = e.value;
-                      return BarChartGroupData(
-                        x: idx,
-                        barRods: [
-                          BarChartRodData(toY: data['income'] as double, color: const Color(0xFF4CAF50), width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
-                          BarChartRodData(toY: data['expenses'] as double, color: const Color(0xFFE53935), width: 20, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
-                        ],
-                      );
-                    }).toList(),
-                    titlesData: FlTitlesData(
-                      show: true,
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (val, meta) {
-                            final idx = val.toInt();
-                            if (idx < yoyData.length) {
-                              return Text(yoyData[idx]['month'] as String, style: const TextStyle(fontSize: 10));
-                            }
-                            return const Text('');
-                          },
+              final allZero = yoyData.every((d) => (d['income'] as double) == 0 && (d['expenses'] as double) == 0);
+              if (allZero) {
+                return const Center(
+                  child: Text('No YoY data available for this month.', style: TextStyle(color: Colors.grey, fontFamily: 'Inter')),
+                );
+              }
+
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Bar chart for YoY
+                  GlassmorphismCard(
+                    padding: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      height: 200,
+                      child: BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          barGroups: yoyData.asMap().entries.map((e) {
+                            final idx = e.key;
+                            final data = e.value;
+                            return BarChartGroupData(
+                              x: idx,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: data['income'] as double,
+                                  color: const Color(0xFF4CAF50),
+                                  width: 16,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                ),
+                                BarChartRodData(
+                                  toY: data['expenses'] as double,
+                                  color: const Color(0xFFE53935),
+                                  width: 16,
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                          titlesData: FlTitlesData(
+                            show: true,
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (val, meta) {
+                                  final idx = val.toInt();
+                                  if (idx < yoyData.length) {
+                                    // Fix: Show the year instead of repeating the month name!
+                                    return Text(
+                                      yoyData[idx]['year'] as String,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.white70 : Colors.black87,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          gridData: const FlGridData(show: false),
                         ),
                       ),
-                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),
-                    borderData: FlBorderData(show: false),
-                    gridData: const FlGridData(show: false),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _legendDot(const Color(0xFF4CAF50), 'Income', isDark),
-                const SizedBox(width: 16),
-                _legendDot(const Color(0xFFE53935), 'Expenses', isDark),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Detail cards
-            ...yoyData.map((data) {
-              final income = data['income'] as double;
-              final expenses = data['expenses'] as double;
-              final net = data['net'] as double;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: GlassmorphismCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        '${data['month']} ${data['year']}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _yoyMetric('Income', CurrencyFormatter.format(income, currency), const Color(0xFF4CAF50)),
-                          _yoyMetric('Expenses', CurrencyFormatter.format(expenses, currency), const Color(0xFFE53935)),
-                          _yoyMetric('Net', CurrencyFormatter.format(net, currency), net >= 0 ? const Color(0xFF4CAF50) : const Color(0xFFE53935)),
-                        ],
-                      ),
+                      _legendDot(const Color(0xFF4CAF50), 'Income', isDark),
+                      const SizedBox(width: 16),
+                      _legendDot(const Color(0xFFE53935), 'Expenses', isDark),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 20),
+
+                  // Detail cards
+                  ...yoyData.reversed.map((data) { // Reversed to show latest year first in list details
+                    final income = data['income'] as double;
+                    final expenses = data['expenses'] as double;
+                    final net = data['net'] as double;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: GlassmorphismCard(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${data['month']} ${data['year']}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'Inter'),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _yoyMetric('Income', CurrencyFormatter.format(income, currency), const Color(0xFF4CAF50)),
+                                _yoyMetric('Expenses', CurrencyFormatter.format(expenses, currency), const Color(0xFFE53935)),
+                                _yoyMetric('Net', CurrencyFormatter.format(net, currency), net >= 0 ? const Color(0xFF4CAF50) : const Color(0xFFE53935)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               );
-            }),
-          ],
-        );
-      },
+            },
+          ),
+        ),
+      ],
     );
   }
 
