@@ -1464,45 +1464,8 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
       currency: syncState.partnerCurrency,
     );
   }
-
-  void _showPartnerTransactionDetailsDialog(PartnerTransaction tx, String currency) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-          title: Text(tx.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Amount: ${CurrencyFormatter.format(tx.amount, currency)}'),
-              const SizedBox(height: 8),
-              Text('Date: ${DateFormat('yyyy-MM-dd').format(tx.date)}'),
-              const SizedBox(height: 8),
-              Text('Type: ${tx.type.toUpperCase()}'),
-              const SizedBox(height: 8),
-              Text('Account: ${tx.accountName}'),
-              const SizedBox(height: 8),
-              Text('Category: ${tx.categoryName}'),
-              if (tx.note != null && tx.note!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text('Note: ${tx.note}'),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Partner Calendar View – lightweight monthly heatmap using PartnerTransaction

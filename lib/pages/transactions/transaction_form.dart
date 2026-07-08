@@ -1818,7 +1818,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     if (name.isEmpty) return;
 
                     final balance = double.tryParse(balanceController.text) ?? 0.0;
-                    final isShared = false;
+                    const isShared = false;
 
                     final newId = await ref.read(accountsProvider.notifier).addAccount(
                       name,
