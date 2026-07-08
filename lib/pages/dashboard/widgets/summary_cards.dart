@@ -5,6 +5,13 @@ import '../../../widgets/common/animated_counter.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/common/skeleton_loader.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/transactions_provider.dart';
+import '../../../providers/categories_provider.dart';
+import '../../../providers/accounts_provider.dart';
+import '../../../models/category.dart';
+import '../../../core/utils/category_icon_helper.dart';
+import '../../transactions/transaction_form.dart';
+import 'package:intl/intl.dart';
 
 
 class SummaryCards extends ConsumerStatefulWidget {
@@ -316,50 +323,57 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
           children: [
             // Income
             Expanded(
-              child: GlassmorphismCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                color: isDark 
-                    ? Colors.green.withValues(alpha: 0.06) 
-                    : Colors.green.withValues(alpha: 0.04),
-                borderColor: Colors.green.withValues(alpha: 0.15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _showTransactionsSheet(context, 'income'),
+                  child: GlassmorphismCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    color: isDark 
+                        ? Colors.green.withValues(alpha: 0.06) 
+                        : Colors.green.withValues(alpha: 0.04),
+                    borderColor: Colors.green.withValues(alpha: 0.15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.arrow_downward, color: Colors.green, size: 12),
-                        SizedBox(width: 4),
-                        Text(
-                          'INCOME',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                            letterSpacing: 0.5,
-                            fontFamily: 'Inter',
+                        const Row(
+                          children: [
+                            Icon(Icons.arrow_downward, color: Colors.green, size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'INCOME',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                                letterSpacing: 0.5,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: AnimatedCounter(
+                              value: widget.monthlyIncome,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1A1A26),
+                                fontFamily: 'Inter',
+                              ),
+                              formatter: (val) => CurrencyFormatter.format(val, widget.currency),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: AnimatedCounter(
-                          value: widget.monthlyIncome,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1A1A26),
-                            fontFamily: 'Inter',
-                          ),
-                          formatter: (val) => CurrencyFormatter.format(val, widget.currency),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -368,50 +382,57 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
 
             // Expenses
             Expanded(
-              child: GlassmorphismCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                color: isDark 
-                    ? const Color(0xFFE53935).withValues(alpha: 0.06) 
-                    : const Color(0xFFE53935).withValues(alpha: 0.04),
-                borderColor: const Color(0xFFE53935).withValues(alpha: 0.15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => _showTransactionsSheet(context, 'expense'),
+                  child: GlassmorphismCard(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    color: isDark 
+                        ? const Color(0xFFE53935).withValues(alpha: 0.06) 
+                        : const Color(0xFFE53935).withValues(alpha: 0.04),
+                    borderColor: const Color(0xFFE53935).withValues(alpha: 0.15),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.arrow_upward, color: Color(0xFFE53935), size: 12),
-                        SizedBox(width: 4),
-                        Text(
-                          'EXPENSES',
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey,
-                            letterSpacing: 0.5,
-                            fontFamily: 'Inter',
+                        const Row(
+                          children: [
+                            Icon(Icons.arrow_upward, color: Color(0xFFE53935), size: 12),
+                            SizedBox(width: 4),
+                            Text(
+                              'EXPENSES',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                                letterSpacing: 0.5,
+                                fontFamily: 'Inter',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: AnimatedCounter(
+                              value: widget.monthlyExpenses,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1A1A26),
+                                fontFamily: 'Inter',
+                              ),
+                              formatter: (val) => CurrencyFormatter.format(val, widget.currency),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: AnimatedCounter(
-                          value: widget.monthlyExpenses,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1A1A26),
-                            fontFamily: 'Inter',
-                          ),
-                          formatter: (val) => CurrencyFormatter.format(val, widget.currency),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -472,6 +493,212 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
           ],
         ),
       ],
+    );
+  }
+
+  void _showTransactionsSheet(BuildContext context, String type) {
+    final txsState = ref.read(transactionsProvider);
+    final categoriesState = ref.read(categoriesProvider);
+    final accountsState = ref.read(accountsProvider);
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBgColor = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A26);
+    
+    final now = DateTime.now();
+    final currentYear = now.year;
+    final currentMonth = now.month;
+
+    final filtered = txsState.transactions.where((tx) {
+      if (tx.parentId != null) return false;
+      if (tx.type != type) return false;
+      return tx.date.year == currentYear && tx.date.month == currentMonth;
+    }).toList();
+
+    filtered.sort((a, b) => b.date.compareTo(a.date));
+
+    final categoryMap = {for (var c in categoriesState.categories) c.id ?? 0: c};
+    final accountMap = {for (var a in accountsState.accounts) a.id ?? 0: a.name};
+
+    final totalAmount = type == 'income' ? widget.monthlyIncome : widget.monthlyExpenses;
+    final themeColor = type == 'income' ? Colors.green : const Color(0xFFE53935);
+    final titleLabel = type == 'income' ? 'Income Transactions' : 'Expense Transactions';
+    final formattedMonth = DateFormat('MMMM yyyy').format(now);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: sheetBgColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
+              child: Column(
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    titleLabel,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: themeColor,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formattedMonth,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: themeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      CurrencyFormatter.format(totalAmount, widget.currency),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: themeColor,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey.withValues(alpha: 0.5)),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No transactions recorded this month.',
+                                  style: TextStyle(color: Colors.grey.withValues(alpha: 0.8), fontSize: 13, fontFamily: 'Inter'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final tx = filtered[index];
+                              final cat = categoryMap[tx.categoryId] ?? const Category(name: 'Uncategorized', icon: 'category', color: '757575', isDefault: false, type: 'both');
+                              final accountName = accountMap[tx.accountId] ?? 'Unknown Account';
+                              final catColor = Color(int.tryParse('0xFF${cat.color}') ?? 0xFF757575);
+
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                leading: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: catColor.withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    CategoryIconHelper.getIcon(cat.icon),
+                                    color: catColor,
+                                    size: 18,
+                                  ),
+                                ),
+                                title: Text(
+                                  tx.title,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: textColor,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${cat.name} · $accountName · ${DateFormat('MMM dd').format(tx.date)}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark ? Colors.white54 : Colors.black54,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                    if (tx.note != null && tx.note!.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        tx.note!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontStyle: FontStyle.italic,
+                                          color: isDark ? Colors.white38 : Colors.black38,
+                                          fontFamily: 'Inter',
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                trailing: Text(
+                                  '${type == 'expense' ? '-' : '+'}${CurrencyFormatter.format(tx.amount, widget.currency)}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: themeColor,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => TransactionForm(transaction: tx),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
