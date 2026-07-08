@@ -207,6 +207,11 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
   final Ref _ref;
   Timer? _syncTimer;
 
+  String _cleanExceptionMessage(dynamic error) {
+    final msg = error.toString();
+    return msg.replaceFirst(RegExp(r'^([a-zA-Z]*Exception|[a-zA-Z]*Error):\s*'), '');
+  }
+
   PartnerSyncNotifier(this._ref)
       : super(PartnerSyncState(
           isConnected: false,
@@ -331,7 +336,10 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       final cleanedUrl = url.trim();
       if (cleanedUrl.isEmpty) return false;
 
-      final uri = Uri.parse('$cleanedUrl?action=test');
+      final baseUri = Uri.parse(cleanedUrl);
+      final queryParams = Map<String, dynamic>.from(baseUri.queryParameters);
+      queryParams['action'] = 'test';
+      final uri = baseUri.replace(queryParameters: queryParams);
       final request = await client.getUrl(uri);
       final response = await request.close();
       if (response.statusCode == 200) {
@@ -441,10 +449,11 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
 
       return true;
     } catch (e) {
+      final errorMsg = _cleanExceptionMessage(e);
       state = state.copyWith(
         isSyncing: false,
         isConnected: false,
-        errorMessage: e.toString(),
+        errorMessage: errorMsg,
       );
       _stopSyncTimer();
       return false;
@@ -582,11 +591,12 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       await _saveStateLocally();
       return true;
     } catch (e) {
+      final errorMsg = _cleanExceptionMessage(e);
       state = state.copyWith(
         isSyncing: false,
         syncProgress: 0.0,
         syncStatusMessage: null,
-        errorMessage: 'Sync failed: $e',
+        errorMessage: 'Sync failed: $errorMsg',
       );
       return false;
     }
@@ -710,7 +720,14 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
     try {
       for (int i = 0; i < total; i++) {
         final chunk = chunks[i];
-        final url = '${state.webAppUrl}?action=set_chunk&key=$key&index=$i&total=$total&val=${Uri.encodeComponent(chunk)}';
+        final baseUri = Uri.parse(state.webAppUrl);
+        final queryParams = Map<String, dynamic>.from(baseUri.queryParameters);
+        queryParams['action'] = 'set_chunk';
+        queryParams['key'] = key;
+        queryParams['index'] = '$i';
+        queryParams['total'] = '$total';
+        queryParams['val'] = chunk;
+        final uri = baseUri.replace(queryParameters: queryParams);
         
         state = state.copyWith(
           syncProgress: (i / total) * 0.5, // Upload takes 0% to 50%
@@ -723,7 +740,7 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
         while (!success && attempts < 3) {
           try {
             attempts++;
-            final request = await client.getUrl(Uri.parse(url));
+            final request = await client.getUrl(uri);
             final response = await request.close();
             if (response.statusCode == 200) {
               final responseBody = await response.transform(utf8.decoder).join();
@@ -755,9 +772,14 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
   Future<String?> _downloadData() async {
     final partnerSlot = state.mySlot == 'A' ? 'B' : 'A';
     final key = '${state.roomCode}__${partnerSlot}_data';
-    // Use incremental sync if we have a previous version
-    final sinceParam = state.partnerVersion > 0 ? '&since_version=${state.partnerVersion}' : '';
-    final url = '${state.webAppUrl}?action=get&key=$key$sinceParam';
+    final baseUri = Uri.parse(state.webAppUrl);
+    final queryParams = Map<String, dynamic>.from(baseUri.queryParameters);
+    queryParams['action'] = 'get';
+    queryParams['key'] = key;
+    if (state.partnerVersion > 0) {
+      queryParams['since_version'] = '${state.partnerVersion}';
+    }
+    final uri = baseUri.replace(queryParameters: queryParams);
 
     state = state.copyWith(
       syncProgress: 0.6, // Download takes 60%
@@ -774,7 +796,7 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       while (!success && attempts < 3) {
         try {
           attempts++;
-          final request = await client.getUrl(Uri.parse(url));
+          final request = await client.getUrl(uri);
           final response = await request.close();
           if (response.statusCode == 200) {
             responseBody = await response.transform(utf8.decoder).join();

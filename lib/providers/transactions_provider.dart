@@ -810,7 +810,8 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
         final query = state.searchQuery.toLowerCase();
         final matchesTitle = tx.title.toLowerCase().contains(query);
         final matchesNote = tx.note?.toLowerCase().contains(query) ?? false;
-        if (!matchesTitle && !matchesNote) {
+        final matchesAmount = tx.amount.toString().contains(query) || tx.amount.toStringAsFixed(2).contains(query);
+        if (!matchesTitle && !matchesNote && !matchesAmount) {
           return false;
         }
       }

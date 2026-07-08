@@ -9,6 +9,10 @@ class AppDatabase {
   static final AppDatabase instance = AppDatabase._init();
   static Database? _database;
 
+  static void setMockDatabase(Database db) {
+    _database = db;
+  }
+
   // Mutex-style lock: prevents concurrent initialisation / close race conditions.
   // All DAO calls route through the `database` getter, so they are naturally
   // serialised by the single-thread nature of sqflite's connection pool.

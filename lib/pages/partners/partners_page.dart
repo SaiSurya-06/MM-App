@@ -484,19 +484,24 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: isSelected ? const Color(0xFFE53935) : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  tabs[index],
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    fontSize: 14,
-                    color: isSelected
-                        ? Colors.white
-                        : (isDark ? const Color(0xFFB0B0C0) : const Color(0xFF6C6C7D)),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    tabs[index],
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontSize: 13,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? const Color(0xFFB0B0C0) : const Color(0xFF6C6C7D)),
+                    ),
                   ),
                 ),
               ),
@@ -961,7 +966,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Background automatic sync has been disabled to prevent distracting dashboard refreshes. To fetch or send new updates, simply tap the Sync icon (🔄) in the status bar above.',
+                    'Auto-sync is paused. Tap the 🔄 icon above to manually sync with your partner.',
                     style: TextStyle(
                       fontSize: 12,
                       color: textColor.withValues(alpha: 0.85),
@@ -980,7 +985,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _buildPillTabBar(
             selectedIndex: _dashboardTabIndex,
-            tabs: const ['Accounts', 'Transactions Ledger', 'Calendar'],
+            tabs: const ['Accounts', 'Ledger', 'Calendar'],
             onTap: (index) {
               setState(() {
                 _dashboardTabIndex = index;
