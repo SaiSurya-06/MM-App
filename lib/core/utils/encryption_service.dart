@@ -25,7 +25,8 @@ class EncryptionService {
     final iv = enc.IV.fromLength(16); // Generates random IV
     final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
     
-    final encrypted = encrypter.encrypt(plaintext, iv: iv);
+    final payload = 'MM_ENC:$plaintext';
+    final encrypted = encrypter.encrypt(payload, iv: iv);
     
     // Combine IV bytes and ciphertext bytes
     final combinedBytes = Uint8List(iv.bytes.length + encrypted.bytes.length);
@@ -53,7 +54,13 @@ class EncryptionService {
       final encrypted = enc.Encrypted(encryptedBytes);
       
       final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-      return encrypter.decrypt(encrypted, iv: iv);
+      final decrypted = encrypter.decrypt(encrypted, iv: iv);
+      
+      if (!decrypted.startsWith('MM_ENC:')) {
+        throw Exception('Invalid magic header');
+      }
+      
+      return decrypted.substring(7);
     } catch (e) {
       throw Exception('Decryption failed: check password/PIN. $e');
     }
