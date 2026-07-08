@@ -1,5 +1,13 @@
 buildscript {
-    ext.kotlin_version = '1.9.22'
+    ext.kotlin_version = '2.1.0'
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://storage.googleapis.com/r8-releases/raw' }
+    }
+    dependencies {
+        classpath 'com.android.tools:r8:8.6.17'
+    }
 }
 
 allprojects {
@@ -14,10 +22,10 @@ subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
     project.configurations.all {
         resolutionStrategy {
-            force "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22"
-            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22"
-            force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.22"
+            force "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0"
+            force "org.jetbrains.kotlin:kotlin-stdlib-common:2.1.0"
         }
     }
 }

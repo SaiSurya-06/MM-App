@@ -1,0 +1,6 @@
+-dontwarn kotlin.time.**
+-dontwarn org.kxml2.**
+-dontwarn org.xmlpull.v1.**
+-dontwarn com.google.auth.oauth2.**
+-dontwarn com.google.api.client.**
+-dontwarn com.google.adk.**
