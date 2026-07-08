@@ -1,0 +1,151 @@
+[
+  {
+    "category": "Security",
+    "title": "👥 Multi-User Profiles",
+    "icon": "people_outline",
+    "color": "0xFF6C63FF",
+    "steps": [
+      "To create a new profile (e.g. Personal vs. Business), click \"Switch User Profile\" in Settings or tap \"Switch / Add Profile\" on the login PIN screen.",
+      "On the profile selector screen, tap \"Add Profile\" to create a separate space with a custom name, base currency, and a secure 4-digit PIN.",
+      "Basis: Each profile operates on its own completely isolated SQLite database instance, local preferences, and encryption keys. Switching profiles closes the current database session and re-initializes the app state for the new user."
+    ],
+    "summary": "Separate personal and business databases with custom PINs.",
+    "route": "/settings"
+  },
+  {
+    "category": "Security",
+    "title": "🔒 5-Attempt Security Lockout",
+    "icon": "lock_outline",
+    "color": "0xFFE53935",
+    "steps": [
+      "To prevent brute-force break-ins, the app tracks consecutive failed PIN attempts.",
+      "If a PIN is entered incorrectly 5 times in a row, a 30-minute security cooldown is activated.",
+      "How it works: A lockout timestamp is saved in local secure storage, disabling PIN pad entries. A countdown screen is shown. A background service triggers a system notification alert to warn you of a failed access attempt."
+    ],
+    "summary": "30-minute block after 5 failed PIN entry attempts.",
+    "route": ""
+  },
+  {
+    "category": "Transactions",
+    "title": "📝 Splitting, Recurrence & Templates",
+    "icon": "call_split",
+    "color": "0xFF00ACC1",
+    "steps": [
+      "Quick-Add Templates: Save frequent transactions (like coffee or transit) as templates. Select them in the Ledger to log entries instantly.",
+      "Split Transactions: When paying a combined bill (like dining), tap \"Split Transaction\" in the entry form to log individual amounts across multiple categories.",
+      "Smart Recurrence: Log recurring transactions. If a transaction falls on a weekend or public holiday, the app automatically shifts the log date to the next business day using regional calendar logic."
+    ],
+    "summary": "Instantly log templates, split bills, and shift weekend recurrences.",
+    "route": "/transactions"
+  },
+  {
+    "category": "Transactions",
+    "title": "📤 Ledger Exports & Bulk Actions",
+    "icon": "import_export",
+    "color": "0xFF009688",
+    "steps": [
+      "Search & Filter: Locate transactions instantly by typing in the search bar or selecting date, category, and account filters at the top of the Ledger.",
+      "Export formats: Tap the Export button to save transaction logs as CSV, JSON, or beautifully formatted PDF reports directly to your local downloads folder.",
+      "Bulk actions: Press and hold on a ledger item to activate multi-select mode. You can bulk-update categories or delete multiple transactions simultaneously to speed up ledger cleanup."
+    ],
+    "summary": "Search transactions, run bulk updates, and export logs to CSV, JSON, or PDF.",
+    "route": "/transactions"
+  },
+  {
+    "category": "Accounts",
+    "title": "💳 Card Types & Liquidity Management",
+    "icon": "credit_card_outlined",
+    "color": "0xFF4CAF50",
+    "steps": [
+      "Account Types: Log and manage separate accounts for Cash, Savings, checking accounts, and Credit Cards.",
+      "Aggregate Liquidity: At the top of the Accounts module, view your real-time total net liquidity across all cash/savings accounts while excluding credit card debts.",
+      "Limit Utilization: Set credit limits on card accounts. Receive automated alerts when card usage approaches 80% to maintain a healthy credit score.",
+      "Pending Payments: Track upcoming credit card payments and view how they will impact check/savings liquidity upon settlement."
+    ],
+    "summary": "Manage checking, savings, and credit cards with utilization alerts.",
+    "route": "/accounts"
+  },
+  {
+    "category": "Budgets",
+    "title": "📊 Simple Budget Architecture & Rollovers",
+    "icon": "pie_chart_outline",
+    "color": "0xFFFFB300",
+    "steps": [
+      "Overall Monthly Cap: Set a total monthly limit at the top of the Budgets screen. This sets an overall ceiling on expenses.",
+      "Category Limits: Set individual spending limits on expense categories. Income categories (like Salary) and Person-to-Person lending categories are excluded automatically.",
+      "Budget Groups: Group budgets into Essentials (e.g. Rent, Groceries), Lifestyle (e.g. Dining, Travel), or Savings to track aggregate allocations.",
+      "Budget Rollover: Enable budget rollover in settings to carry forward unused budget amounts to the next month."
+    ],
+    "summary": "Track overall caps, category limits, groups, and rollover.",
+    "route": "/budgets"
+  },
+  {
+    "category": "Goals",
+    "title": "🎯 Savings Goals & Optimizer",
+    "icon": "track_changes",
+    "color": "0xFFE91E63",
+    "steps": [
+      "Create a savings goal (e.g., Emergency Fund) with a target amount, color tag, and target date.",
+      "Goal Trajectory Optimizer: Select how many months earlier you want to reach your goal.",
+      "On what basis it works: The optimizer calculates your average savings velocity over the last 3 months, maps it against your goal, and suggests precise, rounded budget cuts in flexible categories (like Food, Entertainment) while skipping essential categories (like Rent, Utilities). If your current savings rate is zero or negative, it calculates a recommended baseline savings rate and budget cuts."
+    ],
+    "summary": "Create targets and use the trajectory optimizer to reach goals earlier.",
+    "route": "savings-goals"
+  },
+  {
+    "category": "Analytics",
+    "title": "📈 Layman Advanced Analytics",
+    "icon": "analytics_outlined",
+    "color": "0xFF1E88E5",
+    "steps": [
+      "Financial Health Score: A single score from 0 to 100 indicating financial safety.",
+      "How the Health Score works: It is calculated as: Health = 50% * SavingsRatio + 30% * BudgetCompliance - 10% * AnomalyDeductions + 10% * IncomeStability. A higher score means strong savings and strict budget compliance.",
+      "Trends & Forecasts: Uses Holt-Winters double exponential smoothing to predict next month's spending. A green percentage on a category means you spent less than your 6-month historical average, and red means you spent more.",
+      "YoY (Year-over-Year): Compares income/expense for this month across current and past years. This filters out seasonal variations (like higher heating bills in winter).",
+      "Compare Tab: Shows a direct side-by-side MoM comparison of current vs previous month category expenses."
+    ],
+    "summary": "Understand Health Score, spending trends, MoM comparisons, and YoY.",
+    "route": "/analytics-advanced"
+  },
+  {
+    "category": "Sync",
+    "title": "🔄 E2EE Syncing & Manual Control",
+    "icon": "sync",
+    "color": "0xFF8E24AA",
+    "steps": [
+      "End-to-End Encryption (E2EE): All data is encrypted locally on your device using an AES-256 key derived from your PIN before syncing to the cloud. The server never reads your financial data.",
+      "Manual Sync Control: To prevent annoying background refreshes, the app does not auto-sync or auto-refresh in the background.",
+      "On-Demand Sync: Synchronization is triggered manually by clicking the Sync button, giving you complete control of when updates are loaded.",
+      "Conflict Resolution: If a record was modified on another device, a prompt displays both versions side-by-side so you can choose which one to keep."
+    ],
+    "summary": "Zero-knowledge manual sync, offline queue, and delta updates.",
+    "route": "/partner-sharing"
+  },
+  {
+    "category": "Settings",
+    "title": "⚙️ Settings & Profile Manager",
+    "icon": "settings_brightness",
+    "color": "0xFF607D8B",
+    "steps": [
+      "PIN management: Change your secure login PIN anytime under Settings. The app will prompt verification of the old PIN before registering the new one.",
+      "Isolated profiles: Switch databases on the fly. Active user sessions are securely shut down and new db configurations are instantiated.",
+      "Theme configuration: Set dark/light modes or enable automatic theme adaptation based on system/battery-saver settings.",
+      "Reminders & Alerts: Configure daily transaction logging reminders and credit card limit alerts via system push notifications."
+    ],
+    "summary": "Update security, theme configurations, database options, and notifications.",
+    "route": "/settings"
+  },
+  {
+    "category": "Categories",
+    "title": "🏷️ Person to Person (P2P) Categories",
+    "icon": "person_pin",
+    "color": "0xFF9C27B0",
+    "steps": [
+      "Create a Category representing a person (e.g., category name \"A\", \"Bunty\", or a friend's name) and set its type to \"Person\".",
+      "Any transaction logged under a \"Person\" category represents a transaction done between A to B or B to A.",
+      "How it works: P2P transactions are treated as lending, borrowing, or peer transfers rather than categorical expenses or incomes. The app automatically excludes P2P transactions from regular category spending reports, monthly total expense/income statistics, category budgets, and health score calculations, ensuring your budgeting analytics remain clean."
+    ],
+    "summary": "Mark categories as Person to keep P2P lending separate from standard budgets.",
+    "route": "categories"
+  }
+]

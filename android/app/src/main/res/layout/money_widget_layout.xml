@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Money Manager"
+        android:textColor="#88FFFFFF"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:textAllCaps="true"
+        android:letterSpacing="0.1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center_vertical">
+
+        <!-- Net Worth section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Net Worth"
+            android:textColor="#B0FFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_net_worth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Today's Spend section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Today's Spend"
+            android:textColor="#B0FFFFFF"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_today_spend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="$0.00"
+            android:textColor="#E53935"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- Action buttons row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/btn_widget_expense"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="- Expense"
+            android:textColor="#FF5252"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/btn_widget_income"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="+ Income"
+            android:textColor="#69F0AE"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@android:color/transparent" />
+
+        <TextView
+            android:id="@+id/btn_widget_transfer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⇄ Transfer"
+            android:textColor="#40C4FF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:padding="6dp"
+            android:background="@android:color/transparent" />
+    </LinearLayout>
+
+</LinearLayout>
