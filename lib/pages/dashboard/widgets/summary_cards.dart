@@ -323,17 +323,18 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
           children: [
             // Income
             Expanded(
-              child: Material(
-                color: Colors.transparent,
+              child: GlassmorphismCard(
+                padding: EdgeInsets.zero,
+                borderRadius: 20,
+                color: isDark 
+                    ? Colors.green.withValues(alpha: 0.06) 
+                    : Colors.green.withValues(alpha: 0.04),
+                borderColor: Colors.green.withValues(alpha: 0.15),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () => _showTransactionsSheet(context, 'income'),
-                  child: GlassmorphismCard(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    color: isDark 
-                        ? Colors.green.withValues(alpha: 0.06) 
-                        : Colors.green.withValues(alpha: 0.04),
-                    borderColor: Colors.green.withValues(alpha: 0.15),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -382,17 +383,18 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
 
             // Expenses
             Expanded(
-              child: Material(
-                color: Colors.transparent,
+              child: GlassmorphismCard(
+                padding: EdgeInsets.zero,
+                borderRadius: 20,
+                color: isDark 
+                    ? const Color(0xFFE53935).withValues(alpha: 0.06) 
+                    : const Color(0xFFE53935).withValues(alpha: 0.04),
+                borderColor: const Color(0xFFE53935).withValues(alpha: 0.15),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () => _showTransactionsSheet(context, 'expense'),
-                  child: GlassmorphismCard(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    color: isDark 
-                        ? const Color(0xFFE53935).withValues(alpha: 0.06) 
-                        : const Color(0xFFE53935).withValues(alpha: 0.04),
-                    borderColor: const Color(0xFFE53935).withValues(alpha: 0.15),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
