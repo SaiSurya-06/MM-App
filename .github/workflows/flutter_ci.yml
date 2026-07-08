@@ -85,8 +85,8 @@ jobs:
         run: flutter pub get
 
       # ── Build ────────────────────────────────────────────────────
-      - name: 🔨 Build split release APKs
-        run: flutter build apk --release --split-per-abi
+      - name: 🔨 Build production APK
+        run: flutter build apk --release
 
       # ── Derive version tag from pubspec.yaml ─────────────────────
       - name: 🏷️ Derive version
@@ -99,20 +99,17 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       # ── Rename APKs with version for clarity ─────────────────────
-      - name: 📋 Rename APKs
+      - name: 📋 Rename APK
         run: |
-          cd build/app/outputs/flutter-apk
-          cp app-arm64-v8a-release.apk   MoneyManager-${{ steps.version.outputs.tag }}-arm64.apk
-          cp app-armeabi-v7a-release.apk MoneyManager-${{ steps.version.outputs.tag }}-arm32.apk
-          cp app-x86_64-release.apk      MoneyManager-${{ steps.version.outputs.tag }}-x86_64.apk
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             build/app/outputs/flutter-apk/MoneyManager-${{ steps.version.outputs.tag }}.apk
 
       # ── Upload APKs as workflow artifacts (always accessible) ─────
-      - name: ⬆️ Upload APKs as artifacts
+      - name: ⬆️ Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-apks-${{ steps.version.outputs.tag }}
-          path: |
-            build/app/outputs/flutter-apk/MoneyManager-*.apk
+          name: MoneyManager-${{ steps.version.outputs.tag }}
+          path: build/app/outputs/flutter-apk/MoneyManager-${{ steps.version.outputs.tag }}.apk
           retention-days: 30
 
       # ── Create a GitHub Release and attach all three APKs ─────────
@@ -129,20 +126,14 @@ jobs:
             **Branch:** ${{ github.ref_name }}
 
             ### 📲 Install
-            | APK | For |
-            |-----|-----|
-            | `*-arm64.apk` | ✅ Most modern phones (2018+) — **recommended** |
-            | `*-arm32.apk` | Older 32-bit Android devices |
-            | `*-x86_64.apk` | Emulators |
+            Download `MoneyManager-${{ steps.version.outputs.tag }}.apk` below.
+            Works on **all Android devices** (arm32, arm64, x86_64).
 
             > Enable **"Install from unknown sources"** in Android settings before installing.
 
             ### ✅ What's in this build
             - All CI checks passed (analyze + unit tests)
             - Built with Flutter stable channel
-          files: |
-            build/app/outputs/flutter-apk/MoneyManager-${{ steps.version.outputs.tag }}-arm64.apk
-            build/app/outputs/flutter-apk/MoneyManager-${{ steps.version.outputs.tag }}-arm32.apk
-            build/app/outputs/flutter-apk/MoneyManager-${{ steps.version.outputs.tag }}-x86_64.apk
+          files: build/app/outputs/flutter-apk/MoneyManager-${{ steps.version.outputs.tag }}.apk
           draft: false
           prerelease: false
