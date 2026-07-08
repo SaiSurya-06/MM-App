@@ -1,2 +1,0 @@
-C:/MOB/android/app/.cxx/RelWithDebInfo/pe1t546h/x86/CMakeFiles/edit_cache.dir
-C:/MOB/android/app/.cxx/RelWithDebInfo/pe1t546h/x86/CMakeFiles/rebuild_cache.dir

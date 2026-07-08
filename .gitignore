@@ -46,3 +46,7 @@ app.*.map.json
 *.apk
 /jdk-17/
 session-ses_*.md
+
+# Android NDK build cache
+android/app/.cxx/
+coverage/

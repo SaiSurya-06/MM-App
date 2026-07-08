@@ -1,2 +1,0 @@
-C:/MOB/android/app/.cxx/RelWithDebInfo/r1i71i23/x86/CMakeFiles/edit_cache.dir
-C:/MOB/android/app/.cxx/RelWithDebInfo/r1i71i23/x86/CMakeFiles/rebuild_cache.dir
