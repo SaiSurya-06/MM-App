@@ -81,7 +81,7 @@ class _AccountFormState extends ConsumerState<AccountForm> {
     bool success;
     if (widget.account == null) {
       // Create new account
-      success = await ref.read(accountsProvider.notifier).addAccount(
+      final newId = await ref.read(accountsProvider.notifier).addAccount(
             name,
             _selectedType,
             balance,
@@ -90,6 +90,7 @@ class _AccountFormState extends ConsumerState<AccountForm> {
             true,
             limit,
           );
+      success = newId != null;
     } else {
       // Update existing account
       final updated = widget.account!.copyWith(

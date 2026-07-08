@@ -799,7 +799,18 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                               if (categories.isNotEmpty) ...[
                                 const SizedBox(width: 8),
                                 _buildCategorySelectorChip(categories),
+                                if (txState.filterCategoryId != null) ...[
+                                  for (var sublist in [
+                                    categories.where((c) => c.parentId == txState.filterCategoryId).toList()
+                                  ])
+                                    if (sublist.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      _buildSubcategorySelectorChip(context, sublist),
+                                    ]
+                                ]
                               ],
+                              const SizedBox(width: 8),
+                              _buildDateRangeSelectorChip(context),
                             ],
                           ),
                         ),
@@ -1129,7 +1140,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             ),
             const PopupMenuDivider(),
           ];
-          items.addAll(categories.map((c) {
+          items.addAll(categories.where((c) => c.parentId == null).map((c) {
             return PopupMenuItem<int?>(
               value: c.id,
               child: Text(c.name, style: const TextStyle(fontSize: 13)),
@@ -1155,6 +1166,225 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             children: [
               Text(
                 selectedCategory.name,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 14,
+                color: isSelected ? Colors.white : Colors.grey,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubcategorySelectorChip(BuildContext context, List<Category> subcategories) {
+    final txState = ref.watch(transactionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final selectedSubcategory = subcategories.firstWhere(
+      (c) => c.id == txState.filterSubcategoryId,
+      orElse: () => const Category(name: 'All Subcategories', icon: '', color: '', isDefault: false, type: 'both'),
+    );
+
+    final isSelected = txState.filterSubcategoryId != null;
+
+    return Theme(
+      data: Theme.of(context).copyWith(canvasColor: isDark ? const Color(0xFF161625) : Colors.white),
+      child: PopupMenuButton<int?>(
+        initialValue: txState.filterSubcategoryId,
+        onSelected: (id) {
+          ref.read(transactionsProvider.notifier).setFilterSubcategory(id);
+        },
+        itemBuilder: (context) {
+          final items = <PopupMenuEntry<int?>>[
+            const PopupMenuItem<int?>(
+              value: null,
+              child: Text('All Subcategories', style: TextStyle(fontSize: 13)),
+            ),
+            const PopupMenuDivider(),
+          ];
+          items.addAll(subcategories.map((c) {
+            return PopupMenuItem<int?>(
+              value: c.id,
+              child: Text(c.name, style: const TextStyle(fontSize: 13)),
+            );
+          }));
+          return items;
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFE53935)
+                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFE53935)
+                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                selectedSubcategory.name,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontFamily: 'Inter',
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_drop_down,
+                size: 14,
+                color: isSelected ? Colors.white : Colors.grey,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRangeSelectorChip(BuildContext context) {
+    final txState = ref.watch(transactionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSelected = txState.filterDateRange != null;
+
+    String dateLabel = 'All-Time';
+    if (txState.filterDateRange != null) {
+      final start = txState.filterDateRange!.start;
+      final end = txState.filterDateRange!.end;
+      final now = DateTime.now();
+      final thisMonthStart = DateTime(now.year, now.month, 1);
+      final thisMonthEnd = DateTime(now.year, now.month + 1, 0);
+      final sevenDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 7));
+      final thirtyDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 30));
+
+      final startDay = DateTime(start.year, start.month, start.day);
+      final endDay = DateTime(end.year, end.month, end.day);
+      final todayMidnight = DateTime(now.year, now.month, now.day);
+
+      if (startDay == DateTime(thisMonthStart.year, thisMonthStart.month, thisMonthStart.day) &&
+          endDay == DateTime(thisMonthEnd.year, thisMonthEnd.month, thisMonthEnd.day)) {
+        dateLabel = 'This Month';
+      } else if (startDay == DateTime(sevenDaysAgo.year, sevenDaysAgo.month, sevenDaysAgo.day) &&
+          endDay == todayMidnight) {
+        dateLabel = 'Last 7 Days';
+      } else if (startDay == DateTime(thirtyDaysAgo.year, thirtyDaysAgo.month, thirtyDaysAgo.day) &&
+          endDay == todayMidnight) {
+        dateLabel = 'Last 30 Days';
+      } else {
+        final df = DateFormat('MMM dd');
+        dateLabel = '${df.format(start)} - ${df.format(end)}';
+      }
+    }
+
+    return Theme(
+      data: Theme.of(context).copyWith(canvasColor: isDark ? const Color(0xFF161625) : Colors.white),
+      child: PopupMenuButton<String>(
+        initialValue: isSelected ? 'custom' : 'all',
+        onSelected: (val) async {
+          final now = DateTime.now();
+          final todayMidnight = DateTime(now.year, now.month, now.day);
+          if (val == 'all') {
+            ref.read(transactionsProvider.notifier).setFilterDateRange(null);
+          } else if (val == 'this_month') {
+            final start = DateTime(now.year, now.month, 1);
+            final end = DateTime(now.year, now.month + 1, 0);
+            ref.read(transactionsProvider.notifier).setFilterDateRange(
+              tp.DateTimeRange(start: start, end: end),
+            );
+          } else if (val == '7_days') {
+            final start = todayMidnight.subtract(const Duration(days: 7));
+            ref.read(transactionsProvider.notifier).setFilterDateRange(
+              tp.DateTimeRange(start: start, end: todayMidnight),
+            );
+          } else if (val == '30_days') {
+            final start = todayMidnight.subtract(const Duration(days: 30));
+            ref.read(transactionsProvider.notifier).setFilterDateRange(
+              tp.DateTimeRange(start: start, end: todayMidnight),
+            );
+          } else if (val == 'custom') {
+            final picked = await showDateRangePicker(
+              context: context,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2101),
+              initialDateRange: txState.filterDateRange != null
+                  ? DateTimeRange(
+                      start: txState.filterDateRange!.start,
+                      end: txState.filterDateRange!.end,
+                    )
+                  : null,
+            );
+            if (picked != null) {
+              ref.read(transactionsProvider.notifier).setFilterDateRange(
+                tp.DateTimeRange(start: picked.start, end: picked.end),
+              );
+            }
+          }
+        },
+        itemBuilder: (context) {
+          return const [
+            PopupMenuItem<String>(
+              value: 'all',
+              child: Text('All-Time', style: TextStyle(fontSize: 13)),
+            ),
+            PopupMenuItem<String>(
+              value: 'this_month',
+              child: Text('This Month', style: TextStyle(fontSize: 13)),
+            ),
+            PopupMenuItem<String>(
+              value: '7_days',
+              child: Text('Last 7 Days', style: TextStyle(fontSize: 13)),
+            ),
+            PopupMenuItem<String>(
+              value: '30_days',
+              child: Text('Last 30 Days', style: TextStyle(fontSize: 13)),
+            ),
+            PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'custom',
+              child: Text('Custom Range...', style: TextStyle(fontSize: 13)),
+            ),
+          ];
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFFE53935)
+                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFE53935)
+                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 11,
+                color: isSelected ? Colors.white : Colors.grey,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                dateLabel,
                 style: TextStyle(
                   color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
                   fontSize: 12,

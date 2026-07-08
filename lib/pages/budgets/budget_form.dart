@@ -5,6 +5,7 @@ import '../../../providers/auth_provider.dart';
 import '../../../widgets/common/toast_notification.dart';
 import '../../core/database/database.dart';
 import '../../../models/budget.dart';
+import '../../core/utils/currency_formatter.dart';
 
 class BudgetForm extends ConsumerStatefulWidget {
   final int? categoryId;
@@ -167,6 +168,7 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final budgetsState = ref.watch(budgetsProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -224,6 +226,7 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
                   builder: (context, snapshot) {
                     final name = snapshot.data ?? 'Loading...';
                     return TextFormField(
+                      key: ValueKey(name),
                       initialValue: name,
                       decoration: const InputDecoration(
                         labelText: 'Category',
@@ -336,6 +339,61 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
                   return null;
                 },
               ),
+
+              // Rollover limit explanation
+              () {
+                final categoryId = widget.categoryId ?? _selectedCategoryId;
+                if (categoryId == null) return const SizedBox.shrink();
+                final rollover = budgetsState.categoryRollovers[categoryId] ?? 0.0;
+                if (rollover == 0.0) return const SizedBox.shrink();
+                
+                final currency = ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
+                final isNegative = rollover < 0;
+                final absRollover = CurrencyFormatter.format(rollover.abs(), currency);
+                
+                return Padding(
+                  padding: const EdgeInsets.only(top: 12.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isNegative 
+                          ? Colors.red.withValues(alpha: 0.05) 
+                          : Colors.green.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isNegative 
+                            ? Colors.red.withValues(alpha: 0.15) 
+                            : Colors.green.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isNegative ? Icons.warning_amber_rounded : Icons.info_outline,
+                          color: isNegative ? Colors.red : Colors.green,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            isNegative
+                                ? 'Note: You overspent by $absRollover last month. Your effective limit will be Base Limit - $absRollover overspend.'
+                                : 'Note: You had $absRollover leftover last month. Your effective limit will be Base Limit + $absRollover savings.',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark ? Colors.white70 : Colors.black87,
+                              height: 1.4,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }(),
 
               // Auto-suggest limit badge
               if (_selectedCategoryId != null) ...[

@@ -46,14 +46,14 @@ class CategoriesNotifier extends StateNotifier<CategoriesState> {
     }
   }
 
-  Future<bool> addCategory(Category category) async {
+  Future<int?> addCategory(Category category) async {
     try {
-      await _categoryDao.insertCategory(category);
+      final id = await _categoryDao.insertCategory(category);
       await loadCategories();
-      return true;
+      return id;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to add category: $e');
-      return false;
+      return null;
     }
   }
 

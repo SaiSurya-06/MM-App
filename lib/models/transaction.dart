@@ -23,6 +23,7 @@ class Transaction with _$Transaction {
     @JsonKey(name: 'parent_id') int? parentId,
     @JsonKey(name: 'transfer_to_account_id') int? transferToAccountId,
     @JsonKey(name: 'created_at') required DateTime createdAt,
+    @JsonKey(name: 'subcategory_id') int? subcategoryId,
   }) = _Transaction;
 
   factory Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);

@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
 
 import '../../providers/partner_sync_provider.dart';
 import '../../widgets/common/glassmorphism_card.dart';
@@ -979,7 +980,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _buildPillTabBar(
             selectedIndex: _dashboardTabIndex,
-            tabs: const ['Accounts', 'Transactions Ledger'],
+            tabs: const ['Accounts', 'Transactions Ledger', 'Calendar'],
             onTap: (index) {
               setState(() {
                 _dashboardTabIndex = index;
@@ -993,7 +994,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
         Expanded(
           child: _dashboardTabIndex == 0
               ? _buildAccountsGrid(syncState, textColor, subTextColor)
-              : _buildTransactionsLedger(syncState, isDark, textColor, subTextColor),
+              : (_dashboardTabIndex == 1
+                  ? _buildTransactionsLedger(syncState, isDark, textColor, subTextColor)
+                  : _buildPartnerCalendar(syncState)),
         ),
       ],
     );
@@ -1438,4 +1441,362 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
       ],
     );
   }
+
+  Widget _buildPartnerCalendar(PartnerSyncState syncState) {
+    if (syncState.partnerTransactions.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.calendar_today_outlined, size: 48, color: Colors.grey),
+            SizedBox(height: 12),
+            Text(
+              'No transaction history synced.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return _PartnerCalendarView(
+      transactions: syncState.partnerTransactions,
+      currency: syncState.partnerCurrency,
+    );
+  }
+
+  void _showPartnerTransactionDetailsDialog(PartnerTransaction tx, String currency) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+          title: Text(tx.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Amount: ${CurrencyFormatter.format(tx.amount, currency)}'),
+              const SizedBox(height: 8),
+              Text('Date: ${DateFormat('yyyy-MM-dd').format(tx.date)}'),
+              const SizedBox(height: 8),
+              Text('Type: ${tx.type.toUpperCase()}'),
+              const SizedBox(height: 8),
+              Text('Account: ${tx.accountName}'),
+              const SizedBox(height: 8),
+              Text('Category: ${tx.categoryName}'),
+              if (tx.note != null && tx.note!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text('Note: ${tx.note}'),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Partner Calendar View – lightweight monthly heatmap using PartnerTransaction
+// ─────────────────────────────────────────────────────────────────────────────
+class _PartnerCalendarView extends StatefulWidget {
+  final List<PartnerTransaction> transactions;
+  final String currency;
+
+  const _PartnerCalendarView({
+    required this.transactions,
+    required this.currency,
+  });
+
+  @override
+  State<_PartnerCalendarView> createState() => _PartnerCalendarViewState();
+}
+
+class _PartnerCalendarViewState extends State<_PartnerCalendarView> {
+  late DateTime _focusedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  }
+
+  Map<String, List<PartnerTransaction>> get _dailyMap {
+    final map = <String, List<PartnerTransaction>>{};
+    for (final tx in widget.transactions) {
+      final key = '${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}-${tx.date.day.toString().padLeft(2, '0')}';
+      map.putIfAbsent(key, () => []).add(tx);
+    }
+    return map;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A26);
+    final subColor = isDark ? const Color(0xFFB0B0C0) : const Color(0xFF6C6C7D);
+    final daily = _dailyMap;
+
+    final firstDay = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final lastDay = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0);
+    final startWeekday = firstDay.weekday % 7; // 0 = Sunday
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        children: [
+          // Month navigation
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => setState(() {
+                  _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1, 1);
+                }),
+              ),
+              Text(
+                DateFormat('MMMM yyyy').format(_focusedMonth),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: textColor, fontFamily: 'Inter'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => setState(() {
+                  _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 1);
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Day-of-week headers
+          Row(
+            children: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) {
+              return Expanded(
+                child: Center(
+                  child: Text(d, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: subColor, fontFamily: 'Inter')),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 8),
+
+          // Calendar grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
+              childAspectRatio: 1,
+            ),
+            itemCount: startWeekday + lastDay.day,
+            itemBuilder: (context, index) {
+              if (index < startWeekday) {
+                return const SizedBox.shrink();
+              }
+              final day = index - startWeekday + 1;
+              final dateKey = '${_focusedMonth.year}-${_focusedMonth.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+              final txsForDay = daily[dateKey] ?? [];
+              final hasActivity = txsForDay.isNotEmpty;
+
+              final totalExpense = txsForDay
+                  .where((t) => t.type == 'expense')
+                  .fold(0.0, (sum, t) => sum + t.amount);
+              final totalIncome = txsForDay
+                  .where((t) => t.type == 'income')
+                  .fold(0.0, (sum, t) => sum + t.amount);
+
+              Color dotColor = Colors.transparent;
+              if (totalExpense > 0 && totalIncome > 0) {
+                dotColor = Colors.amber;
+              } else if (totalExpense > 0) {
+                dotColor = const Color(0xFFE53935);
+              } else if (totalIncome > 0) {
+                dotColor = Colors.green;
+              }
+
+              return GestureDetector(
+                onTap: hasActivity
+                    ? () => _showDaySheet(
+                          DateTime(_focusedMonth.year, _focusedMonth.month, day),
+                          txsForDay,
+                        )
+                    : null,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: hasActivity
+                        ? dotColor.withValues(alpha: 0.12)
+                        : (isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02)),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: hasActivity
+                          ? dotColor.withValues(alpha: 0.4)
+                          : Colors.transparent,
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$day',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: hasActivity ? FontWeight.bold : FontWeight.normal,
+                          color: hasActivity ? dotColor : subColor,
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      if (hasActivity)
+                        Container(
+                          width: 4,
+                          height: 4,
+                          margin: const EdgeInsets.only(top: 2),
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Legend
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _legendDot(Colors.green, 'Income'),
+              const SizedBox(width: 16),
+              _legendDot(const Color(0xFFE53935), 'Expense'),
+              const SizedBox(width: 16),
+              _legendDot(Colors.amber, 'Both'),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _legendDot(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 11, fontFamily: 'Inter')),
+      ],
+    );
+  }
+
+  void _showDaySheet(DateTime date, List<PartnerTransaction> txs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    DateFormat('MMMM d, yyyy').format(date),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                      fontFamily: 'Inter',
+                      color: isDark ? Colors.white : const Color(0xFF1A1A26),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: txs.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final tx = txs[i];
+                        final isExpense = tx.type == 'expense';
+                        final amountColor = isExpense
+                            ? const Color(0xFFE53935)
+                            : Colors.green;
+                        return ListTile(
+                          leading: Container(
+                            width: 36, height: 36,
+                            decoration: BoxDecoration(
+                              color: amountColor.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isExpense ? Icons.arrow_upward : Icons.arrow_downward,
+                              color: amountColor,
+                              size: 18,
+                            ),
+                          ),
+                          title: Text(
+                            tx.title,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Inter'),
+                          ),
+                          subtitle: Text(
+                            '${tx.categoryName} · ${tx.accountName}',
+                            style: const TextStyle(fontSize: 11, fontFamily: 'Inter'),
+                          ),
+                          trailing: Text(
+                            '${isExpense ? '-' : '+'}${CurrencyFormatter.format(tx.amount, widget.currency)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: amountColor,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+

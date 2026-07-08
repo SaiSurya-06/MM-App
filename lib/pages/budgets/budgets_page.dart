@@ -743,10 +743,12 @@ class CompactBudgetBentoCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Limit: ${CurrencyFormatter.format(totalLimit, currency)}',
+                  rollover == 0.0
+                      ? 'Limit: ${CurrencyFormatter.format(totalLimit, currency)}'
+                      : 'Limit: ${CurrencyFormatter.format(totalLimit, currency)} (${CurrencyFormatter.format(limit, currency)} base ${rollover < 0 ? '-' : '+'} ${CurrencyFormatter.format(rollover.abs(), currency)} rollover)',
                   style: const TextStyle(
                     color: Colors.grey,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontFamily: 'Inter',
                   ),
                   maxLines: 1,

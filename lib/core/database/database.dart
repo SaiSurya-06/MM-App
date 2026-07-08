@@ -54,7 +54,7 @@ class AppDatabase {
 
     final db = await openDatabase(
       path,
-      version: 9,
+      version: 10,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -216,6 +216,13 @@ class AppDatabase {
         assert(() { debugPrint('[DB migration v9] $e'); return true; }());
       }
     }
+    if (oldVersion < 10) {
+      try {
+        await db.execute("ALTER TABLE transaction_log ADD COLUMN subcategory_id INTEGER");
+      } catch (e) {
+        assert(() { debugPrint('[DB migration v10] $e'); return true; }());
+      }
+    }
   }
 
   Future<void> _migrateNotesToColumn(Database db) async {
@@ -354,8 +361,10 @@ class AppDatabase {
         parent_id INTEGER,
         transfer_to_account_id INTEGER,
         created_at TEXT NOT NULL,
+        subcategory_id INTEGER,
         FOREIGN KEY (account_id) REFERENCES account (id) ON DELETE CASCADE,
-        FOREIGN KEY (category_id) REFERENCES category (id) ON DELETE CASCADE
+        FOREIGN KEY (category_id) REFERENCES category (id) ON DELETE CASCADE,
+        FOREIGN KEY (subcategory_id) REFERENCES category (id) ON DELETE SET NULL
       )
     ''');
 

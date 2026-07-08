@@ -44,7 +44,7 @@ class AccountsNotifier extends StateNotifier<AccountsState> {
     }
   }
 
-  Future<bool> addAccount(String name, String type, double balance, String icon, String color, bool isShared, [double? limitAmount]) async {
+  Future<int?> addAccount(String name, String type, double balance, String icon, String color, bool isShared, [double? limitAmount]) async {
     try {
       final newAccount = Account(
         name: name,
@@ -59,10 +59,10 @@ class AccountsNotifier extends StateNotifier<AccountsState> {
       final id = await _accountDao.insertAccount(newAccount);
       await loadAccounts();
       await AppDatabase.queueSyncAction('insert', 'account', id, newAccount.copyWith(id: id).toMap());
-      return true;
+      return id;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to add account: $e');
-      return false;
+      return null;
     }
   }
 

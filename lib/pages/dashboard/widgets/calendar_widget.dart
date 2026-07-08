@@ -9,10 +9,16 @@ import '../../../providers/auth_provider.dart';
 
 class CalendarWidget extends ConsumerStatefulWidget {
   final List<Transaction> transactions;
+  final bool isReadOnly;
+  final String? currencyOverride;
+  final void Function(Transaction)? onTransactionTap;
 
   const CalendarWidget({
     super.key,
     required this.transactions,
+    this.isReadOnly = false,
+    this.currencyOverride,
+    this.onTransactionTap,
   });
 
   @override
@@ -88,7 +94,7 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
   }
 
   void _showDayTransactionsBottomSheet(DateTime date, List<Transaction> txs) {
-    final currency = ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
+    final currency = widget.currencyOverride ?? ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Pre-calculate income & expense totals for this day
@@ -144,14 +150,15 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                           fontFamily: 'Inter',
                         ),
                       ),
-                      IconButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _openTransactionForm(date);
-                        },
-                        icon: const Icon(Icons.add_circle,
-                            color: Color(0xFFE53935), size: 30),
-                      ),
+                      if (!widget.isReadOnly)
+                        IconButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _openTransactionForm(date);
+                          },
+                          icon: const Icon(Icons.add_circle,
+                              color: Color(0xFFE53935), size: 30),
+                        ),
                     ],
                   ),
 
@@ -356,8 +363,14 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                                 const EdgeInsets.symmetric(vertical: 4.0),
                             child: InkWell(
                               onTap: () {
-                                Navigator.pop(context);
-                                _openTransactionForm(date, tx);
+                                if (widget.isReadOnly) {
+                                  if (widget.onTransactionTap != null) {
+                                    widget.onTransactionTap!(tx);
+                                  }
+                                } else {
+                                  Navigator.pop(context);
+                                  _openTransactionForm(date, tx);
+                                }
                               },
                               borderRadius: BorderRadius.circular(12),
                               child: Padding(

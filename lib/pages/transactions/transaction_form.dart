@@ -40,6 +40,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
   int? _selectedTargetAccountId; // Only for transfers
   int? _selectedCreditCardAccountId; // Target credit card for payback category
   int? _selectedCategoryId;
+  int? _selectedSubcategoryId;
   late DateTime _selectedDate;
   late String _selectedRecurrence; // 'none', 'daily', 'weekly', 'monthly', 'yearly'
   DateTime? _selectedRecurrenceEndDate;
@@ -72,8 +73,9 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       final typeChanged = _selectedType != tx.type;
       final accountChanged = _selectedAccountId != tx.accountId;
       final categoryChanged = _selectedCategoryId != tx.categoryId;
+      final subcategoryChanged = _selectedSubcategoryId != tx.subcategoryId;
       
-      return titleChanged || amountChanged || noteChanged || tagsChanged || typeChanged || accountChanged || categoryChanged;
+      return titleChanged || amountChanged || noteChanged || tagsChanged || typeChanged || accountChanged || categoryChanged || subcategoryChanged;
     }
   }
 
@@ -99,6 +101,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     _selectedCreditCardAccountId = tx?.transferToAccountId ?? _parseCreditCardTargetAccountId(tx?.note);
 
     _selectedCategoryId = tx?.categoryId;
+    _selectedSubcategoryId = tx?.subcategoryId;
 
     if (tx != null && tx.id != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -393,6 +396,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
             isPrivate: false,
             tags: tags,
             transferToAccountId: transferToAccountId,
+            subcategoryId: _selectedSubcategoryId,
           );
       success = parentId != null;
     } else {
@@ -410,6 +414,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         isPrivate: false,
         tags: tags,
         transferToAccountId: transferToAccountId,
+        subcategoryId: _selectedSubcategoryId,
       );
       
       // If updating a split transaction, remove its old child rows first
@@ -500,14 +505,14 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
 
     final standardCategories = allCategories.where((cat) {
       if (_selectedType == 'income') {
-        return (cat.type == 'income' || cat.type == 'both') && cat.type != 'person';
+        return (cat.type == 'income' || cat.type == 'both') && cat.type != 'person' && cat.parentId == null;
       } else if (_selectedType == 'expense') {
-        return (cat.type == 'expense' || cat.type == 'both') && cat.type != 'person';
+        return (cat.type == 'expense' || cat.type == 'both') && cat.type != 'person' && cat.parentId == null;
       }
-      return cat.type != 'person';
+      return cat.type != 'person' && cat.parentId == null;
     }).toList();
 
-    final personCategories = allCategories.where((cat) => cat.type == 'person').toList();
+    final personCategories = allCategories.where((cat) => cat.type == 'person' && cat.parentId == null).toList();
 
     if (!_initializedMode && !isLoadingCategories) {
       _initializedMode = true;
@@ -518,6 +523,12 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         );
         if (txCategory.type == 'person') {
           _categorizeMode = 'person';
+        }
+        if (txCategory.parentId != null) {
+          _selectedSubcategoryId = txCategory.id;
+          _selectedCategoryId = txCategory.parentId;
+        } else {
+          _selectedSubcategoryId = widget.transaction!.subcategoryId;
         }
       }
     }
@@ -682,23 +693,35 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
 
               // Account dropdown
               if (accounts.isNotEmpty)
-                DropdownButtonFormField<int>(
-                  value: _selectedAccountId,
-                  decoration: InputDecoration(
-                    labelText: _selectedType == 'transfer' ? 'Source Account' : 'Account',
-                    prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
-                  ),
-                  dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                  items: accounts.map((acc) {
-                    return DropdownMenuItem(value: acc.id, child: Text(acc.name));
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedAccountId = val;
-                      });
-                    }
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<int>(
+                        value: _selectedAccountId,
+                        decoration: InputDecoration(
+                          labelText: _selectedType == 'transfer' ? 'Source Account' : 'Account',
+                          prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                        ),
+                        dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                        items: accounts.map((acc) {
+                          return DropdownMenuItem(value: acc.id, child: Text(acc.name));
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              _selectedAccountId = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, color: Color(0xFFE53935)),
+                      onPressed: () => _showQuickAddAccountDialog(context),
+                      tooltip: 'Quick Add Account',
+                    ),
+                  ],
                 ),
 
               const SizedBox(height: 16),
@@ -840,27 +863,40 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
 
                 // Now show the actual dropdown or "Add Person" message
                 if (_categorizeMode == 'category' && standardCategories.isNotEmpty) ...[
-                  DropdownButtonFormField<int>(
-                    value: _selectedCategoryId,
-                    decoration: const InputDecoration(
-                      labelText: 'Category',
-                      prefixIcon: Icon(Icons.category_outlined),
-                    ),
-                    dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                    items: standardCategories.map((cat) {
-                      return DropdownMenuItem(
-                        value: cat.id,
-                        child: Text(cat.name),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _selectedCategoryId = val;
-                          _isAutoCategorized = false;
-                        });
-                      }
-                    },
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedCategoryId,
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                            prefixIcon: Icon(Icons.category_outlined),
+                          ),
+                          dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                          items: standardCategories.map((cat) {
+                            return DropdownMenuItem(
+                              value: cat.id,
+                              child: Text(cat.name),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedCategoryId = val;
+                                _selectedSubcategoryId = null; // Reset subcategory when category changes
+                                _isAutoCategorized = false;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline, color: Color(0xFFE53935)),
+                        onPressed: () => _showQuickAddCategoryDialog(context),
+                        tooltip: 'Quick Add Category',
+                      ),
+                    ],
                   ),
                   if (_isAutoCategorized) ...[
                     const SizedBox(height: 4),
@@ -881,29 +917,92 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     ),
                   ],
                   const SizedBox(height: 16),
+
+                  // Sub-category Selector Section
+                  () {
+                    final subcategories = allCategories.where((c) => c.parentId == _selectedCategoryId).toList();
+                    if (subcategories.isEmpty) return const SizedBox.shrink();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<int?>(
+                                value: subcategories.any((sub) => sub.id == _selectedSubcategoryId)
+                                    ? _selectedSubcategoryId
+                                    : null,
+                                decoration: const InputDecoration(
+                                  labelText: 'Sub-category (Optional)',
+                                  prefixIcon: Icon(Icons.subdirectory_arrow_right),
+                                ),
+                                dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                                items: [
+                                  const DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text('None'),
+                                  ),
+                                  ...subcategories.map((sub) {
+                                    return DropdownMenuItem<int?>(
+                                      value: sub.id,
+                                      child: Text(sub.name),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _selectedSubcategoryId = val;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Color(0xFFE53935)),
+                              onPressed: () => _showQuickAddSubcategoryDialog(context),
+                              tooltip: 'Quick Add Sub-category',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }(),
                 ] else if (_categorizeMode == 'person') ...[
                   if (personCategories.isNotEmpty) ...[
-                    DropdownButtonFormField<int>(
-                      value: _selectedCategoryId,
-                      decoration: const InputDecoration(
-                        labelText: 'Select Person',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
-                      items: personCategories.map((cat) {
-                        return DropdownMenuItem(
-                          value: cat.id,
-                          child: Text(cat.name),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() {
-                            _selectedCategoryId = val;
-                            _isAutoCategorized = false;
-                          });
-                        }
-                      },
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedCategoryId,
+                            decoration: const InputDecoration(
+                              labelText: 'Select Person',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                            items: personCategories.map((cat) {
+                              return DropdownMenuItem(
+                                value: cat.id,
+                                child: Text(cat.name),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _selectedCategoryId = val;
+                                  _isAutoCategorized = false;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, color: Color(0xFFE53935)),
+                          onPressed: () => _showQuickAddPersonDialog(context),
+                          tooltip: 'Quick Add Person',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                   ] else ...[
@@ -1291,17 +1390,24 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
         onTap: () {
           setState(() {
             _selectedType = type;
-            if (type == 'transfer') {
-              _selectedCategoryId = null;
-            } else {
-              final cats = ref.read(categoriesProvider).categories;
-              final filtered = cats.where((cat) {
-                if (type == 'income') return cat.type == 'income' || cat.type == 'both' || cat.type == 'person';
-                return cat.type == 'expense' || cat.type == 'both' || cat.type == 'person';
+            _initializedMode = false;
+            
+            // Re-evaluate defaults on type change
+            final categoriesState = ref.read(categoriesProvider);
+            if (!categoriesState.isLoading) {
+              final filtered = categoriesState.categories.where((cat) {
+                if (cat.parentId != null) return false;
+                if (_selectedType == 'income') {
+                  return cat.type == 'income' || cat.type == 'both' || cat.type == 'person';
+                } else if (_selectedType == 'expense') {
+                  return cat.type == 'expense' || cat.type == 'both' || cat.type == 'person';
+                }
+                return cat.type != 'person';
               }).toList();
               if (filtered.isNotEmpty) {
                 if (_selectedCategoryId == null || !filtered.any((c) => c.id == _selectedCategoryId)) {
                   _selectedCategoryId = filtered.first.id;
+                  _selectedSubcategoryId = null;
                 }
               }
             }
@@ -1336,5 +1442,407 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       ),
     );
   }
-}
 
+  String _getDarkVariant(String lightHex) {
+    switch (lightHex.toUpperCase()) {
+      case 'E53935': return 'B71C1C';
+      case '4CAF50': return '1B5E20';
+      case '1E88E5': return '0D47A1';
+      case 'FFB300': return 'FF6F00';
+      case '8E24AA': return '4A148C';
+      case '00ACC1': return '006064';
+      case 'FB8C00': return 'E65100';
+      case 'F06292': return '880E4F';
+      case '4DB6AC': return '004D40';
+      case '795548': return '3E2723';
+      case '757575': return '212121';
+      case '3F51B5': return '1A237E';
+      default: return '212121';
+    }
+  }
+
+  void _showQuickAddCategoryDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameController = TextEditingController();
+    String selectedType = _selectedType == 'transfer' ? 'expense' : _selectedType;
+    String selectedColor = '757575'; // default Grey
+    String selectedIcon = 'category'; // default
+
+    final List<String> popularColors = [
+      'E53935', // Red
+      '4CAF50', // Green
+      '1E88E5', // Blue
+      'FFB300', // Amber
+      '8E24AA', // Purple
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              title: const Text('Quick Add Category', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Category Name',
+                        hintText: 'e.g. Shopping',
+                      ),
+                      textCapitalization: TextCapitalization.sentences,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Type', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _buildDialogTypeBtn(setDialogState, 'expense', 'Expense', const Color(0xFFE53935), selectedType, (type) {
+                          selectedType = type;
+                        }),
+                        const SizedBox(width: 8),
+                        _buildDialogTypeBtn(setDialogState, 'income', 'Income', Colors.green, selectedType, (type) {
+                          selectedType = type;
+                        }),
+                        const SizedBox(width: 8),
+                        _buildDialogTypeBtn(setDialogState, 'both', 'Both', Colors.blue, selectedType, (type) {
+                          selectedType = type;
+                        }),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Select Color', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: popularColors.map((colorHex) {
+                        final color = Color(int.parse('0xFF$colorHex'));
+                        final isSelected = selectedColor == colorHex;
+                        return GestureDetector(
+                          onTap: () => setDialogState(() => selectedColor = colorHex),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: isDark ? Colors.white : Colors.black, width: 2)
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53935),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+
+                    final newCat = Category(
+                      name: name,
+                      type: selectedType,
+                      icon: selectedIcon,
+                      color: selectedColor,
+                      isDefault: false,
+                      darkColor: _getDarkVariant(selectedColor),
+                    );
+
+                    final newId = await ref.read(categoriesProvider.notifier).addCategory(newCat);
+                    if (newId != null && context.mounted) {
+                      setState(() {
+                        _selectedCategoryId = newId;
+                        _selectedSubcategoryId = null;
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDialogTypeBtn(
+    StateSetter setDialogState,
+    String type,
+    String label,
+    Color color,
+    String currentSelectedType,
+    ValueChanged<String> onSelected,
+  ) {
+    final active = currentSelectedType == type;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setDialogState(() {
+            onSelected(type);
+          });
+        },
+        child: Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: active ? color : (isDark ? const Color(0xFF282838) : Colors.black.withValues(alpha: 0.02)),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showQuickAddSubcategoryDialog(BuildContext context) {
+    if (_selectedCategoryId == null) return;
+
+    final allCats = ref.read(categoriesProvider).categories;
+    final parentCat = allCats.firstWhere(
+      (c) => c.id == _selectedCategoryId,
+      orElse: () => const Category(name: '', icon: 'category', color: '757575', isDefault: false),
+    );
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+          title: Text('Quick Add Sub-category under ${parentCat.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Sub-category Name',
+              hintText: 'e.g. Zomato',
+            ),
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE53935),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+
+                final newSub = Category(
+                  name: name,
+                  type: parentCat.type,
+                  icon: parentCat.icon,
+                  color: parentCat.color,
+                  isDefault: false,
+                  parentId: parentCat.id,
+                  darkColor: parentCat.darkColor,
+                );
+
+                final newId = await ref.read(categoriesProvider.notifier).addCategory(newSub);
+                if (newId != null && context.mounted) {
+                  setState(() {
+                    _selectedSubcategoryId = newId;
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showQuickAddPersonDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+          title: const Text('Quick Add Person', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Person Name',
+              hintText: 'e.g. John Doe',
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE53935),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+
+                final newPerson = Category(
+                  name: name,
+                  type: 'person',
+                  icon: 'person',
+                  color: '8E24AA',
+                  isDefault: false,
+                  darkColor: '4A148C',
+                );
+
+                final newId = await ref.read(categoriesProvider.notifier).addCategory(newPerson);
+                if (newId != null && context.mounted) {
+                  setState(() {
+                    _selectedCategoryId = newId;
+                    _selectedSubcategoryId = null;
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showQuickAddAccountDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameController = TextEditingController();
+    final balanceController = TextEditingController(text: '0');
+    String selectedType = 'Bank';
+    String selectedColor = '1E88E5'; // default Blue
+
+    final types = ['Bank', 'Credit Card', 'Cash', 'Investment', 'Other'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              title: const Text('Quick Add Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Account Name',
+                        hintText: 'e.g. HDFC Bank',
+                      ),
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      decoration: const InputDecoration(
+                        labelText: 'Account Type',
+                      ),
+                      dropdownColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+                      items: types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            selectedType = val;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: balanceController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Initial Balance',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53935),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+
+                    final balance = double.tryParse(balanceController.text) ?? 0.0;
+                    final isShared = false;
+
+                    final newId = await ref.read(accountsProvider.notifier).addAccount(
+                      name,
+                      selectedType,
+                      balance,
+                      'account_balance',
+                      selectedColor,
+                      isShared,
+                    );
+
+                    if (newId != null && context.mounted) {
+                      setState(() {
+                        _selectedAccountId = newId;
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}

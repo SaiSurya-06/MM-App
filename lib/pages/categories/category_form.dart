@@ -116,7 +116,8 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
         spendingLimit: spendingLimit,
         darkColor: _getDarkVariant(_selectedColor),
       );
-      success = await ref.read(categoriesProvider.notifier).addCategory(newCat);
+      final newId = await ref.read(categoriesProvider.notifier).addCategory(newCat);
+      success = newId != null;
     }
 
     if (success && mounted) {

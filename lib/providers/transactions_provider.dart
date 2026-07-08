@@ -28,6 +28,7 @@ class TransactionsState {
   final String? filterType; // 'income', 'expense', 'transfer'
   final int? filterAccountId;
   final int? filterCategoryId;
+  final int? filterSubcategoryId;
   final DateTimeRange? filterDateRange;
   final String searchQuery;
   final double? minAmount;
@@ -44,6 +45,7 @@ class TransactionsState {
     this.filterType,
     this.filterAccountId,
     this.filterCategoryId,
+    this.filterSubcategoryId,
     this.filterDateRange,
     this.searchQuery = '',
     this.minAmount,
@@ -61,6 +63,7 @@ class TransactionsState {
     String? filterType,
     int? filterAccountId,
     int? filterCategoryId,
+    int? filterSubcategoryId,
     DateTimeRange? filterDateRange,
     String? searchQuery,
     double? minAmount,
@@ -70,6 +73,7 @@ class TransactionsState {
     bool clearType = false,
     bool clearAccount = false,
     bool clearCategory = false,
+    bool clearSubcategory = false,
     bool clearDateRange = false,
     bool clearMinAmount = false,
     bool clearMaxAmount = false,
@@ -83,6 +87,7 @@ class TransactionsState {
       filterType: clearType ? null : (filterType ?? this.filterType),
       filterAccountId: clearAccount ? null : (filterAccountId ?? this.filterAccountId),
       filterCategoryId: clearCategory ? null : (filterCategoryId ?? this.filterCategoryId),
+      filterSubcategoryId: clearSubcategory ? null : (filterSubcategoryId ?? this.filterSubcategoryId),
       filterDateRange: clearDateRange ? null : (filterDateRange ?? this.filterDateRange),
       searchQuery: searchQuery ?? this.searchQuery,
       minAmount: clearMinAmount ? null : (minAmount ?? this.minAmount),
@@ -318,6 +323,7 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
     required bool isPrivate,
     String tags = '',
     int? transferToAccountId,
+    int? subcategoryId,
   }) async {
     if (title.trim().isEmpty) {
       state = state.copyWith(errorMessage: 'Transaction title cannot be empty.');
@@ -351,6 +357,7 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
         tags: tags,
         transferToAccountId: transferToAccountId,
         createdAt: DateTime.now(),
+        subcategoryId: subcategoryId,
       );
 
       final id = await _transactionDao.insertTransaction(tx);
@@ -636,9 +643,17 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
 
   void setFilterCategory(int? categoryId) {
     if (categoryId == null) {
-      state = state.copyWith(clearCategory: true);
+      state = state.copyWith(clearCategory: true, clearSubcategory: true);
     } else {
-      state = state.copyWith(filterCategoryId: categoryId);
+      state = state.copyWith(filterCategoryId: categoryId, clearSubcategory: true);
+    }
+  }
+
+  void setFilterSubcategory(int? subcategoryId) {
+    if (subcategoryId == null) {
+      state = state.copyWith(clearSubcategory: true);
+    } else {
+      state = state.copyWith(filterSubcategoryId: subcategoryId);
     }
   }
 
@@ -691,6 +706,7 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
         'filterType': state.filterType,
         'filterAccountId': state.filterAccountId,
         'filterCategoryId': state.filterCategoryId,
+        'filterSubcategoryId': state.filterSubcategoryId,
         'minAmount': state.minAmount,
         'maxAmount': state.maxAmount,
         'selectedTags': state.selectedTags,
@@ -721,12 +737,14 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
       filterType: filters['filterType'] as String?,
       filterAccountId: filters['filterAccountId'] as int?,
       filterCategoryId: filters['filterCategoryId'] as int?,
+      filterSubcategoryId: filters['filterSubcategoryId'] as int?,
       minAmount: (filters['minAmount'] as num?)?.toDouble(),
       maxAmount: (filters['maxAmount'] as num?)?.toDouble(),
       selectedTags: List<String>.from(filters['selectedTags'] ?? []),
       clearType: filters['filterType'] == null,
       clearAccount: filters['filterAccountId'] == null,
       clearCategory: filters['filterCategoryId'] == null,
+      clearSubcategory: filters['filterSubcategoryId'] == null,
       clearMinAmount: filters['minAmount'] == null,
       clearMaxAmount: filters['maxAmount'] == null,
     );
@@ -737,6 +755,7 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
       clearType: true,
       clearAccount: true,
       clearCategory: true,
+      clearSubcategory: true,
       clearDateRange: true,
       clearMinAmount: true,
       clearMaxAmount: true,
@@ -776,6 +795,9 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
         return false;
       }
       if (state.filterCategoryId != null && tx.categoryId != state.filterCategoryId) {
+        return false;
+      }
+      if (state.filterSubcategoryId != null && tx.subcategoryId != state.filterSubcategoryId) {
         return false;
       }
       if (state.filterDateRange != null) {

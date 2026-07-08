@@ -42,6 +42,8 @@ mixin _$Transaction {
   int? get transferToAccountId => throw _privateConstructorUsedError;
   @JsonKey(name: 'created_at')
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'subcategory_id')
+  int? get subcategoryId => throw _privateConstructorUsedError;
 
   /// Serializes this Transaction to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -74,7 +76,8 @@ abstract class $TransactionCopyWith<$Res> {
       String tags,
       @JsonKey(name: 'parent_id') int? parentId,
       @JsonKey(name: 'transfer_to_account_id') int? transferToAccountId,
-      @JsonKey(name: 'created_at') DateTime createdAt});
+      @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'subcategory_id') int? subcategoryId});
 }
 
 /// @nodoc
@@ -107,6 +110,7 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
     Object? parentId = freezed,
     Object? transferToAccountId = freezed,
     Object? createdAt = null,
+    Object? subcategoryId = freezed,
   }) {
     return _then(_value.copyWith(
       id: freezed == id
@@ -169,6 +173,10 @@ class _$TransactionCopyWithImpl<$Res, $Val extends Transaction>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      subcategoryId: freezed == subcategoryId
+          ? _value.subcategoryId
+          : subcategoryId // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 }
@@ -196,7 +204,8 @@ abstract class _$$TransactionImplCopyWith<$Res>
       String tags,
       @JsonKey(name: 'parent_id') int? parentId,
       @JsonKey(name: 'transfer_to_account_id') int? transferToAccountId,
-      @JsonKey(name: 'created_at') DateTime createdAt});
+      @JsonKey(name: 'created_at') DateTime createdAt,
+      @JsonKey(name: 'subcategory_id') int? subcategoryId});
 }
 
 /// @nodoc
@@ -227,6 +236,7 @@ class __$$TransactionImplCopyWithImpl<$Res>
     Object? parentId = freezed,
     Object? transferToAccountId = freezed,
     Object? createdAt = null,
+    Object? subcategoryId = freezed,
   }) {
     return _then(_$TransactionImpl(
       id: freezed == id
@@ -289,6 +299,10 @@ class __$$TransactionImplCopyWithImpl<$Res>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      subcategoryId: freezed == subcategoryId
+          ? _value.subcategoryId
+          : subcategoryId // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -311,7 +325,8 @@ class _$TransactionImpl extends _Transaction {
       this.tags = '',
       @JsonKey(name: 'parent_id') this.parentId,
       @JsonKey(name: 'transfer_to_account_id') this.transferToAccountId,
-      @JsonKey(name: 'created_at') required this.createdAt})
+      @JsonKey(name: 'created_at') required this.createdAt,
+      @JsonKey(name: 'subcategory_id') this.subcategoryId})
       : super._();
 
   factory _$TransactionImpl.fromJson(Map<String, dynamic> json) =>
@@ -356,10 +371,13 @@ class _$TransactionImpl extends _Transaction {
   @override
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
+  @override
+  @JsonKey(name: 'subcategory_id')
+  final int? subcategoryId;
 
   @override
   String toString() {
-    return 'Transaction(id: $id, accountId: $accountId, categoryId: $categoryId, title: $title, amount: $amount, type: $type, date: $date, note: $note, recurrence: $recurrence, recurrenceEndDate: $recurrenceEndDate, isPrivate: $isPrivate, tags: $tags, parentId: $parentId, transferToAccountId: $transferToAccountId, createdAt: $createdAt)';
+    return 'Transaction(id: $id, accountId: $accountId, categoryId: $categoryId, title: $title, amount: $amount, type: $type, date: $date, note: $note, recurrence: $recurrence, recurrenceEndDate: $recurrenceEndDate, isPrivate: $isPrivate, tags: $tags, parentId: $parentId, transferToAccountId: $transferToAccountId, createdAt: $createdAt, subcategoryId: $subcategoryId)';
   }
 
   @override
@@ -389,7 +407,9 @@ class _$TransactionImpl extends _Transaction {
             (identical(other.transferToAccountId, transferToAccountId) ||
                 other.transferToAccountId == transferToAccountId) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.subcategoryId, subcategoryId) ||
+                other.subcategoryId == subcategoryId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -410,7 +430,8 @@ class _$TransactionImpl extends _Transaction {
       tags,
       parentId,
       transferToAccountId,
-      createdAt);
+      createdAt,
+      subcategoryId);
 
   /// Create a copy of Transaction
   /// with the given fields replaced by the non-null parameter values.
@@ -444,8 +465,9 @@ abstract class _Transaction extends Transaction {
       final String tags,
       @JsonKey(name: 'parent_id') final int? parentId,
       @JsonKey(name: 'transfer_to_account_id') final int? transferToAccountId,
-      @JsonKey(name: 'created_at')
-      required final DateTime createdAt}) = _$TransactionImpl;
+      @JsonKey(name: 'created_at') required final DateTime createdAt,
+      @JsonKey(name: 'subcategory_id')
+      final int? subcategoryId}) = _$TransactionImpl;
   const _Transaction._() : super._();
 
   factory _Transaction.fromJson(Map<String, dynamic> json) =
@@ -488,6 +510,9 @@ abstract class _Transaction extends Transaction {
   @override
   @JsonKey(name: 'created_at')
   DateTime get createdAt;
+  @override
+  @JsonKey(name: 'subcategory_id')
+  int? get subcategoryId;
 
   /// Create a copy of Transaction
   /// with the given fields replaced by the non-null parameter values.
