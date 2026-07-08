@@ -9,7 +9,7 @@ import '../../../widgets/common/glassmorphism_card.dart';
 class CategoryForm extends ConsumerStatefulWidget {
   final Category? category;
 
-  const CategoryForm({Key? key, this.category}) : super(key: key);
+  const CategoryForm({super.key, this.category});
 
   @override
   ConsumerState<CategoryForm> createState() => _CategoryFormState();
@@ -196,7 +196,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -231,8 +231,8 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                     margin: const EdgeInsets.only(bottom: 16),
                     child: GlassmorphismCard(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      color: isDark ? color.withOpacity(0.08) : color.withOpacity(0.05),
-                      borderColor: color.withOpacity(0.18),
+                      color: isDark ? color.withValues(alpha: 0.08) : color.withValues(alpha: 0.05),
+                      borderColor: color.withValues(alpha: 0.18),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -242,7 +242,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                                 width: 38,
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: color.withOpacity(0.15),
+                                  color: color.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -267,7 +267,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -285,7 +285,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                               ),
                             ],
                           ),
-                          Icon(iconData, color: color.withOpacity(0.4), size: 24),
+                          Icon(iconData, color: color.withValues(alpha: 0.4), size: 24),
                         ],
                       ),
                     ),
@@ -358,7 +358,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                               ? Border.all(color: isDark ? Colors.white : Colors.black, width: 3)
                               : null,
                           boxShadow: isSelected
-                              ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, spreadRadius: 1)]
+                              ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 1)]
                               : null,
                         ),
                       ),
@@ -396,7 +396,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                        fillColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                       ),
                     ),
                   ),
@@ -406,7 +406,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
               Container(
                 height: 140,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+                  color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                 ),
@@ -438,7 +438,7 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
                         onTap: () => setState(() => _selectedIcon = iconKey),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isSelected ? cardColor.withOpacity(0.2) : Colors.transparent,
+                            color: isSelected ? cardColor.withValues(alpha: 0.2) : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             border: isSelected ? Border.all(color: cardColor, width: 2) : null,
                           ),
@@ -576,12 +576,12 @@ class _CategoryFormState extends ConsumerState<CategoryForm> {
           decoration: BoxDecoration(
             color: active
                 ? color
-                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02)),
+                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: active
                   ? color
-                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
               width: 1,
             ),
           ),

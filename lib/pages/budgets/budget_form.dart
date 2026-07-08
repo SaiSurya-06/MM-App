@@ -10,7 +10,7 @@ class BudgetForm extends ConsumerStatefulWidget {
   final int? categoryId;
   final double? currentLimit;
 
-  const BudgetForm({Key? key, this.categoryId, this.currentLimit}) : super(key: key);
+  const BudgetForm({super.key, this.categoryId, this.currentLimit});
 
   @override
   ConsumerState<BudgetForm> createState() => _BudgetFormState();
@@ -39,7 +39,7 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
     final budgets = ref.read(budgetsProvider).budgets;
     final existing = budgets.firstWhere(
       (b) => b.categoryId == widget.categoryId,
-      orElse: () => Budget(id: -1, categoryId: -1, month: '', limitAmount: 0),
+      orElse: () => const Budget(id: -1, categoryId: -1, month: '', limitAmount: 0),
     );
     if (existing.id != -1) {
       _selectedRecurrence = existing.recurrence;
@@ -149,7 +149,7 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
       final budgets = ref.read(budgetsProvider).budgets;
       final budgetToDelete = budgets.firstWhere(
         (b) => b.categoryId == widget.categoryId,
-        orElse: () => Budget(id: -1, categoryId: -1, month: '', limitAmount: 0),
+        orElse: () => const Budget(id: -1, categoryId: -1, month: '', limitAmount: 0),
       );
       
       if (budgetToDelete.id != -1) {
@@ -192,7 +192,7 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -355,9 +355,9 @@ class _BudgetFormState extends ConsumerState<BudgetForm> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE53935).withOpacity(0.08),
+                      color: const Color(0xFFE53935).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE53935).withOpacity(0.2)),
+                      border: Border.all(color: const Color(0xFFE53935).withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

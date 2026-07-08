@@ -4,16 +4,13 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../providers/analytics_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/accounts_provider.dart';
-import '../../providers/categories_provider.dart';
 import '../../core/database/database.dart';
 import '../../widgets/common/glassmorphism_card.dart';
 import '../../core/utils/currency_formatter.dart';
-import '../../core/analytics/ai_analyst.dart';
 import '../../core/notifications/notification_service.dart';
 
 class AnalyticsAdvancedPage extends ConsumerStatefulWidget {
-  const AnalyticsAdvancedPage({Key? key}) : super(key: key);
+  const AnalyticsAdvancedPage({super.key});
 
   @override
   ConsumerState<AnalyticsAdvancedPage> createState() => _AnalyticsAdvancedPageState();
@@ -21,7 +18,6 @@ class AnalyticsAdvancedPage extends ConsumerStatefulWidget {
 
 class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
   DateTimeRange? _customRange;
-  bool _showComparison = false;
   int _selectedTab = 0;
   bool _showGuide = true;
 
@@ -67,8 +63,6 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
   Future<List<Map<String, dynamic>>> _fetchYoYComparison() async {
     final db = await AppDatabase.instance.database;
     final now = DateTime.now();
-    final currentMonth = '${now.month.toString().padLeft(2, '0')}';
-    final currentMonthFull = '${now.year}-${now.month.toString().padLeft(2, '0')}';
 
     final List<Map<String, dynamic>> yoyData = [];
 
@@ -130,9 +124,9 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.08),
+                    color: color.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.2)),
+                    border: Border.all(color: color.withValues(alpha: 0.2)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +161,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                 try {
                   final rec = analyticsState.aiRecommendations.first;
                   await NotificationService.instance.showBudgetAlert(rec.title, 0);
-                  if (mounted) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Alert saved! You will be notified.')),
                     );
@@ -243,7 +237,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -284,7 +278,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                           color: isSelected ? const Color(0xFFE53935) : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFFE53935) : Colors.grey.withOpacity(0.2),
+                            color: isSelected ? const Color(0xFFE53935) : Colors.grey.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Text(
@@ -350,7 +344,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: (isOver ? const Color(0xFFE53935) : const Color(0xFF4CAF50)).withOpacity(0.12),
+                        color: (isOver ? const Color(0xFFE53935) : const Color(0xFF4CAF50)).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -440,7 +434,6 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                 final cur = e.value['current']!;
                 final prev = e.value['previous']!;
                 final diff = cur - prev;
-                final maxVal = [cur, prev].reduce((a, b) => a > b ? a : b);
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -465,7 +458,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: (diff > 0 ? const Color(0xFFE53935) : const Color(0xFF4CAF50)).withOpacity(0.12),
+                                color: (diff > 0 ? const Color(0xFFE53935) : const Color(0xFF4CAF50)).withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -547,9 +540,9 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                           },
                         ),
                       ),
-                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     ),
                     borderData: FlBorderData(show: false),
                     gridData: const FlGridData(show: false),
@@ -678,9 +671,9 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                                   gridData: const FlGridData(show: false),
                                   titlesData: FlTitlesData(
                                     show: true,
-                                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                     bottomTitles: AxisTitles(
                                       sideTitles: SideTitles(
                                         showTitles: true,
@@ -711,7 +704,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                                       belowBarData: BarAreaData(
                                         show: true,
                                         gradient: LinearGradient(
-                                          colors: [catColor.withOpacity(0.15), catColor.withOpacity(0.0)],
+                                          colors: [catColor.withValues(alpha: 0.15), catColor.withValues(alpha: 0.0)],
                                           begin: Alignment.topCenter,
                                           end: Alignment.bottomCenter,
                                         ),
@@ -753,7 +746,7 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isDark ? Colors.white12 : Colors.black12,

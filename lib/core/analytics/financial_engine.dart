@@ -156,7 +156,7 @@ class FinancialEngine {
     
     if (currentMonths.isInfinite || currentMonths > 240) {
       // Suggest saving enough to achieve it in 24 months
-      final targetMonths = 24.0;
+      const targetMonths = 24.0;
       targetSavingsRate = remaining / targetMonths;
       requiredAdditionalSavings = targetSavingsRate - baseSavingsRate;
     } else {
@@ -401,12 +401,10 @@ class FinancialEngine {
       }
       
       // Minimum payments required
-      double minPaymentsNeeded = 0.0;
       for (final loan in avalancheLoans) {
         if (loan.principal > 0) {
           final due = loan.principal + loan.accruedInterest;
           loan.tempPayment = math.min(loan.emi, due);
-          minPaymentsNeeded += loan.tempPayment;
         } else {
           loan.tempPayment = 0.0;
         }
@@ -504,12 +502,10 @@ class FinancialEngine {
       }
       
       // Minimum payments required
-      double minPaymentsNeeded = 0.0;
       for (final loan in snowballLoans) {
         if (loan.principal > 0) {
           final due = loan.principal + loan.accruedInterest;
           loan.tempPayment = math.min(loan.emi, due);
-          minPaymentsNeeded += loan.tempPayment;
         } else {
           loan.tempPayment = 0.0;
         }
@@ -644,7 +640,7 @@ class FinancialEngine {
     final years = math.max(0, retirementAge - currentAge);
     final months = years * 12;
     
-    final r = 0.08 / 12;
+    const r = 0.08 / 12;
     final currentCorpus = p.assets.retirementCorpus;
     final monthlyContribution = p.expenses.retirementFundMonthly;
     
@@ -659,7 +655,7 @@ class FinancialEngine {
   // Goal funding shortfall for each LumpSumExpense / children milestone
   static List<GoalFundingResult> goalFundingAnalysis(DiagnosticProfile p) {
     final List<GoalFundingResult> results = [];
-    final r = 0.08 / 12;
+    const r = 0.08 / 12;
     
     // Collect goals
     final List<_TempGoal> goals = [];

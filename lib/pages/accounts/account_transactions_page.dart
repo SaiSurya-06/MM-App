@@ -16,7 +16,7 @@ import '../../widgets/common/toast_notification.dart';
 class AccountTransactionsPage extends ConsumerStatefulWidget {
   final Account account;
 
-  const AccountTransactionsPage({Key? key, required this.account}) : super(key: key);
+  const AccountTransactionsPage({super.key, required this.account});
 
   @override
   ConsumerState<AccountTransactionsPage> createState() => _AccountTransactionsPageState();
@@ -170,8 +170,8 @@ class _AccountTransactionsPageState extends ConsumerState<AccountTransactionsPag
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: GlassmorphismCard(
-              color: isDark ? cardColor.withOpacity(0.1) : cardColor.withOpacity(0.05),
-              borderColor: cardColor.withOpacity(0.15),
+              color: isDark ? cardColor.withValues(alpha: 0.1) : cardColor.withValues(alpha: 0.05),
+              borderColor: cardColor.withValues(alpha: 0.15),
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,8 +297,8 @@ class _AccountTransactionsPageState extends ConsumerState<AccountTransactionsPag
                                     show: true,
                                     gradient: LinearGradient(
                                       colors: [
-                                        cardColor.withOpacity(0.18),
-                                        cardColor.withOpacity(0.0),
+                                        cardColor.withValues(alpha: 0.18),
+                                        cardColor.withValues(alpha: 0.0),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -441,7 +441,7 @@ class _AccountTransactionsPageState extends ConsumerState<AccountTransactionsPag
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -469,12 +469,12 @@ class _AccountTransactionsPageState extends ConsumerState<AccountTransactionsPag
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                          color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: item.isMatched 
-                                ? const Color(0xFF4CAF50).withOpacity(0.3) 
-                                : Colors.grey.withOpacity(0.15),
+                                ? const Color(0xFF4CAF50).withValues(alpha: 0.3) 
+                                : Colors.grey.withValues(alpha: 0.15),
                           ),
                         ),
                         child: Row(
@@ -502,7 +502,7 @@ class _AccountTransactionsPageState extends ConsumerState<AccountTransactionsPag
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF4CAF50).withOpacity(0.15),
+                                            color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: const Row(

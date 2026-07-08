@@ -1,15 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../models/transaction.dart';
-import '../../../models/category.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../providers/auth_provider.dart';
 import '../trend_analytics_page.dart';
 
 class ChartsTab extends ConsumerWidget {
-  const ChartsTab({Key? key}) : super(key: key);
+  const ChartsTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -172,7 +170,7 @@ class ChartsTab extends ConsumerWidget {
                   currency: currency,
                   isDark: isDark,
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),
@@ -227,11 +225,11 @@ class ChartsTab extends ConsumerWidget {
                             margin: const EdgeInsets.all(2.0),
                             decoration: BoxDecoration(
                               color: val > 0 
-                                  ? const Color(0xFFE53935).withOpacity(opacity)
-                                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02)),
+                                  ? const Color(0xFFE53935).withValues(alpha: opacity)
+                                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02)),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                                 width: 0.5,
                               ),
                             ),
@@ -303,7 +301,7 @@ class ChartsTab extends ConsumerWidget {
               height: 14,
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: amount > 0 
@@ -377,7 +375,7 @@ class ChartsTab extends ConsumerWidget {
                       Container(
                         height: 16,
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
+                          color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -393,7 +391,7 @@ class ChartsTab extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(4),
                               boxShadow: [
                                 BoxShadow(
-                                  color: color.withOpacity(0.3),
+                                  color: color.withValues(alpha: 0.3),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),

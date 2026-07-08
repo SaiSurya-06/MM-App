@@ -21,7 +21,7 @@ import 'package:intl/intl.dart';
 import 'dart:convert';
 
 class TransactionsPage extends ConsumerStatefulWidget {
-  const TransactionsPage({Key? key}) : super(key: key);
+  const TransactionsPage({super.key});
 
   @override
   ConsumerState<TransactionsPage> createState() => _TransactionsPageState();
@@ -174,9 +174,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                     margin: const EdgeInsets.only(right: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: color.withOpacity(0.3)),
+                      border: Border.all(color: color.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -277,7 +277,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
       height: 48,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: isDark ? const Color(0xFF161625) : Colors.black.withOpacity(0.03),
+          backgroundColor: isDark ? const Color(0xFF161625) : Colors.black.withValues(alpha: 0.03),
           foregroundColor: isDark ? Colors.white : Colors.black87,
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -639,9 +639,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                       child: GlassmorphismCard(
                         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                         color: isDark 
-                            ? Colors.green.withOpacity(0.06) 
-                            : Colors.green.withOpacity(0.04),
-                        borderColor: Colors.green.withOpacity(0.15),
+                            ? Colors.green.withValues(alpha: 0.06) 
+                            : Colors.green.withValues(alpha: 0.04),
+                        borderColor: Colors.green.withValues(alpha: 0.15),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -681,9 +681,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                       child: GlassmorphismCard(
                         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
                         color: isDark 
-                            ? const Color(0xFFE53935).withOpacity(0.06) 
-                            : const Color(0xFFE53935).withOpacity(0.04),
-                        borderColor: const Color(0xFFE53935).withOpacity(0.15),
+                            ? const Color(0xFFE53935).withValues(alpha: 0.06) 
+                            : const Color(0xFFE53935).withValues(alpha: 0.04),
+                        borderColor: const Color(0xFFE53935).withValues(alpha: 0.15),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -807,7 +807,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                         // Advanced filters trigger button
                         IconButton(
                           style: IconButton.styleFrom(
-                            backgroundColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                           ),
                           onPressed: () {
                             showModalBottomSheet(
@@ -947,7 +947,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         side: BorderSide(
-                                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
                                         ),
                                       ),
                                       action: SnackBarAction(
@@ -1019,13 +1019,13 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontFamily: 'Inter',
       ),
-      backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+      backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
           color: isSelected 
               ? const Color(0xFFE53935) 
-              : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+              : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
         ),
       ),
     );
@@ -1070,12 +1070,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
           decoration: BoxDecoration(
             color: isSelected 
                 ? const Color(0xFFE53935) 
-                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02)),
+                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected 
                   ? const Color(0xFFE53935) 
-                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
             ),
           ),
           child: Row(
@@ -1109,7 +1109,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
     
     final selectedCategory = categories.firstWhere(
       (c) => c.id == txState.filterCategoryId,
-      orElse: () => Category(name: 'All Categories', icon: '', color: '', isDefault: false, type: 'both'),
+      orElse: () => const Category(name: 'All Categories', icon: '', color: '', isDefault: false, type: 'both'),
     );
     
     final isSelected = txState.filterCategoryId != null;
@@ -1142,12 +1142,12 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
           decoration: BoxDecoration(
             color: isSelected 
                 ? const Color(0xFFE53935) 
-                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02)),
+                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected 
                   ? const Color(0xFFE53935) 
-                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
             ),
           ),
           child: Row(
@@ -1177,7 +1177,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
 }
 
 class AdvancedFiltersSheet extends ConsumerStatefulWidget {
-  const AdvancedFiltersSheet({Key? key}) : super(key: key);
+  const AdvancedFiltersSheet({super.key});
 
   @override
   ConsumerState<AdvancedFiltersSheet> createState() => _AdvancedFiltersSheetState();
@@ -1246,7 +1246,7 @@ class _AdvancedFiltersSheetState extends ConsumerState<AdvancedFiltersSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
+                  color: Colors.grey.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1273,7 +1273,7 @@ class _AdvancedFiltersSheetState extends ConsumerState<AdvancedFiltersSheet> {
               max: maxTransactionAmount,
               divisions: maxTransactionAmount > 0 ? maxTransactionAmount.round().clamp(1, 100) : 1,
               activeColor: const Color(0xFFE53935),
-              inactiveColor: Colors.grey.withOpacity(0.3),
+              inactiveColor: Colors.grey.withValues(alpha: 0.3),
               labels: RangeLabels(
                 CurrencyFormatter.format(currentMin, currency),
                 CurrencyFormatter.format(currentMax, currency),

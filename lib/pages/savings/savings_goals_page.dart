@@ -8,7 +8,6 @@ import '../../providers/analytics_provider.dart';
 import '../../providers/budgets_provider.dart';
 import '../../providers/categories_provider.dart';
 import '../../models/savings_goal.dart';
-import '../../models/category.dart';
 import '../../core/analytics/financial_engine.dart';
 import '../../core/analytics/ai_analyst.dart';
 import '../../widgets/common/glassmorphism_card.dart';
@@ -16,7 +15,7 @@ import '../../widgets/common/toast_notification.dart';
 import '../../core/utils/currency_formatter.dart';
 
 class SavingsGoalsPage extends ConsumerStatefulWidget {
-  const SavingsGoalsPage({Key? key}) : super(key: key);
+  const SavingsGoalsPage({super.key});
 
   @override
   ConsumerState<SavingsGoalsPage> createState() => _SavingsGoalsPageState();
@@ -237,7 +236,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.savings_outlined, size: 64, color: Colors.grey.withOpacity(0.5)),
+                      Icon(Icons.savings_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       const Text(
                         'No savings goals set yet.',
@@ -288,8 +287,8 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                       onTap: () => _openAddGoalSheet(goal),
                       child: GlassmorphismCard(
                         padding: const EdgeInsets.all(14.0),
-                        color: isDark ? goalColor.withOpacity(0.08) : goalColor.withOpacity(0.04),
-                        borderColor: goalColor.withOpacity(0.15),
+                        color: isDark ? goalColor.withValues(alpha: 0.08) : goalColor.withValues(alpha: 0.04),
+                        borderColor: goalColor.withValues(alpha: 0.15),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -300,7 +299,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: goalColor.withOpacity(0.15),
+                                    color: goalColor.withValues(alpha: 0.15),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(_getGoalIcon(goal.icon), color: goalColor, size: 18),
@@ -331,7 +330,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                                   child: LinearProgressIndicator(
                                     value: progress,
                                     minHeight: 4,
-                                    backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+                                    backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
                                     valueColor: AlwaysStoppedAnimation<Color>(goalColor),
                                   ),
                                 ),
@@ -407,7 +406,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                                       constraints: const BoxConstraints(),
                                       padding: EdgeInsets.zero,
                                       style: IconButton.styleFrom(
-                                        backgroundColor: const Color(0xFFE53935).withOpacity(0.12),
+                                        backgroundColor: const Color(0xFFE53935).withValues(alpha: 0.12),
                                         foregroundColor: const Color(0xFFE53935),
                                       ),
                                       onPressed: () => _showWithdrawDialog(goal, currency),
@@ -418,7 +417,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                                       constraints: const BoxConstraints(),
                                       padding: EdgeInsets.zero,
                                       style: IconButton.styleFrom(
-                                        backgroundColor: goalColor.withOpacity(0.15),
+                                        backgroundColor: goalColor.withValues(alpha: 0.15),
                                         foregroundColor: goalColor,
                                       ),
                                       onPressed: () => _showContributeDialog(goal, currency),
@@ -440,7 +439,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
 
 class GoalFormSheet extends ConsumerStatefulWidget {
   final SavingsGoal? goal;
-  const GoalFormSheet({Key? key, this.goal}) : super(key: key);
+  const GoalFormSheet({super.key, this.goal});
 
   @override
   ConsumerState<GoalFormSheet> createState() => _GoalFormSheetState();
@@ -622,7 +621,7 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -715,8 +714,8 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
                         margin: const EdgeInsets.only(right: 10),
                         decoration: BoxDecoration(
                           color: isSelected 
-                              ? const Color(0xFFE53935).withOpacity(0.15)
-                              : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
+                              ? const Color(0xFFE53935).withValues(alpha: 0.15)
+                              : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03)),
                           borderRadius: BorderRadius.circular(10),
                           border: isSelected ? Border.all(color: const Color(0xFFE53935), width: 1.5) : null,
                         ),
@@ -776,9 +775,9 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFE53935)),
                         ),
                         const SizedBox(height: 6),
-                        Text(
+                        const Text(
                           'Adjust your category budgets to reach your goal earlier.',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -805,9 +804,9 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                           ),
                           child: Text(
                             optResult.recommendationText,
@@ -818,7 +817,7 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
                           const SizedBox(height: 12),
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF4CAF50).withOpacity(0.15),
+                              backgroundColor: const Color(0xFF4CAF50).withValues(alpha: 0.15),
                               foregroundColor: const Color(0xFF4CAF50),
                               side: const BorderSide(color: Color(0xFF4CAF50), width: 1),
                               minimumSize: const Size(double.infinity, 44),

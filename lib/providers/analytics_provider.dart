@@ -8,7 +8,6 @@ import '../models/transaction.dart';
 import '../models/savings_goal.dart';
 import '../core/analytics/ai_analyst.dart';
 import '../core/analytics/health_score_service.dart';
-import '../core/analytics/financial_engine.dart';
 import 'accounts_provider.dart';
 import 'transactions_provider.dart';
 import 'auth_provider.dart';

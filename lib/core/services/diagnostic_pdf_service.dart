@@ -529,7 +529,7 @@ class DiagnosticPdfService {
                             pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(formatAmount(loan.monthlyEMI), style: const pw.TextStyle(fontSize: 8))),
                           ],
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ],
@@ -720,7 +720,7 @@ class DiagnosticPdfService {
                             ),
                           ],
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
               ],

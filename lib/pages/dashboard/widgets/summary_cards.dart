@@ -17,7 +17,7 @@ class SummaryCards extends ConsumerStatefulWidget {
   final bool isLoading;
 
   const SummaryCards({
-    Key? key,
+    super.key,
     required this.totalBalance,
     required this.monthlyIncome,
     required this.monthlyExpenses,
@@ -25,7 +25,7 @@ class SummaryCards extends ConsumerStatefulWidget {
     required this.healthScore,
     required this.currency,
     required this.isLoading,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SummaryCards> createState() => _SummaryCardsState();
@@ -84,7 +84,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
 
   Widget _buildHealthScoreGauge(double score) {
     final color = _getHealthScoreColor(score);
-    return Container(
+    return SizedBox(
       width: 48,
       height: 48,
       child: Stack(
@@ -93,7 +93,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
           CircularProgressIndicator(
             value: score / 100.0,
             strokeWidth: 4.5,
-            backgroundColor: color.withOpacity(0.15),
+            backgroundColor: color.withValues(alpha: 0.15),
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
           Text(
@@ -126,18 +126,18 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
   @override
   Widget build(BuildContext context) {
     if (widget.isLoading) {
-      return Column(
+      return const Column(
         children: [
           Row(
-            children: const [
+            children: [
               Expanded(flex: 3, child: SkeletonLoader(height: 140, borderRadius: 24)),
               SizedBox(width: 12),
               Expanded(flex: 2, child: SkeletonLoader(height: 140, borderRadius: 24)),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(
-            children: const [
+            children: [
               Expanded(child: SkeletonLoader(height: 90, borderRadius: 16)),
               SizedBox(width: 12),
               Expanded(child: SkeletonLoader(height: 90, borderRadius: 16)),
@@ -171,7 +171,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF6366F1).withOpacity(0.3),
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -273,7 +273,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
               flex: 2,
               child: GlassmorphismCard(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                child: Container(
+                child: SizedBox(
                   height: 112, // match height with main container minus padding/margins
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -319,14 +319,14 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
               child: GlassmorphismCard(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 color: isDark 
-                    ? Colors.green.withOpacity(0.06) 
-                    : Colors.green.withOpacity(0.04),
-                borderColor: Colors.green.withOpacity(0.15),
+                    ? Colors.green.withValues(alpha: 0.06) 
+                    : Colors.green.withValues(alpha: 0.04),
+                borderColor: Colors.green.withValues(alpha: 0.15),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.arrow_downward, color: Colors.green, size: 12),
                         SizedBox(width: 4),
                         Text(
@@ -371,14 +371,14 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
               child: GlassmorphismCard(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 color: isDark 
-                    ? const Color(0xFFE53935).withOpacity(0.06) 
-                    : const Color(0xFFE53935).withOpacity(0.04),
-                borderColor: const Color(0xFFE53935).withOpacity(0.15),
+                    ? const Color(0xFFE53935).withValues(alpha: 0.06) 
+                    : const Color(0xFFE53935).withValues(alpha: 0.04),
+                borderColor: const Color(0xFFE53935).withValues(alpha: 0.15),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.arrow_upward, color: Color(0xFFE53935), size: 12),
                         SizedBox(width: 4),
                         Text(
@@ -423,14 +423,14 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
               child: GlassmorphismCard(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 color: isDark 
-                    ? const Color(0xFFA855F7).withOpacity(0.06) 
-                    : const Color(0xFFA855F7).withOpacity(0.04),
-                borderColor: const Color(0xFFA855F7).withOpacity(0.15),
+                    ? const Color(0xFFA855F7).withValues(alpha: 0.06) 
+                    : const Color(0xFFA855F7).withValues(alpha: 0.04),
+                borderColor: const Color(0xFFA855F7).withValues(alpha: 0.15),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.savings_outlined, color: Color(0xFFA855F7), size: 12),
                         SizedBox(width: 4),
                         Text(
@@ -478,7 +478,7 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
 
 class PinVerificationDialog extends StatefulWidget {
   final Future<bool> Function(String) onVerify;
-  const PinVerificationDialog({Key? key, required this.onVerify}) : super(key: key);
+  const PinVerificationDialog({super.key, required this.onVerify});
 
   @override
   State<PinVerificationDialog> createState() => _PinVerificationDialogState();
@@ -634,7 +634,7 @@ class _PinVerificationDialogState extends State<PinVerificationDialog> {
       height: 50,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isDark ? const Color(0xFF161625) : Colors.black.withOpacity(0.02),
+        color: isDark ? const Color(0xFF161625) : Colors.black.withValues(alpha: 0.02),
       ),
       child: InkWell(
         customBorder: const CircleBorder(),

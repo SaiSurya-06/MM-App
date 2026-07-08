@@ -4,9 +4,9 @@ class PremiumBackground extends StatelessWidget {
   final Widget child;
 
   const PremiumBackground({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

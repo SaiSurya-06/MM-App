@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../models/transaction.dart';
-import '../../../models/category.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../providers/categories_provider.dart';
@@ -11,7 +9,7 @@ import '../../../providers/auth_provider.dart';
 import '../trend_analytics_page.dart';
 
 class TrendsTab extends ConsumerStatefulWidget {
-  const TrendsTab({Key? key}) : super(key: key);
+  const TrendsTab({super.key});
 
   @override
   ConsumerState<TrendsTab> createState() => _TrendsTabState();
@@ -84,10 +82,10 @@ class _TrendsTabState extends ConsumerState<TrendsTab> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
           ),
@@ -153,7 +151,7 @@ class _TrendsTabState extends ConsumerState<TrendsTab> {
                       show: true,
                       drawVerticalLine: false,
                       getDrawingHorizontalLine: (value) => FlLine(
-                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.04),
+                        color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.04),
                         strokeWidth: 1,
                       ),
                     ),
@@ -184,7 +182,7 @@ class _TrendsTabState extends ConsumerState<TrendsTab> {
                         dotData: const FlDotData(show: true),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: _parseCategoryColor(selectedCategory.color).withOpacity(0.1),
+                          color: _parseCategoryColor(selectedCategory.color).withValues(alpha: 0.1),
                         ),
                       ),
                     ],

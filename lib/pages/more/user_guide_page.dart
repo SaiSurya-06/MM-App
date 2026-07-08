@@ -10,7 +10,7 @@ import '../savings/savings_goals_page.dart';
 import '../debts/debts_page.dart';
 
 class UserGuidePage extends StatefulWidget {
-  const UserGuidePage({Key? key}) : super(key: key);
+  const UserGuidePage({super.key});
 
   @override
   State<UserGuidePage> createState() => _UserGuidePageState();
@@ -166,7 +166,7 @@ class _UserGuidePageState extends State<UserGuidePage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
+                        color: Colors.black.withValues(alpha: 0.04),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       )
@@ -220,7 +220,7 @@ class _UserGuidePageState extends State<UserGuidePage> {
                           ),
                           selected: isSelected,
                           selectedColor: const Color(0xFFE53935),
-                          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.04),
+                          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.04),
                           onSelected: (selected) {
                             if (selected) {
                               setState(() => _selectedCategory = cat);
@@ -248,7 +248,7 @@ class _UserGuidePageState extends State<UserGuidePage> {
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.search_off, size: 48, color: Colors.grey.withOpacity(0.5)),
+                                        Icon(Icons.search_off, size: 48, color: Colors.grey.withValues(alpha: 0.5)),
                                         const SizedBox(height: 12),
                                         const Text(
                                           'No matching guide articles found.',
@@ -272,7 +272,7 @@ class _UserGuidePageState extends State<UserGuidePage> {
                                             Container(
                                               padding: const EdgeInsets.all(8),
                                               decoration: BoxDecoration(
-                                                color: (item['color'] as Color).withOpacity(0.12),
+                                                color: (item['color'] as Color).withValues(alpha: 0.12),
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
                                               child: Icon(
@@ -340,7 +340,7 @@ class _UserGuidePageState extends State<UserGuidePage> {
                                                       ],
                                                     ),
                                                   );
-                                                }).toList(),
+                                                }),
                                                 if (hasRoute) ...[
                                                   const SizedBox(height: 12),
                                                   Center(
@@ -387,7 +387,7 @@ class _UserGuidePageState extends State<UserGuidePage> {
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                }),
 
                               const SizedBox(height: 32),
                             ],

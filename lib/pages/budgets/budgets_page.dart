@@ -11,7 +11,7 @@ import '../../core/utils/currency_formatter.dart';
 import 'package:intl/intl.dart';
 
 class BudgetsPage extends ConsumerStatefulWidget {
-  const BudgetsPage({Key? key}) : super(key: key);
+  const BudgetsPage({super.key});
 
   @override
   ConsumerState<BudgetsPage> createState() => _BudgetsPageState();
@@ -180,7 +180,7 @@ class _BudgetsPageState extends ConsumerState<BudgetsPage> {
             child: LinearProgressIndicator(
               value: percentClamped,
               minHeight: 5,
-              backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+              backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),
@@ -230,7 +230,7 @@ class _BudgetsPageState extends ConsumerState<BudgetsPage> {
             child: ElevatedButton(
               onPressed: () => _openBudgetForm(context, totalBudgetCatId),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935).withOpacity(0.15),
+                backgroundColor: const Color(0xFFE53935).withValues(alpha: 0.15),
                 foregroundColor: const Color(0xFFE53935),
                 elevation: 0,
                 padding: EdgeInsets.zero,
@@ -355,7 +355,7 @@ class _BudgetsPageState extends ConsumerState<BudgetsPage> {
           children: [
             Expanded(
               flex: 2,
-              child: Container(
+              child: SizedBox(
                 height: 130,
                 child: _buildMonthAndLimitsBentoCard(
                   context, 
@@ -367,7 +367,7 @@ class _BudgetsPageState extends ConsumerState<BudgetsPage> {
             const SizedBox(width: 12),
             Expanded(
               flex: 3,
-              child: Container(
+              child: SizedBox(
                 height: 130,
                 child: totalBudgetCatId != -1 && overallLimit != null
                     ? _buildOverallLimitBentoCard(context, overallSpent, overallLimit, currency, totalBudgetCatId)
@@ -386,7 +386,7 @@ class _BudgetsPageState extends ConsumerState<BudgetsPage> {
           padding: const EdgeInsets.only(top: 16.0),
           child: GlassmorphismCard(
             padding: const EdgeInsets.all(16),
-            color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
+            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -623,7 +623,7 @@ class CompactBudgetBentoCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const CompactBudgetBentoCard({
-    Key? key,
+    super.key,
     required this.categoryName,
     required this.categoryIcon,
     required this.categoryColorHex,
@@ -636,7 +636,7 @@ class CompactBudgetBentoCard extends StatelessWidget {
     this.threeMonthRollingAverage,
     this.projectedMonthEnd,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   IconData _getIconData(String iconName) {
     switch (iconName) {
@@ -700,7 +700,7 @@ class CompactBudgetBentoCard extends StatelessWidget {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: catColor.withOpacity(0.12),
+                    color: catColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -713,7 +713,7 @@ class CompactBudgetBentoCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
+                      color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -759,7 +759,7 @@ class CompactBudgetBentoCard extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: percentClamped,
                 minHeight: 5,
-                backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                 valueColor: AlwaysStoppedAnimation<Color>(progressBarColor),
               ),
             ),
@@ -816,12 +816,12 @@ class UnbudgetedBentoCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const UnbudgetedBentoCard({
-    Key? key,
+    super.key,
     required this.categoryName,
     required this.categoryIcon,
     required this.categoryColorHex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   IconData _getIconData(String iconName) {
     switch (iconName) {
@@ -862,7 +862,7 @@ class UnbudgetedBentoCard extends StatelessWidget {
               width: 28,
               height: 28,
               decoration: BoxDecoration(
-                color: catColor.withOpacity(0.12),
+                color: catColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(

@@ -6,7 +6,7 @@ import '../../widgets/common/toast_notification.dart';
 import '../../widgets/common/premium_background.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -195,8 +195,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
 
     if (isLockedOut) {
-      if (_lockoutTimer == null) {
-        _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _lockoutTimer ??= Timer.periodic(const Duration(seconds: 1), (timer) {
           if (mounted) {
             setState(() {});
           }
@@ -205,7 +204,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             _lockoutTimer = null;
           }
         });
-      }
 
       final remaining = authState.lockedUntil!.difference(DateTime.now());
       final min = remaining.inMinutes.toString().padLeft(2, '0');
@@ -247,9 +245,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE53935).withOpacity(0.1),
+                    color: const Color(0xFFE53935).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE53935).withOpacity(0.3)),
+                    border: Border.all(color: const Color(0xFFE53935).withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     'Try again in: $min:$sec',
@@ -340,7 +338,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: active
-                              ? const Color(0xFFE53935).withOpacity(_obscurePin ? 1.0 : 0.15)
+                              ? const Color(0xFFE53935).withValues(alpha: _obscurePin ? 1.0 : 0.15)
                               : (isDark ? Colors.white12 : Colors.black12),
                           border: Border.all(
                             color: active 
@@ -463,7 +461,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         shape: BoxShape.circle,
         color: isDark ? const Color(0xFF1E1E2E) : Colors.white,
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04),
+          color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04),
           width: 1,
         ),
       ),
@@ -493,7 +491,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       height: 70,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isDark ? const Color(0xFF161625) : Colors.black.withOpacity(0.02),
+        color: isDark ? const Color(0xFF161625) : Colors.black.withValues(alpha: 0.02),
       ),
       child: InkWell(
         customBorder: const CircleBorder(),

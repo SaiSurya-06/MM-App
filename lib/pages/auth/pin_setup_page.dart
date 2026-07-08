@@ -5,7 +5,7 @@ import '../../widgets/common/toast_notification.dart';
 import '../../widgets/common/premium_background.dart';
 
 class PinSetupPage extends ConsumerStatefulWidget {
-  const PinSetupPage({Key? key}) : super(key: key);
+  const PinSetupPage({super.key});
 
   @override
   ConsumerState<PinSetupPage> createState() => _PinSetupPageState();
@@ -73,7 +73,7 @@ class _PinSetupPageState extends ConsumerState<PinSetupPage> {
                   if (authState.profiles.isEmpty) ...[
                     LinearProgressIndicator(
                       value: 0.5,
-                      backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                      backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                       valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE53935)),
                     ),
                     const SizedBox(height: 8),

@@ -46,7 +46,7 @@ class ImageShareHelper {
         color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: accentColor.withOpacity(0.2),
+          color: accentColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),

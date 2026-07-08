@@ -242,7 +242,7 @@ class PdfReportHelper {
                       ),
                     ],
                   );
-                }).toList(),
+                }),
               ],
             ),
           ];
@@ -252,7 +252,7 @@ class PdfReportHelper {
 
     // Save and Share
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/money_manager_report_${themeName}.pdf');
+    final file = File('${tempDir.path}/money_manager_report_$themeName.pdf');
     await file.writeAsBytes(await pdf.save());
 
     await Share.shareXFiles(

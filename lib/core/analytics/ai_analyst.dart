@@ -2,12 +2,10 @@ import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import '../../models/transaction.dart';
 import '../../models/savings_goal.dart';
-import '../../models/budget.dart';
 import '../../providers/analytics_provider.dart';
 import '../../models/diagnostic_profile.dart';
 import '../../models/diagnostic_report.dart';
 import 'financial_engine.dart';
-import 'health_score_service.dart';
 import '../utils/currency_formatter.dart';
 
 class AiSpendingForecast {

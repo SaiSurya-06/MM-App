@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +9,7 @@ import '../../../core/notifications/notification_service.dart';
 import '../trend_analytics_page.dart';
 
 class OverviewTab extends ConsumerStatefulWidget {
-  const OverviewTab({Key? key}) : super(key: key);
+  const OverviewTab({super.key});
 
   @override
   ConsumerState<OverviewTab> createState() => _OverviewTabState();
@@ -51,7 +50,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
                       child: CircularProgressIndicator(
                         value: derivedValues.healthScore / 100.0,
                         strokeWidth: 8,
-                        backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                        backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           derivedValues.healthScore > 75 
                               ? Colors.green 
@@ -422,7 +421,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ],
     );
@@ -438,7 +437,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: isDark ? Colors.white12 : Colors.black12,
@@ -686,7 +685,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
             height: 8,
             alignment: Alignment.centerLeft,
             decoration: BoxDecoration(
-              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(

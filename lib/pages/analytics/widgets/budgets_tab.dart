@@ -2,9 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../models/transaction.dart';
-import '../../../models/budget.dart';
-import '../../../models/category.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../providers/budgets_provider.dart';
@@ -12,7 +9,7 @@ import '../../../providers/auth_provider.dart';
 import '../trend_analytics_page.dart';
 
 class BudgetsTab extends ConsumerWidget {
-  const BudgetsTab({Key? key}) : super(key: key);
+  const BudgetsTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -25,7 +22,6 @@ class BudgetsTab extends ConsumerWidget {
     final transactions = derivedValues.filteredTransactions;
     final budgets = budgetsState.budgets;
     final categoryMap = derivedValues.categoryMap;
-    final dailyBurnRate = derivedValues.dailyBurnRate;
     final daysInMonth = derivedValues.daysInMonth;
 
     final now = DateTime.now();
@@ -250,7 +246,7 @@ class BudgetsTab extends ConsumerWidget {
                       show: true,
                       drawVerticalLine: false,
                       getDrawingHorizontalLine: (value) => FlLine(
-                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.04),
+                        color: isDark ? Colors.white12 : Colors.black.withValues(alpha: 0.04),
                         strokeWidth: 1,
                       ),
                     ),
@@ -285,7 +281,7 @@ class BudgetsTab extends ConsumerWidget {
                       LineChartBarData(
                         spots: onTrackSpots,
                         isCurved: false,
-                        color: Colors.grey.withOpacity(0.4),
+                        color: Colors.grey.withValues(alpha: 0.4),
                         barWidth: 1.5,
                         dashArray: [5, 5],
                         dotData: const FlDotData(show: false),
@@ -294,7 +290,7 @@ class BudgetsTab extends ConsumerWidget {
                       LineChartBarData(
                         spots: projectedSpots,
                         isCurved: false,
-                        color: Colors.blueAccent.withOpacity(0.4),
+                        color: Colors.blueAccent.withValues(alpha: 0.4),
                         barWidth: 1.5,
                         dashArray: [3, 3],
                         dotData: const FlDotData(show: false),
@@ -308,7 +304,7 @@ class BudgetsTab extends ConsumerWidget {
                         dotData: const FlDotData(show: true),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: (runningActualPct > 100.0 ? const Color(0xFFE53935) : Colors.green).withOpacity(0.08),
+                          color: (runningActualPct > 100.0 ? const Color(0xFFE53935) : Colors.green).withValues(alpha: 0.08),
                         ),
                       ),
                     ],

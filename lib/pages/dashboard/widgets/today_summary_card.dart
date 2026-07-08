@@ -14,7 +14,7 @@ class TodaySummaryCard extends StatelessWidget {
   final String currency;
 
   const TodaySummaryCard({
-    Key? key,
+    super.key,
     required this.todayIncome,
     required this.todayExpenses,
     required this.majorExpenseCategory,
@@ -22,7 +22,7 @@ class TodaySummaryCard extends StatelessWidget {
     required this.majorIncomeCategory,
     required this.majorIncomeAmount,
     required this.currency,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +71,8 @@ class TodaySummaryCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: hasTransactions
-                          ? const Color(0xFFE53935).withOpacity(0.12)
-                          : Colors.grey.withOpacity(0.08),
+                          ? const Color(0xFFE53935).withValues(alpha: 0.12)
+                          : Colors.grey.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -128,7 +128,7 @@ class TodaySummaryCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.12),
+                              color: Colors.green.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.arrow_downward, color: Colors.green, size: 14),
@@ -177,7 +177,7 @@ class TodaySummaryCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE53935).withOpacity(0.12),
+                              color: const Color(0xFFE53935).withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.arrow_upward, color: Color(0xFFE53935), size: 14),

@@ -11,12 +11,12 @@ class AccountCard extends StatelessWidget {
   final VoidCallback? onLongPress;
 
   const AccountCard({
-    Key? key,
+    super.key,
     required this.account,
     required this.currency,
     required this.onTap,
     this.onLongPress,
-  }) : super(key: key);
+  });
 
   IconData _getIconData(String iconName) {
     switch (iconName) {
@@ -54,9 +54,9 @@ class AccountCard extends StatelessWidget {
         child: GlassmorphismCard(
           padding: EdgeInsets.zero,
           color: isDark 
-              ? cardColor.withOpacity(0.12) 
-              : cardColor.withOpacity(0.08),
-          borderColor: cardColor.withOpacity(0.2),
+              ? cardColor.withValues(alpha: 0.12) 
+              : cardColor.withValues(alpha: 0.08),
+          borderColor: cardColor.withValues(alpha: 0.2),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -76,7 +76,7 @@ class AccountCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: cardColor.withOpacity(0.2),
+                        color: cardColor.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -162,7 +162,7 @@ class AccountCard extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: (account.pendingPayment > 0)
-                                  ? const Color(0xFFE53935).withOpacity(0.9)
+                                  ? const Color(0xFFE53935).withValues(alpha: 0.9)
                                   : Colors.grey,
                               fontFamily: 'Inter',
                             ),
@@ -242,10 +242,10 @@ class AnimatedCreditProgressBar extends StatefulWidget {
   final Color activeColor;
 
   const AnimatedCreditProgressBar({
-    Key? key,
+    super.key,
     required this.ratio,
     required this.activeColor,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedCreditProgressBar> createState() => _AnimatedCreditProgressBarState();
@@ -313,10 +313,10 @@ class _AnimatedCreditProgressBarState extends State<AnimatedCreditProgressBar> w
               Container(
                 height: 8,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                    color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
                     width: 1,
                   ),
                 ),
@@ -335,7 +335,7 @@ class _AnimatedCreditProgressBarState extends State<AnimatedCreditProgressBar> w
                           borderRadius: BorderRadius.circular(6),
                           boxShadow: [
                             BoxShadow(
-                              color: widget.activeColor.withOpacity(0.35 + 0.15 * _pulseController.value),
+                              color: widget.activeColor.withValues(alpha: 0.35 + 0.15 * _pulseController.value),
                               blurRadius: 5.0 + 4.0 * _pulseController.value,
                               spreadRadius: 0.5 * _pulseController.value,
                             ),
@@ -349,7 +349,7 @@ class _AnimatedCreditProgressBarState extends State<AnimatedCreditProgressBar> w
                           borderRadius: BorderRadius.circular(6),
                           gradient: LinearGradient(
                             colors: [
-                              widget.activeColor.withOpacity(0.85),
+                              widget.activeColor.withValues(alpha: 0.85),
                               widget.activeColor,
                             ],
                             begin: Alignment.centerLeft,
@@ -373,9 +373,9 @@ class _AnimatedCreditProgressBarState extends State<AnimatedCreditProgressBar> w
                                     (_shineController.value + 0.25).clamp(0.0, 1.0),
                                   ],
                                   colors: [
-                                    Colors.white.withOpacity(0.0),
-                                    Colors.white.withOpacity(0.35),
-                                    Colors.white.withOpacity(0.0),
+                                    Colors.white.withValues(alpha: 0.0),
+                                    Colors.white.withValues(alpha: 0.35),
+                                    Colors.white.withValues(alpha: 0.0),
                                   ],
                                 ).createShader(bounds);
                               },

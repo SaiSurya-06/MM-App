@@ -3,9 +3,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter/material.dart';
-import '../../models/transaction.dart';
-import 'currency_formatter.dart';
 
 class ExportHelper {
   static Future<void> exportBudgetReport({
@@ -17,24 +14,19 @@ class ExportHelper {
     final pdf = pw.Document();
 
     PdfColor primaryColor;
-    PdfColor cardBg;
     switch (themeName.toLowerCase()) {
       case 'modern_blue':
         primaryColor = PdfColors.indigo900;
-        cardBg = PdfColors.indigo50;
         break;
       case 'minimalist':
         primaryColor = PdfColors.grey900;
-        cardBg = PdfColors.grey100;
         break;
       case 'premium_gold':
         primaryColor = PdfColors.orange900;
-        cardBg = PdfColors.orange50;
         break;
       case 'classic':
       default:
         primaryColor = PdfColors.red900;
-        cardBg = PdfColors.grey50;
     }
 
     pdf.addPage(

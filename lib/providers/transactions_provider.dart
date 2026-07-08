@@ -1157,7 +1157,7 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
         final typeVal = tx['type'].toString().toLowerCase().trim();
         final accIdVal = tx['account_id'].toString();
         final noteVal = tx['note']?.toString().toLowerCase().trim() ?? '';
-        return "${dateVal}_${titleVal}_${amountVal}_${typeVal}_${accIdVal}_${noteVal}";
+        return "${dateVal}_${titleVal}_${amountVal}_${typeVal}_${accIdVal}_$noteVal";
       }).toSet();
 
       // Read category mappings
@@ -1231,7 +1231,7 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
           final typeVal = type.toLowerCase().trim();
           final accIdVal = accountId.toString();
           final noteVal = note.toLowerCase().trim();
-          final key = "${dateVal}_${titleVal}_${amountVal}_${typeVal}_${accIdVal}_${noteVal}";
+          final key = "${dateVal}_${titleVal}_${amountVal}_${typeVal}_${accIdVal}_$noteVal";
           if (existingTxKeys.contains(key)) {
             continue; // Skip duplicate transaction!
           }
@@ -1465,8 +1465,6 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
           break;
         }
       }
-
-      int importCount = 0;
       await db.transaction((txn) async {
         for (var item in items) {
           if (item.isMatched) continue;
@@ -1498,7 +1496,6 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
               [item.amount, accountId],
             );
           }
-          importCount++;
         }
       });
 

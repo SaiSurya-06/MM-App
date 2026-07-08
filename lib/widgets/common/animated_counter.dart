@@ -9,14 +9,14 @@ class AnimatedCounter extends StatefulWidget {
   final String Function(double)? formatter;
 
   const AnimatedCounter({
-    Key? key,
+    super.key,
     required this.value,
     this.prefix = '',
     this.suffix = '',
     required this.style,
     this.duration = const Duration(milliseconds: 1000),
     this.formatter,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedCounter> createState() => _AnimatedCounterState();

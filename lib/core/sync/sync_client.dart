@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../database/database.dart';
-import '../database/daos/account_dao.dart';
 import '../database/daos/transaction_dao.dart';
 import '../../models/account.dart';
 import '../../models/transaction.dart';
@@ -12,7 +10,6 @@ import '../../providers/categories_provider.dart';
 
 class SyncClient {
   final Ref ref;
-  final AccountDao _accountDao = AccountDao();
   final TransactionDao _transactionDao = TransactionDao();
 
   SyncClient(this.ref);

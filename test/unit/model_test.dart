@@ -105,7 +105,7 @@ void main() {
 
   group('Budget Model Tests', () {
     test('Budget serialization and copyWith', () {
-      final budget = Budget(
+      const budget = Budget(
         id: 45,
         categoryId: 2,
         month: '2026-06',

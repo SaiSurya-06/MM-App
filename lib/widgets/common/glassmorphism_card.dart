@@ -12,7 +12,7 @@ class GlassmorphismCard extends StatelessWidget {
   final double? height;
 
   const GlassmorphismCard({
-    Key? key,
+    super.key,
     required this.child,
     this.borderRadius = 20.0,
     this.blur = 15.0,
@@ -21,7 +21,7 @@ class GlassmorphismCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(20.0),
     this.width,
     this.height,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +30,11 @@ class GlassmorphismCard extends StatelessWidget {
     
     // Default semi-transparent glass colors
     final defaultBgColor = isDark 
-        ? Colors.white.withOpacity(0.04) 
-        : Colors.black.withOpacity(0.02);
+        ? Colors.white.withValues(alpha: 0.04) 
+        : Colors.black.withValues(alpha: 0.02);
     final defaultBorderColor = isDark 
-        ? Colors.white.withOpacity(0.08) 
-        : Colors.black.withOpacity(0.05);
+        ? Colors.white.withValues(alpha: 0.08) 
+        : Colors.black.withValues(alpha: 0.05);
 
     Widget cardContent = Container(
       width: width,

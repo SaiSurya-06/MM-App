@@ -7,7 +7,7 @@ import '../../../widgets/common/glassmorphism_card.dart';
 import 'category_form.dart';
 
 class CategoriesPage extends ConsumerWidget {
-  const CategoriesPage({Key? key}) : super(key: key);
+  const CategoriesPage({super.key});
 
   void _openCategoryForm(BuildContext context, [Category? category]) {
     showModalBottomSheet(
@@ -168,8 +168,8 @@ class CategoriesPage extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           child: GlassmorphismCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            color: isDark ? color.withOpacity(0.06) : color.withOpacity(0.04),
-            borderColor: color.withOpacity(0.12),
+            color: isDark ? color.withValues(alpha: 0.06) : color.withValues(alpha: 0.04),
+            borderColor: color.withValues(alpha: 0.12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -179,7 +179,7 @@ class CategoriesPage extends ConsumerWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
+                        color: color.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -200,7 +200,7 @@ class CategoriesPage extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(

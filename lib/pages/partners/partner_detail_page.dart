@@ -13,7 +13,7 @@ import '../transactions/transaction_list_item.dart';
 class PartnerDetailPage extends ConsumerStatefulWidget {
   final Account account;
 
-  const PartnerDetailPage({Key? key, required this.account}) : super(key: key);
+  const PartnerDetailPage({super.key, required this.account});
 
   @override
   ConsumerState<PartnerDetailPage> createState() => _PartnerDetailPageState();
@@ -119,9 +119,9 @@ class _PartnerDetailPageState extends ConsumerState<PartnerDetailPage> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE53935).withOpacity(0.5)),
+                        border: Border.all(color: const Color(0xFFE53935).withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(10),
-                        color: const Color(0xFFE53935).withOpacity(0.04),
+                        color: const Color(0xFFE53935).withValues(alpha: 0.04),
                       ),
                       child: Row(
                         children: [
@@ -158,9 +158,9 @@ class _PartnerDetailPageState extends ConsumerState<PartnerDetailPage> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.green.withOpacity(0.5)),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(10),
-                        color: Colors.green.withOpacity(0.04),
+                        color: Colors.green.withValues(alpha: 0.04),
                       ),
                       child: Row(
                         children: [
@@ -248,9 +248,9 @@ class _PartnerDetailPageState extends ConsumerState<PartnerDetailPage> {
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFC107).withOpacity(0.12),
+                color: const Color(0xFFFFC107).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFC107).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFFFFC107).withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -303,8 +303,8 @@ class _PartnerDetailPageState extends ConsumerState<PartnerDetailPage> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: GlassmorphismCard(
-              color: isDark ? cardColor.withOpacity(0.12) : cardColor.withOpacity(0.06),
-              borderColor: cardColor.withOpacity(0.2),
+              color: isDark ? cardColor.withValues(alpha: 0.12) : cardColor.withValues(alpha: 0.06),
+              borderColor: cardColor.withValues(alpha: 0.2),
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -6,18 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers/analytics_provider.dart';
-import '../../providers/categories_provider.dart';
-import '../../providers/budgets_provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/transactions_provider.dart' hide DateTimeRange;
 import '../../providers/savings_goals_provider.dart';
+import '../../providers/categories_provider.dart';
+import '../../providers/budgets_provider.dart';
 import '../../providers/accounts_provider.dart';
 import '../../models/category.dart';
 import '../../models/transaction.dart';
 import '../../models/savings_goal.dart';
-import '../../models/budget.dart';
-import '../../core/utils/currency_formatter.dart';
-import '../../widgets/common/glassmorphism_card.dart';
 import '../../widgets/common/premium_background.dart';
 import '../../core/analytics/ai_analyst.dart';
 import 'dart:ui' as ui;
@@ -274,7 +270,7 @@ final derivedAnalyticsProvider = Provider<DerivedAnalyticsValues>((ref) {
 });
 
 class TrendAnalyticsPage extends ConsumerStatefulWidget {
-  const TrendAnalyticsPage({Key? key}) : super(key: key);
+  const TrendAnalyticsPage({super.key});
 
   @override
   ConsumerState<TrendAnalyticsPage> createState() => _TrendAnalyticsPageState();
@@ -347,18 +343,12 @@ class _TrendAnalyticsPageState extends ConsumerState<TrendAnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     final analyticsState = ref.watch(analyticsProvider);
-    final categoriesState = ref.watch(categoriesProvider);
-    final budgetsState = ref.watch(budgetsProvider);
-    final authState = ref.watch(authProvider);
     final transactionsState = ref.watch(transactionsProvider);
     final goalsState = ref.watch(savingsGoalsProvider);
-    final accountsState = ref.watch(accountsProvider);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currency = authState.profile?.preferredCurrency ?? 'USD';
 
     final bool isLoading = analyticsState.isLoading || 
-                           categoriesState.isLoading || 
                            transactionsState.isLoading || 
                            goalsState.isLoading;
 
@@ -372,18 +362,7 @@ class _TrendAnalyticsPageState extends ConsumerState<TrendAnalyticsPage> {
     }
 
     final transactions = transactionsState.transactions;
-    final budgets = budgetsState.budgets;
-    final categories = categoriesState.categories;
     final goals = goalsState.goals;
-    final totalBalance = accountsState.accounts.fold(0.0, (sum, a) => sum + a.balance);
-
-    // ── Precomputations & Lookups ──────────────────────────────────────────
-    final Map<int, Category> categoryMap = {
-      for (var cat in categories) cat.id ?? 0: cat
-    };
-    final Map<int, String> categoryNames = {
-      for (var cat in categories) cat.id ?? 0: cat.name
-    };
 
     final now = DateTime.now();
     final currentYear = now.year;
@@ -403,151 +382,11 @@ class _TrendAnalyticsPageState extends ConsumerState<TrendAnalyticsPage> {
       }
     }
 
-    // Category spends for the current month
-    final Map<int, double> currentCategorySpends = {};
-    for (var tx in thisMonthTxs) {
-      final cat = categoryMap[tx.categoryId];
-      if (cat?.type == 'person') continue;
-      if (tx.type == 'expense') {
-        currentCategorySpends[tx.categoryId] = (currentCategorySpends[tx.categoryId] ?? 0.0) + tx.amount;
-      }
-    }
 
-    // Budget compliance percentage
-    double budgetCompliance = 100.0;
-    if (budgets.isNotEmpty) {
-      int metBudgets = 0;
-      for (var b in budgets) {
-        final spent = currentCategorySpends[b.categoryId] ?? 0.0;
-        if (spent <= b.limitAmount) {
-          metBudgets++;
-        }
-      }
-      budgetCompliance = (metBudgets / budgets.length) * 100.0;
-    }
 
-    // Debt payments: categories containing 'debt', 'loan', 'emi', or 'credit card payment'
-    double debtPayments = 0.0;
-    for (var tx in thisMonthTxs) {
-      if (tx.type == 'expense') {
-        final catName = categoryNames[tx.categoryId]?.toLowerCase() ?? '';
-        if (catName.contains('debt') ||
-            catName.contains('loan') ||
-            catName.contains('emi') ||
-            catName.contains('credit card payment')) {
-          debtPayments += tx.amount;
-        }
-      }
-    }
-
-    // Last 6 months income stability data
-    final last6MonthsIncome = analyticsState.monthlyData.map((d) => d.income).toList();
-    if (last6MonthsIncome.isEmpty) {
-      last6MonthsIncome.add(monthlyIncome);
-    }
-
-    // Anomaly count and transaction count
-    final anomalyCount = analyticsState.aiAnomalies.length;
-    final transactionCount = transactions.length;
-
-    // 1. Calculate Financial Health Score
-    final healthScore = FinancialHealthCalculator.calculate(
-      monthlyIncome: monthlyIncome,
-      monthlyExpense: monthlyExpense,
-      budgetCompliance: budgetCompliance,
-      debtPayments: debtPayments,
-      last6MonthsIncome: last6MonthsIncome,
-      anomalyCount: anomalyCount,
-      transactionCount: transactionCount,
-    );
-
-    // 2. Burn Rate calculations
-    final int daysElapsed = now.day;
-    final int daysInMonth = DateTime(currentYear, currentMonth + 1, 0).day;
-    final int daysRemaining = daysInMonth - daysElapsed;
-    final double dailyBurnRate = daysElapsed > 0 ? (monthlyExpense / daysElapsed) : 0.0;
-    final double projectedMonthEndBalance = totalBalance - (dailyBurnRate * daysRemaining);
-    final double runwayDays = dailyBurnRate > 0 ? (totalBalance / dailyBurnRate) : double.infinity;
-
-    double remainingBudgetTotal = 0.0;
-    if (budgets.isNotEmpty) {
-      double totalBudgetLimit = budgets.fold(0.0, (sum, b) => sum + b.limitAmount);
-      double totalSpentInBudgets = 0.0;
-      for (var b in budgets) {
-        totalSpentInBudgets += currentCategorySpends[b.categoryId] ?? 0.0;
-      }
-      remainingBudgetTotal = totalBudgetLimit - totalSpentInBudgets;
-    }
-    final double safeToSpendToday = daysRemaining > 0 
-        ? (remainingBudgetTotal > 0 ? remainingBudgetTotal / daysRemaining : 0.0) 
-        : 0.0;
-
-    // 3. Velocity and Acceleration
-    double velocity = 0.0;
-    double acceleration = 0.0;
-    String velocityTrendText = 'Your spending is stable.';
     final mData = analyticsState.monthlyData;
-    if (mData.length >= 2) {
-      final currentMonthExpense = mData.last.expense;
-      final prevMonthExpense = mData[mData.length - 2].expense;
-      velocity = currentMonthExpense - prevMonthExpense;
 
-      if (mData.length >= 3) {
-        final prev2MonthExpense = mData[mData.length - 3].expense;
-        final prevVelocity = prevMonthExpense - prev2MonthExpense;
-        acceleration = velocity - prevVelocity;
-      }
 
-      if (acceleration > 50) {
-        velocityTrendText = 'Your spending is accelerating. Be careful!';
-      } else if (acceleration < -50) {
-        velocityTrendText = 'Your spending growth is slowing down. Excellent!';
-      } else {
-        velocityTrendText = 'Your spending momentum is steady.';
-      }
-    }
-
-    // YoY Spending Comparison (unfiltered transactions)
-    final currentYearVal = now.year;
-    final currentMonthVal = now.month;
-
-    double spendThisYearMonth = 0.0;
-    double spendLastYearMonth = 0.0;
-    double spendTwoYearsAgoMonth = 0.0;
-
-    for (var tx in transactionsState.transactions) {
-      if (tx.type == 'expense' && tx.date.month == currentMonthVal) {
-        if (tx.date.year == currentYearVal) {
-          spendThisYearMonth += tx.amount;
-        } else if (tx.date.year == currentYearVal - 1) {
-          spendLastYearMonth += tx.amount;
-        } else if (tx.date.year == currentYearVal - 2) {
-          spendTwoYearsAgoMonth += tx.amount;
-        }
-      }
-    }
-
-    // Filter transactions by custom date range if selected
-    var displayTransactions = transactions;
-    if (_selectedRange != null) {
-      displayTransactions = transactions.where((tx) =>
-          tx.date.isAfter(_selectedRange!.start.subtract(const Duration(seconds: 1))) &&
-          tx.date.isBefore(_selectedRange!.end.add(const Duration(days: 1)))).toList();
-    }
-
-    // Recalculate thisMonthTxs, monthlyIncome, monthlyExpense based on filtered list for display
-    final displayThisMonthTxs = displayTransactions.where((tx) =>
-        tx.date.year == currentYear && tx.date.month == currentMonth).toList();
-
-    double displayMonthlyIncome = 0.0;
-    double displayMonthlyExpense = 0.0;
-    for (var tx in displayThisMonthTxs) {
-      if (tx.type == 'income') {
-        displayMonthlyIncome += tx.amount;
-      } else if (tx.type == 'expense') {
-        displayMonthlyExpense += tx.amount;
-      }
-    }
 
     // 4. Cached Monte Carlo simulation to avoid lag on sliders/tab switches
     final thisMonthSavings = monthlyIncome - monthlyExpense;
@@ -558,7 +397,6 @@ class _TrendAnalyticsPageState extends ConsumerState<TrendAnalyticsPage> {
       _lastTxsLength = transactions.length;
       _lastGoalsLength = goals.length;
     }
-    final monteCarloChances = _cachedMonteCarlo!;
 
     return Scaffold(
       appBar: AppBar(
@@ -702,7 +540,7 @@ class _TrendAnalyticsPageState extends ConsumerState<TrendAnalyticsPage> {
           }
         },
         selectedColor: const Color(0xFFE53935),
-        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.04),
+        backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.04),
         labelStyle: TextStyle(
           color: active ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
           fontWeight: active ? FontWeight.bold : FontWeight.normal,

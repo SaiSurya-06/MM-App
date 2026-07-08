@@ -17,7 +17,7 @@ class ChartSection extends ConsumerStatefulWidget {
   final bool isLoading;
 
   const ChartSection({
-    Key? key,
+    super.key,
     required this.monthlyData,
     required this.categoryData,
     required this.incomeCategoryData,
@@ -25,7 +25,7 @@ class ChartSection extends ConsumerStatefulWidget {
     required this.personIncomeCategoryData,
     required this.netWorthData,
     required this.isLoading,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ChartSection> createState() => _ChartSectionState();
@@ -214,8 +214,8 @@ class _ChartSectionState extends ConsumerState<ChartSection> {
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFFE53935).withOpacity(0.2),
-                  const Color(0xFFE53935).withOpacity(0.0),
+                  const Color(0xFFE53935).withValues(alpha: 0.2),
+                  const Color(0xFFE53935).withValues(alpha: 0.0),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -348,7 +348,7 @@ class _ChartSectionState extends ConsumerState<ChartSection> {
           height: 32,
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(

@@ -44,7 +44,7 @@ class ToastNotification {
             ),
           ],
         ),
-        backgroundColor: bgColor.withOpacity(0.95),
+        backgroundColor: bgColor.withValues(alpha: 0.95),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

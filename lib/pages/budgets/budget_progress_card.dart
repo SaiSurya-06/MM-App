@@ -19,7 +19,7 @@ class BudgetProgressCard extends StatefulWidget {
   final double rollover;
 
   const BudgetProgressCard({
-    Key? key,
+    super.key,
     required this.categoryName,
     required this.categoryIcon,
     required this.categoryColorHex,
@@ -33,7 +33,7 @@ class BudgetProgressCard extends StatefulWidget {
     this.recurrence = 'monthly',
     this.groupName,
     this.rollover = 0.0,
-  }) : super(key: key);
+  });
 
   @override
   State<BudgetProgressCard> createState() => _BudgetProgressCardState();
@@ -116,7 +116,7 @@ class _BudgetProgressCardState extends State<BudgetProgressCard> {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: catColor.withOpacity(0.12),
+                      color: catColor.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -145,7 +145,7 @@ class _BudgetProgressCardState extends State<BudgetProgressCard> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.15),
+                                  color: Colors.blue.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -176,7 +176,7 @@ class _BudgetProgressCardState extends State<BudgetProgressCard> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.15),
+                        color: statusColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -200,7 +200,7 @@ class _BudgetProgressCardState extends State<BudgetProgressCard> {
                 child: LinearProgressIndicator(
                   value: percentClamped,
                   minHeight: 8,
-                  backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                  backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                   valueColor: AlwaysStoppedAnimation<Color>(progressBarColor),
                 ),
               ),
@@ -276,7 +276,7 @@ class _BudgetProgressCardState extends State<BudgetProgressCard> {
                               child: Icon(
                                 Icons.info_outline,
                                 size: 12,
-                                color: Colors.grey.withOpacity(0.8),
+                                color: Colors.grey.withValues(alpha: 0.8),
                               ),
                             ),
                           ),

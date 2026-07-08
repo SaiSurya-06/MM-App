@@ -18,7 +18,7 @@ class TransactionListItem extends StatelessWidget {
   final ConfirmDismissCallback? confirmDismiss;
 
   const TransactionListItem({
-    Key? key,
+    super.key,
     required this.transaction,
     required this.categoryName,
     required this.categoryColorHex,
@@ -29,7 +29,7 @@ class TransactionListItem extends StatelessWidget {
     required this.onLongPress,
     this.onDismissed,
     this.confirmDismiss,
-  }) : super(key: key);
+  });
 
   IconData _getIconData(String iconName) {
     if (iconName == 'transfer') return Icons.swap_horiz;
@@ -59,7 +59,7 @@ class TransactionListItem extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -95,7 +95,7 @@ class TransactionListItem extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
+                          color: Colors.amber.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
@@ -138,9 +138,9 @@ class TransactionListItem extends StatelessWidget {
                     children: tagList.map((tag) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.08),
+                        color: color.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: color.withOpacity(0.2), width: 0.5),
+                        border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
                       ),
                       child: Text(
                         tag.startsWith('#') ? tag : '#$tag',

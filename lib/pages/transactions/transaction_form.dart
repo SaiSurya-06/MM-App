@@ -18,11 +18,11 @@ class TransactionForm extends ConsumerStatefulWidget {
   final String? initialType; // 'income', 'expense', 'transfer'
 
   const TransactionForm({
-    Key? key,
+    super.key,
     this.transaction,
     this.initialDate,
     this.initialType,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<TransactionForm> createState() => _TransactionFormState();
@@ -299,7 +299,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
     final categories = ref.read(categoriesProvider).categories;
     final selectedCategory = categories.firstWhere(
       (c) => c.id == _selectedCategoryId,
-      orElse: () => Category(id: -1, name: '', icon: '', color: '', isDefault: false, type: 'both'),
+      orElse: () => const Category(id: -1, name: '', icon: '', color: '', isDefault: false, type: 'both'),
     );
     final isCreditCardPayment = _selectedType != 'transfer' && selectedCategory.name.toLowerCase() == 'credit card payment';
 
@@ -514,7 +514,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
       if (widget.transaction != null && _selectedCategoryId != null) {
         final txCategory = allCategories.firstWhere(
           (c) => c.id == _selectedCategoryId,
-          orElse: () => Category(id: -1, name: '', icon: '', color: '', isDefault: false, type: 'both'),
+          orElse: () => const Category(id: -1, name: '', icon: '', color: '', isDefault: false, type: 'both'),
         );
         if (txCategory.type == 'person') {
           _categorizeMode = 'person';
@@ -546,7 +546,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
 
     return PopScope(
       canPop: !_hasUnsavedChanges(),
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final confirmed = await showDialog<bool>(
           context: context,
@@ -601,7 +601,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -774,12 +774,12 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                           decoration: BoxDecoration(
                             color: _categorizeMode == 'category'
                                 ? const Color(0xFFE53935)
-                                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02)),
+                                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _categorizeMode == 'category'
                                   ? const Color(0xFFE53935)
-                                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
                             ),
                           ),
                           child: Center(
@@ -813,12 +813,12 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                           decoration: BoxDecoration(
                             color: _categorizeMode == 'person'
                                 ? Colors.purple
-                                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02)),
+                                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: _categorizeMode == 'person'
                                   ? Colors.purple
-                                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
                             ),
                           ),
                           child: Center(
@@ -910,9 +910,9 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.08),
+                        color: Colors.purple.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                        border: Border.all(color: Colors.purple.withValues(alpha: 0.2)),
                       ),
                       child: Column(
                         children: [
@@ -953,7 +953,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                 () {
                   final selectedCategory = allCategories.firstWhere(
                     (c) => c.id == _selectedCategoryId,
-                    orElse: () => Category(id: -1, name: '', icon: '', color: '', isDefault: false, type: 'both'),
+                    orElse: () => const Category(id: -1, name: '', icon: '', color: '', isDefault: false, type: 'both'),
                   );
                   final isCreditCardPayment = selectedCategory.name.toLowerCase() == 'credit card payment';
                   if (isCreditCardPayment) {
@@ -1009,7 +1009,7 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+                      color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
                     ),
@@ -1114,9 +1114,9 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
                     return Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: isMatched ? Colors.green.withOpacity(0.08) : const Color(0xFFE53935).withOpacity(0.08),
+                        color: isMatched ? Colors.green.withValues(alpha: 0.08) : const Color(0xFFE53935).withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isMatched ? Colors.green.withOpacity(0.2) : const Color(0xFFE53935).withOpacity(0.2)),
+                        border: Border.all(color: isMatched ? Colors.green.withValues(alpha: 0.2) : const Color(0xFFE53935).withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1312,12 +1312,12 @@ class _TransactionFormState extends ConsumerState<TransactionForm> {
           decoration: BoxDecoration(
             color: active 
                 ? color 
-                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02)),
+                : (isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02)),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: active 
                   ? color 
-                  : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                  : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
               width: 1,
             ),
           ),

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
-import 'widgets/common/premium_background.dart';
-import 'widgets/common/premium_error_widget.dart';
 
 import 'widgets/navigation/scaffold_with_bottom_nav_bar.dart';
 
@@ -19,14 +16,12 @@ import 'pages/budgets/budgets_page.dart';
 import 'pages/more/more_page.dart';
 import 'pages/more/user_guide_page.dart';
 import 'pages/settings/settings_page.dart';
-import 'pages/transactions/transaction_form.dart';
 import 'pages/analytics/trend_analytics_page.dart';
 import 'pages/analytics/analytics_advanced_page.dart';
 import 'pages/accounts/account_comparison_page.dart';
 import 'pages/partners/partners_page.dart';
 import 'pages/partners/partner_detail_page.dart';
 import 'models/account.dart';
-import 'package:quick_actions/quick_actions.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -38,7 +33,7 @@ class _RouterNotifier extends ChangeNotifier {
 }
 
 class MoneyManagerApp extends ConsumerStatefulWidget {
-  const MoneyManagerApp({Key? key}) : super(key: key);
+  const MoneyManagerApp({super.key});
 
   @override
   ConsumerState<MoneyManagerApp> createState() => _MoneyManagerAppState();

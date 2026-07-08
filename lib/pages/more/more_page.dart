@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../categories/categories_page.dart';
 import '../savings/savings_goals_page.dart';
 import '../debts/debts_page.dart';
-import '../../widgets/common/glassmorphism_card.dart';
 
 // Class representation of a feature in the More page
 class FeatureItem {
@@ -45,7 +44,7 @@ class RecentlyUsedNotifier extends StateNotifier<List<String>> {
 }
 
 class MorePage extends ConsumerStatefulWidget {
-  const MorePage({Key? key}) : super(key: key);
+  const MorePage({super.key});
 
   @override
   ConsumerState<MorePage> createState() => _MorePageState();
@@ -248,7 +247,7 @@ class _MorePageState extends ConsumerState<MorePage> {
                         )
                       : null,
                   filled: true,
-                  fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
@@ -391,13 +390,13 @@ class _MorePageState extends ConsumerState<MorePage> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
-            colors: item.gradientColors.map((c) => c.withOpacity(0.85)).toList(),
+            colors: item.gradientColors.map((c) => c.withValues(alpha: 0.85)).toList(),
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: [
             BoxShadow(
-              color: item.gradientColors[0].withOpacity(0.2),
+              color: item.gradientColors[0].withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 3),
             ),
@@ -440,7 +439,7 @@ class _MorePageState extends ConsumerState<MorePage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: item.gradientColors[0].withOpacity(0.25),
+              color: item.gradientColors[0].withValues(alpha: 0.25),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -453,7 +452,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(item.icon, color: Colors.white, size: 20),
@@ -478,7 +477,7 @@ class _MorePageState extends ConsumerState<MorePage> {
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 10,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -506,7 +505,7 @@ class _MorePageState extends ConsumerState<MorePage> {
           ),
           boxShadow: [
             BoxShadow(
-              color: item.gradientColors[0].withOpacity(0.25),
+              color: item.gradientColors[0].withValues(alpha: 0.25),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -517,7 +516,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(item.icon, color: Colors.white, size: 26),
@@ -545,7 +544,7 @@ class _MorePageState extends ConsumerState<MorePage> {
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 11,
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -555,7 +554,7 @@ class _MorePageState extends ConsumerState<MorePage> {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               size: 24,
             ),
           ],

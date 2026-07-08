@@ -6,12 +6,11 @@ import '../../models/account.dart';
 import '../../providers/accounts_provider.dart';
 import '../../providers/transactions_provider.dart' hide DateTimeRange;
 import '../../providers/auth_provider.dart';
-import '../../providers/categories_provider.dart';
 import '../../widgets/common/glassmorphism_card.dart';
 import '../../core/utils/currency_formatter.dart';
 
 class AccountComparisonPage extends ConsumerStatefulWidget {
-  const AccountComparisonPage({Key? key}) : super(key: key);
+  const AccountComparisonPage({super.key});
 
   @override
   ConsumerState<AccountComparisonPage> createState() => _AccountComparisonPageState();
@@ -38,7 +37,6 @@ class _AccountComparisonPageState extends ConsumerState<AccountComparisonPage> {
     final accountsState = ref.watch(accountsProvider);
     final txState = ref.watch(transactionsProvider);
     final authState = ref.watch(authProvider);
-    final categoriesState = ref.watch(categoriesProvider);
     final currency = authState.profile?.preferredCurrency ?? 'USD';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
@@ -82,8 +80,9 @@ class _AccountComparisonPageState extends ConsumerState<AccountComparisonPage> {
         }
 
         if (related) {
-          if (tx.type == 'income') monthIncome += tx.amount;
-          else if (tx.type == 'expense') monthExpenses += tx.amount;
+          if (tx.type == 'income') {
+            monthIncome += tx.amount;
+          } else if (tx.type == 'expense') monthExpenses += tx.amount;
         }
       }
 
@@ -210,11 +209,11 @@ class _AccountComparisonPageState extends ConsumerState<AccountComparisonPage> {
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         fontFamily: 'Inter',
                       ),
-                      backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+                      backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                         side: BorderSide(
-                          color: isSelected ? color : (isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04)),
+                          color: isSelected ? color : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04)),
                         ),
                       ),
                       onSelected: (selected) {
@@ -347,8 +346,8 @@ class _AccountComparisonPageState extends ConsumerState<AccountComparisonPage> {
                   margin: const EdgeInsets.only(bottom: 12),
                   child: GlassmorphismCard(
                     padding: const EdgeInsets.all(16),
-                    color: isDark ? color.withOpacity(0.08) : color.withOpacity(0.04),
-                    borderColor: color.withOpacity(0.15),
+                    color: isDark ? color.withValues(alpha: 0.08) : color.withValues(alpha: 0.04),
+                    borderColor: color.withValues(alpha: 0.15),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -359,7 +358,7 @@ class _AccountComparisonPageState extends ConsumerState<AccountComparisonPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.15),
+                                color: color.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(acc.type.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: color, fontFamily: 'Inter')),
@@ -383,7 +382,7 @@ class _AccountComparisonPageState extends ConsumerState<AccountComparisonPage> {
                             child: LinearProgressIndicator(
                               value: utilization,
                               minHeight: 6,
-                              backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+                              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 utilization > 0.8 ? const Color(0xFFE53935) : (utilization > 0.5 ? Colors.orange : const Color(0xFF4CAF50)),
                               ),

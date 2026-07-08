@@ -7,11 +7,11 @@ class TiltCard extends StatefulWidget {
   final bool enabled;
 
   const TiltCard({
-    Key? key,
+    super.key,
     required this.child,
     this.maxTilt = 8.0,
     this.enabled = true,
-  }) : super(key: key);
+  });
 
   @override
   State<TiltCard> createState() => _TiltCardState();

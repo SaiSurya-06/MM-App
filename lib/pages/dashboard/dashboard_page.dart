@@ -17,7 +17,7 @@ import 'widgets/calendar_widget.dart';
 import 'widgets/today_summary_card.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
-  const DashboardPage({Key? key}) : super(key: key);
+  const DashboardPage({super.key});
 
   @override
   ConsumerState<DashboardPage> createState() => _DashboardPageState();
@@ -157,7 +157,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _getLocaleGreeting(ref) + ',',
+                              '${_getLocaleGreeting(ref)},',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: isDark ? Colors.grey : const Color(0xFF6C6C7D),

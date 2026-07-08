@@ -137,7 +137,7 @@ function deleteRowByKey(sheet, key) {
 }''';
 
 class PartnersPage extends ConsumerStatefulWidget {
-  const PartnersPage({Key? key}) : super(key: key);
+  const PartnersPage({super.key});
 
   @override
   ConsumerState<PartnersPage> createState() => _PartnersPageState();
@@ -390,8 +390,8 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
           // Onboarding Banner Card
           GlassmorphismCard(
             padding: const EdgeInsets.all(20),
-            color: isDark ? const Color(0xFF1E1E2E).withOpacity(0.4) : Colors.white.withOpacity(0.8),
-            borderColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+            color: isDark ? const Color(0xFF1E1E2E).withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.8),
+            borderColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -400,7 +400,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE53935).withOpacity(0.12),
+                        color: const Color(0xFFE53935).withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(Icons.people_alt, color: Color(0xFFE53935), size: 24),
@@ -690,7 +690,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),
@@ -867,7 +867,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -894,10 +894,10 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                       ),
                       Text(
                         '${(syncState.syncProgress * 100).toInt()}%',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFFE53935),
+                          color: Color(0xFFE53935),
                           fontFamily: 'Inter',
                         ),
                       ),
@@ -918,8 +918,8 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                           value: value,
                           minHeight: 6,
                           backgroundColor: isDark 
-                              ? Colors.white.withOpacity(0.08) 
-                              : Colors.black.withOpacity(0.05),
+                              ? Colors.white.withValues(alpha: 0.08) 
+                              : Colors.black.withValues(alpha: 0.05),
                           valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE53935)),
                         );
                       },
@@ -941,11 +941,11 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: isDark 
-                  ? const Color(0xFFE53935).withOpacity(0.08) 
-                  : const Color(0xFFE53935).withOpacity(0.05),
+                  ? const Color(0xFFE53935).withValues(alpha: 0.08) 
+                  : const Color(0xFFE53935).withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: const Color(0xFFE53935).withOpacity(0.3),
+                color: const Color(0xFFE53935).withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -963,7 +963,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                     'Background automatic sync has been disabled to prevent distracting dashboard refreshes. To fetch or send new updates, simply tap the Sync icon (🔄) in the status bar above.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: textColor.withOpacity(0.85),
+                      color: textColor.withValues(alpha: 0.85),
                       height: 1.4,
                       fontFamily: 'Inter',
                     ),
@@ -1202,9 +1202,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFC107).withOpacity(0.12),
+        color: const Color(0xFFFFC107).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFC107).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFFFC107).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -1299,9 +1299,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFE53935).withOpacity(0.5)),
+                        border: Border.all(color: const Color(0xFFE53935).withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(10),
-                        color: const Color(0xFFE53935).withOpacity(0.04),
+                        color: const Color(0xFFE53935).withValues(alpha: 0.04),
                       ),
                       child: Row(
                         children: [
@@ -1334,9 +1334,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.green.withOpacity(0.5)),
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(10),
-                        color: Colors.green.withOpacity(0.04),
+                        color: Colors.green.withValues(alpha: 0.04),
                       ),
                       child: Row(
                         children: [
@@ -1374,8 +1374,8 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
   Widget _buildSecurityDiagram(bool isDark, Color textColor, Color subTextColor) {
     return GlassmorphismCard(
       padding: const EdgeInsets.all(16),
-      color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
-      borderColor: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.04),
+      color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+      borderColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1395,16 +1395,16 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+              color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildDiagramNode('My Device', Icons.phone_android),
-                Icon(Icons.swap_horiz, color: Colors.grey.withOpacity(0.6), size: 20),
+                Icon(Icons.swap_horiz, color: Colors.grey.withValues(alpha: 0.6), size: 20),
                 _buildDiagramNode('Secure Cloud\n(Apps Script)', Icons.cloud_outlined),
-                Icon(Icons.swap_horiz, color: Colors.grey.withOpacity(0.6), size: 20),
+                Icon(Icons.swap_horiz, color: Colors.grey.withValues(alpha: 0.6), size: 20),
                 _buildDiagramNode('Partner', Icons.people_outline),
               ],
             ),

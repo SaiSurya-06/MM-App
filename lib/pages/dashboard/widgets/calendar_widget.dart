@@ -11,9 +11,9 @@ class CalendarWidget extends ConsumerStatefulWidget {
   final List<Transaction> transactions;
 
   const CalendarWidget({
-    Key? key,
+    super.key,
     required this.transactions,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<CalendarWidget> createState() => _CalendarWidgetState();
@@ -21,7 +21,6 @@ class CalendarWidget extends ConsumerStatefulWidget {
 
 class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
   late DateTime _focusedMonth;
-  late Set<String> _transactionDates;
   final Map<String, double> _dailyExpenses = {};
   final Map<String, double> _dailyIncome = {};
   final Map<String, List<Transaction>> _dailyTransactions = {};
@@ -42,10 +41,6 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
   }
 
   void _extractTransactionDates() {
-    _transactionDates = widget.transactions.map((tx) {
-      return tx.date.toIso8601String().substring(0, 10);
-    }).toSet();
-
     _dailyExpenses.clear();
     _dailyIncome.clear();
     _dailyTransactions.clear();
@@ -130,7 +125,7 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -171,21 +166,21 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(
+                              color: Colors.green.withValues(alpha: 
                                   isDark ? 0.15 : 0.08),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                  color: Colors.green.withOpacity(0.25)),
+                                  color: Colors.green.withValues(alpha: 0.25)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                const Row(
                                   children: [
                                     Icon(Icons.arrow_downward,
                                         color: Colors.green, size: 13),
-                                    const SizedBox(width: 4),
-                                    const Text(
+                                    SizedBox(width: 4),
+                                    Text(
                                       'INCOME',
                                       style: TextStyle(
                                         fontSize: 9,
@@ -219,21 +214,21 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE53935)
-                                  .withOpacity(isDark ? 0.15 : 0.08),
+                                  .withValues(alpha: isDark ? 0.15 : 0.08),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                   color: const Color(0xFFE53935)
-                                      .withOpacity(0.25)),
+                                      .withValues(alpha: 0.25)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                const Row(
                                   children: [
-                                    const Icon(Icons.arrow_upward,
+                                    Icon(Icons.arrow_upward,
                                         color: Color(0xFFE53935), size: 13),
-                                    const SizedBox(width: 4),
-                                    const Text(
+                                    SizedBox(width: 4),
+                                    Text(
                                       'EXPENSE',
                                       style: TextStyle(
                                         fontSize: 9,
@@ -267,13 +262,13 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                                 horizontal: 14, vertical: 12),
                             decoration: BoxDecoration(
                               color: (dayNet >= 0 ? Colors.green : const Color(0xFFE53935))
-                                  .withOpacity(isDark ? 0.12 : 0.06),
+                                  .withValues(alpha: isDark ? 0.12 : 0.06),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: (dayNet >= 0
                                         ? Colors.green
                                         : const Color(0xFFE53935))
-                                    .withOpacity(0.2),
+                                    .withValues(alpha: 0.2),
                               ),
                             ),
                             child: Column(
@@ -377,7 +372,7 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                                         color: (isIncome
                                                 ? Colors.green
                                                 : const Color(0xFFE53935))
-                                            .withOpacity(0.1),
+                                            .withValues(alpha: 0.1),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
@@ -494,7 +489,6 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
       final cellDate = DateTime(_focusedMonth.year, _focusedMonth.month, day);
       final cellDateStr = cellDate.toIso8601String().substring(0, 10);
       
-      final hasTx = _transactionDates.contains(cellDateStr);
       final isToday = cellDateStr == todayStr;
       
       final txs = _dailyTransactions[cellDateStr] ?? [];
@@ -511,34 +505,34 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
       }
 
       if (txs.isEmpty) {
-        cellBg = isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02);
+        cellBg = isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02);
         textColor = isDark ? Colors.white30 : Colors.black38;
       } else if (expenses == 0) {
-        cellBg = Colors.blue.withOpacity(isDark ? 0.2 : 0.1);
-        cellBorder = cellBorder ?? Colors.blue.withOpacity(0.4);
+        cellBg = Colors.blue.withValues(alpha: isDark ? 0.2 : 0.1);
+        cellBorder = cellBorder ?? Colors.blue.withValues(alpha: 0.4);
         textColor = isDark ? Colors.blueAccent : Colors.blue[800]!;
       } else {
         // We have expenses
         if (expenses <= 15) {
-          cellBg = Colors.green.withOpacity(isDark ? 0.2 : 0.12);
-          cellBorder = cellBorder ?? Colors.green.withOpacity(0.3);
+          cellBg = Colors.green.withValues(alpha: isDark ? 0.2 : 0.12);
+          cellBorder = cellBorder ?? Colors.green.withValues(alpha: 0.3);
           textColor = isDark ? Colors.greenAccent : Colors.green[800]!;
         } else if (expenses <= 45) {
-          cellBg = Colors.green.withOpacity(isDark ? 0.45 : 0.3);
-          cellBorder = cellBorder ?? Colors.green.withOpacity(0.6);
+          cellBg = Colors.green.withValues(alpha: isDark ? 0.45 : 0.3);
+          cellBorder = cellBorder ?? Colors.green.withValues(alpha: 0.6);
           textColor = isDark ? Colors.white : Colors.green[900]!;
           textWeight = FontWeight.bold;
         } else if (expenses <= 100) {
-          cellBg = const Color(0xFFE53935).withOpacity(isDark ? 0.2 : 0.12);
-          cellBorder = cellBorder ?? const Color(0xFFE53935).withOpacity(0.3);
+          cellBg = const Color(0xFFE53935).withValues(alpha: isDark ? 0.2 : 0.12);
+          cellBorder = cellBorder ?? const Color(0xFFE53935).withValues(alpha: 0.3);
           textColor = isDark ? const Color(0xFFFF8A80) : const Color(0xFFC62828);
         } else if (expenses <= 250) {
-          cellBg = const Color(0xFFE53935).withOpacity(isDark ? 0.45 : 0.3);
-          cellBorder = cellBorder ?? const Color(0xFFE53935).withOpacity(0.6);
+          cellBg = const Color(0xFFE53935).withValues(alpha: isDark ? 0.45 : 0.3);
+          cellBorder = cellBorder ?? const Color(0xFFE53935).withValues(alpha: 0.6);
           textColor = isDark ? Colors.white : const Color(0xFFB71C1C);
           textWeight = FontWeight.bold;
         } else {
-          cellBg = const Color(0xFFE53935).withOpacity(isDark ? 0.75 : 0.65);
+          cellBg = const Color(0xFFE53935).withValues(alpha: isDark ? 0.75 : 0.65);
           cellBorder = cellBorder ?? const Color(0xFFE53935);
           textColor = Colors.white;
           textWeight = FontWeight.bold;
@@ -661,17 +655,17 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                   fontFamily: 'Inter',
                 ),
               ),
-              _buildLegendBox(isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02), isDark ? Colors.white10 : Colors.black12),
+              _buildLegendBox(isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02), isDark ? Colors.white10 : Colors.black12),
               const SizedBox(width: 4),
-              _buildLegendBox(Colors.green.withOpacity(isDark ? 0.2 : 0.12), Colors.green.withOpacity(0.3)),
+              _buildLegendBox(Colors.green.withValues(alpha: isDark ? 0.2 : 0.12), Colors.green.withValues(alpha: 0.3)),
               const SizedBox(width: 4),
-              _buildLegendBox(Colors.green.withOpacity(isDark ? 0.45 : 0.3), Colors.green.withOpacity(0.6)),
+              _buildLegendBox(Colors.green.withValues(alpha: isDark ? 0.45 : 0.3), Colors.green.withValues(alpha: 0.6)),
               const SizedBox(width: 4),
-              _buildLegendBox(const Color(0xFFE53935).withOpacity(isDark ? 0.2 : 0.12), const Color(0xFFE53935).withOpacity(0.3)),
+              _buildLegendBox(const Color(0xFFE53935).withValues(alpha: isDark ? 0.2 : 0.12), const Color(0xFFE53935).withValues(alpha: 0.3)),
               const SizedBox(width: 4),
-              _buildLegendBox(const Color(0xFFE53935).withOpacity(isDark ? 0.45 : 0.3), const Color(0xFFE53935).withOpacity(0.6)),
+              _buildLegendBox(const Color(0xFFE53935).withValues(alpha: isDark ? 0.45 : 0.3), const Color(0xFFE53935).withValues(alpha: 0.6)),
               const SizedBox(width: 4),
-              _buildLegendBox(const Color(0xFFE53935).withOpacity(isDark ? 0.75 : 0.65), const Color(0xFFE53935)),
+              _buildLegendBox(const Color(0xFFE53935).withValues(alpha: isDark ? 0.75 : 0.65), const Color(0xFFE53935)),
               Text(
                 ' More',
                 style: TextStyle(
@@ -685,9 +679,9 @@ class _CalendarWidgetState extends ConsumerState<CalendarWidget> {
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.3),
+                  color: Colors.blue.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
-                  border: Border.all(color: Colors.blue.withOpacity(0.5), width: 0.5),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.5), width: 0.5),
                 ),
               ),
               Text(

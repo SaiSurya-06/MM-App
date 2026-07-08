@@ -9,14 +9,14 @@ class ConfirmationDialog extends StatelessWidget {
   final bool isDestructive;
 
   const ConfirmationDialog({
-    Key? key,
+    super.key,
     required this.title,
     required this.content,
     this.confirmLabel = 'Confirm',
     this.cancelLabel = 'Cancel',
     required this.onConfirm,
     this.isDestructive = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

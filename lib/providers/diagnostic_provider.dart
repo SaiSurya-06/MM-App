@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../core/database/diagnostic_profile_dao.dart';
 import '../core/analytics/ai_analyst.dart';
-import '../core/analytics/financial_engine.dart';
 import '../core/services/diagnostic_pdf_service.dart';
 import '../models/diagnostic_profile.dart';
 import '../models/diagnostic_report.dart';

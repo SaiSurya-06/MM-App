@@ -10,7 +10,7 @@ import '../../providers/partner_sync_provider.dart';
 
 class ScaffoldWithBottomNavBar extends ConsumerStatefulWidget {
   final Widget child;
-  const ScaffoldWithBottomNavBar({Key? key, required this.child}) : super(key: key);
+  const ScaffoldWithBottomNavBar({super.key, required this.child});
 
   @override
   ConsumerState<ScaffoldWithBottomNavBar> createState() => _ScaffoldWithBottomNavBarState();
@@ -161,7 +161,7 @@ class _ScaffoldWithBottomNavBarState extends ConsumerState<ScaffoldWithBottomNav
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
-              color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+              color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
               width: 1,
             ),
           ),

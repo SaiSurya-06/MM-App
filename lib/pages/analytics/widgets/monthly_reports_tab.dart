@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../models/transaction.dart';
-import '../../../models/category.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../core/analytics/monthly_report_generator.dart';
@@ -14,7 +12,7 @@ import '../../../providers/categories_provider.dart';
 import '../../../providers/auth_provider.dart';
 
 class MonthlyReportsTab extends ConsumerStatefulWidget {
-  const MonthlyReportsTab({Key? key}) : super(key: key);
+  const MonthlyReportsTab({super.key});
 
   @override
   ConsumerState<MonthlyReportsTab> createState() => _MonthlyReportsTabState();
@@ -121,7 +119,7 @@ class _MonthlyReportsTabState extends ConsumerState<MonthlyReportsTab> {
             padding: const EdgeInsets.symmetric(vertical: 24.0),
             child: Column(
               children: [
-                Icon(Icons.description_outlined, size: 48, color: Colors.grey.withOpacity(0.5)),
+                Icon(Icons.description_outlined, size: 48, color: Colors.grey.withValues(alpha: 0.5)),
                 const SizedBox(height: 12),
                 const Text(
                   'No Reports Available',
@@ -156,10 +154,10 @@ class _MonthlyReportsTabState extends ConsumerState<MonthlyReportsTab> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.02),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
           ),
@@ -231,7 +229,7 @@ class _MonthlyReportsTabState extends ConsumerState<MonthlyReportsTab> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
+                        color: Colors.green.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -365,7 +363,7 @@ class _MonthlyReportsTabState extends ConsumerState<MonthlyReportsTab> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
               ],
             ),
           ),
@@ -426,7 +424,7 @@ class _MonthlyReportsTabState extends ConsumerState<MonthlyReportsTab> {
                 ),
               ),
             );
-          }).toList(),
+          }),
 
           const SizedBox(height: 20),
 

@@ -12,17 +12,13 @@ import '../../core/notifications/notification_service.dart';
 import '../../core/utils/date_helpers.dart';
 import '../../widgets/common/glassmorphism_card.dart';
 import '../../widgets/common/toast_notification.dart';
-import '../categories/categories_page.dart';
 import '../../core/backup/backup_service.dart';
-import '../savings/savings_goals_page.dart';
-import '../debts/debts_page.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/localization/app_localizations.dart';
 import '../../core/database/database.dart';
 
 
 class SettingsPage extends ConsumerStatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
@@ -295,7 +291,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -328,7 +324,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+        color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12, width: 0.5),
       ),
@@ -358,7 +354,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                    backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                     foregroundColor: isDark ? Colors.white : Colors.black87,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
@@ -437,7 +433,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -470,7 +466,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+        color: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? Colors.white12 : Colors.black12, width: 0.5),
       ),
@@ -500,7 +496,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                    backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                     foregroundColor: isDark ? Colors.white : Colors.black87,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
@@ -576,7 +572,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return PopScope(
       canPop: !hasUnsavedChanges,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final discard = await showDialog<bool>(
           context: context,
@@ -698,7 +694,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: isDark ? Colors.white10 : Colors.black12, width: 0.5),
                           ),
@@ -1010,7 +1006,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -1029,10 +1025,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 48),
 
             // Switch User Profile Button (always show to allow adding new profiles)
-            if (ref.watch(authProvider).profiles.length >= 1) ...[
+            if (ref.watch(authProvider).profiles.isNotEmpty) ...[
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+                  backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
                   foregroundColor: isDark ? Colors.white70 : Colors.black87,
                   side: BorderSide(color: isDark ? Colors.white24 : Colors.black26, width: 1),
                   minimumSize: const Size(double.infinity, 54),
@@ -1050,7 +1046,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
              // App Logout Button
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withOpacity(0.02),
+                backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.black.withValues(alpha: 0.02),
                 foregroundColor: const Color(0xFFE53935),
                 side: const BorderSide(color: Color(0xFFE53935), width: 1),
                 minimumSize: const Size(double.infinity, 54),
@@ -1065,11 +1061,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 24),
 
             // Danger Zone
-            Text(
+            const Text(
               'Danger Zone',
               style: TextStyle(
                 fontSize: 12,
-                color: const Color(0xFFE53935),
+                color: Color(0xFFE53935),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.0,
               ),
@@ -1106,11 +1102,10 @@ class _CurrencyPickerDialog extends StatefulWidget {
   final ValueChanged<String> onSelected;
 
   const _CurrencyPickerDialog({
-    Key? key,
     required this.currencies,
     required this.initialCurrency,
     required this.onSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<_CurrencyPickerDialog> createState() => _CurrencyPickerDialogState();
@@ -1227,10 +1222,9 @@ class _PinVerificationDialog extends StatefulWidget {
   final VoidCallback onVerified;
 
   const _PinVerificationDialog({
-    Key? key,
     required this.correctPinHash,
     required this.onVerified,
-  }) : super(key: key);
+  });
 
   @override
   State<_PinVerificationDialog> createState() => _PinVerificationDialogState();
@@ -1326,7 +1320,7 @@ class _PinVerificationDialogState extends State<_PinVerificationDialog> {
                       shape: BoxShape.circle,
                       border: Border.all(color: const Color(0xFFE53935), width: 1.5),
                       color: active
-                          ? const Color(0xFFE53935).withOpacity(_obscurePin ? 1.0 : 0.15)
+                          ? const Color(0xFFE53935).withValues(alpha: _obscurePin ? 1.0 : 0.15)
                           : Colors.transparent,
                     ),
                     alignment: Alignment.center,
@@ -1419,7 +1413,7 @@ class _PinVerificationDialogState extends State<_PinVerificationDialog> {
       height: 60,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
       ),
       child: Material(
         color: Colors.transparent,

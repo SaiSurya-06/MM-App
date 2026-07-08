@@ -1,9 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../models/transaction.dart';
 import '../../../models/savings_goal.dart';
-import '../../../models/category.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../providers/analytics_provider.dart';
@@ -13,7 +11,7 @@ import '../../../providers/categories_provider.dart';
 import '../trend_analytics_page.dart';
 
 class ProjectionsTab extends ConsumerStatefulWidget {
-  const ProjectionsTab({Key? key}) : super(key: key);
+  const ProjectionsTab({super.key});
 
   @override
   ConsumerState<ProjectionsTab> createState() => _ProjectionsTabState();
@@ -43,7 +41,6 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
     final categories = categoriesState.categories;
     final totalBalance = derivedValues.totalBalance;
     final daysElapsed = derivedValues.daysElapsed;
-    final daysRemaining = derivedValues.daysRemaining;
     final monthlyIncome = derivedValues.monthlyIncome;
     final monthlyExpense = derivedValues.monthlyExpense;
     final dailyBurnRate = derivedValues.dailyBurnRate;
@@ -100,9 +97,9 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.12),
+              color: Colors.amber.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.amber.withOpacity(0.4), width: 1),
+              border: Border.all(color: Colors.amber.withValues(alpha: 0.4), width: 1),
             ),
             child: Row(
               children: [
@@ -209,7 +206,7 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: savingsAdjustment > 0 ? Colors.green.withOpacity(0.1) : const Color(0xFFE53935).withOpacity(0.1),
+                    color: savingsAdjustment > 0 ? Colors.green.withValues(alpha: 0.1) : const Color(0xFFE53935).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -290,13 +287,13 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE53935).withOpacity(0.1),
+                    color: const Color(0xFFE53935).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
                     children: [
                       Icon(Icons.warning_amber_rounded, color: Color(0xFFE53935), size: 16),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Pre-committed expenses exceed 50% of your monthly income. Consider cancelling redundant subscriptions.',
@@ -381,6 +378,7 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
                     final pct = chance * 100.0;
 
                     return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -404,7 +402,7 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
                           Container(
                             height: 8,
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
@@ -429,7 +427,6 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
                           ),
                         ],
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
                     );
                   },
                 ),
@@ -480,7 +477,7 @@ class _ProjectionsTabState extends ConsumerState<ProjectionsTab> {
           min: -1.0,
           max: 1.0,
           activeColor: const Color(0xFFE53935),
-          inactiveColor: Colors.grey.withOpacity(0.2),
+          inactiveColor: Colors.grey.withValues(alpha: 0.2),
         ),
       ],
     );

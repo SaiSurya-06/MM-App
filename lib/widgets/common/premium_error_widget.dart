@@ -5,25 +5,25 @@ class PremiumErrorWidget extends StatelessWidget {
   final FlutterErrorDetails details;
 
   const PremiumErrorWidget({
-    Key? key,
+    super.key,
     required this.details,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final bgColor = isDark 
-        ? const Color(0xFF09090E).withOpacity(0.95) 
-        : const Color(0xFFF5F5F7).withOpacity(0.95);
+        ? const Color(0xFF09090E).withValues(alpha: 0.95) 
+        : const Color(0xFFF5F5F7).withValues(alpha: 0.95);
         
     final cardBgColor = isDark 
-        ? Colors.white.withOpacity(0.04) 
-        : Colors.black.withOpacity(0.02);
+        ? Colors.white.withValues(alpha: 0.04) 
+        : Colors.black.withValues(alpha: 0.02);
         
     final borderColor = isDark 
-        ? Colors.white.withOpacity(0.08) 
-        : Colors.black.withOpacity(0.05);
+        ? Colors.white.withValues(alpha: 0.08) 
+        : Colors.black.withValues(alpha: 0.05);
 
     final textColor = isDark ? Colors.white : const Color(0xFF1A1A26);
     final textSubColor = isDark ? Colors.white70 : const Color(0xFF6C6C7D);
@@ -54,7 +54,7 @@ class PremiumErrorWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE53935).withOpacity(0.1),
+                          color: const Color(0xFFE53935).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -87,7 +87,7 @@ class PremiumErrorWidget extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.1),
+                          color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         constraints: const BoxConstraints(maxHeight: 200),

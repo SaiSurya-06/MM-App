@@ -9,7 +9,7 @@ import '../../../providers/auth_provider.dart';
 import '../trend_analytics_page.dart';
 
 class MerchantsTagsTab extends ConsumerStatefulWidget {
-  const MerchantsTagsTab({Key? key}) : super(key: key);
+  const MerchantsTagsTab({super.key});
 
   @override
   ConsumerState<MerchantsTagsTab> createState() => _MerchantsTagsTabState();
@@ -226,7 +226,7 @@ class _MerchantsTagsTabState extends ConsumerState<MerchantsTagsTab> {
                                     width: 28,
                                     height: 28,
                                     decoration: BoxDecoration(
-                                      color: Colors.orange.withOpacity(0.15),
+                                      color: Colors.orange.withValues(alpha: 0.15),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.storefront_outlined, size: 14, color: Colors.orange),
@@ -314,7 +314,7 @@ class _MerchantsTagsTabState extends ConsumerState<MerchantsTagsTab> {
                                     width: 28,
                                     height: 28,
                                     decoration: BoxDecoration(
-                                      color: Colors.blueAccent.withOpacity(0.15),
+                                      color: Colors.blueAccent.withValues(alpha: 0.15),
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(Icons.label_outline, size: 14, color: Colors.blueAccent),

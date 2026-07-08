@@ -10,7 +10,7 @@ import 'account_form.dart';
 import 'account_transactions_page.dart';
 
 class AccountsPage extends ConsumerWidget {
-  const AccountsPage({Key? key}) : super(key: key);
+  const AccountsPage({super.key});
 
   void _openAccountForm(BuildContext context, [Account? account]) {
     showModalBottomSheet(
@@ -77,7 +77,7 @@ class AccountsPage extends ConsumerWidget {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF00ACC1).withOpacity(0.2),
+                              color: const Color(0xFF00ACC1).withValues(alpha: 0.2),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
@@ -116,7 +116,7 @@ class AccountsPage extends ConsumerWidget {
                                     fontFamily: 'Inter',
                                   ),
                                 ),
-                                Icon(Icons.account_balance_wallet, color: Colors.white.withOpacity(0.8), size: 24),
+                                Icon(Icons.account_balance_wallet, color: Colors.white.withValues(alpha: 0.8), size: 24),
                               ],
                             ),
                             const SizedBox(height: 4),
@@ -194,7 +194,7 @@ class AccountsPage extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(4),
                                   child: LinearProgressIndicator(
                                     value: (utilization / 100.0).clamp(0.0, 1.0),
-                                    backgroundColor: isDark ? Colors.white10 : Colors.black.withOpacity(0.05),
+                                    backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
                                     valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                                     minHeight: 6,
                                   ),
@@ -280,7 +280,7 @@ class AccountsPage extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
+                            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Center(
@@ -370,7 +370,7 @@ class AccountsPage extends ConsumerWidget {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         side: BorderSide(
-                                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                                          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
                                         ),
                                       ),
                                       action: SnackBarAction(

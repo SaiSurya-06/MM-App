@@ -10,7 +10,7 @@ import '../../widgets/common/toast_notification.dart';
 import '../../core/utils/currency_formatter.dart';
 
 class DebtsPage extends ConsumerStatefulWidget {
-  const DebtsPage({Key? key}) : super(key: key);
+  const DebtsPage({super.key});
 
   @override
   ConsumerState<DebtsPage> createState() => _DebtsPageState();
@@ -133,7 +133,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.credit_score_outlined, size: 64, color: Colors.grey.withOpacity(0.5)),
+                      Icon(Icons.credit_score_outlined, size: 64, color: Colors.grey.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       const Text(
                         'No loans or debts tracked yet.',
@@ -190,7 +190,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE53935).withOpacity(0.1),
+                                        color: const Color(0xFFE53935).withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -222,7 +222,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
                                   child: LinearProgressIndicator(
                                     value: progress,
                                     minHeight: 6,
-                                    backgroundColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+                                    backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
                                     valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE53935)),
                                   ),
                                 ),
@@ -291,7 +291,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
                                     ),
                                     IconButton(
                                       style: IconButton.styleFrom(
-                                        backgroundColor: const Color(0xFFE53935).withOpacity(0.1),
+                                        backgroundColor: const Color(0xFFE53935).withValues(alpha: 0.1),
                                         foregroundColor: const Color(0xFFE53935),
                                       ),
                                       onPressed: () => _showRecordPaymentDialog(debt, currency),
@@ -305,7 +305,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
     );
@@ -315,7 +315,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
 class TiltCardGesture extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
-  const TiltCardGesture({Key? key, required this.child, required this.onTap}) : super(key: key);
+  const TiltCardGesture({super.key, required this.child, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -328,7 +328,7 @@ class TiltCardGesture extends StatelessWidget {
 
 class DebtFormSheet extends ConsumerStatefulWidget {
   final DebtLoan? debt;
-  const DebtFormSheet({Key? key, this.debt}) : super(key: key);
+  const DebtFormSheet({super.key, this.debt});
 
   @override
   ConsumerState<DebtFormSheet> createState() => _DebtFormSheetState();
@@ -490,7 +490,7 @@ class _DebtFormSheetState extends ConsumerState<DebtFormSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -605,7 +605,7 @@ class _DebtFormSheetState extends ConsumerState<DebtFormSheet> {
 class AmortizationScheduleWidget extends StatefulWidget {
   final DebtLoan debt;
   final String currency;
-  const AmortizationScheduleWidget({Key? key, required this.debt, required this.currency}) : super(key: key);
+  const AmortizationScheduleWidget({super.key, required this.debt, required this.currency});
 
   @override
   State<AmortizationScheduleWidget> createState() => _AmortizationScheduleWidgetState();
@@ -672,9 +672,9 @@ class _AmortizationScheduleWidgetState extends State<AmortizationScheduleWidget>
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
+              color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.withOpacity(0.15)),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Table(
@@ -735,7 +735,7 @@ class _AmortizationScheduleWidgetState extends State<AmortizationScheduleWidget>
 class StrategyComparisonCard extends StatelessWidget {
   final List<DebtLoan> debts;
   final String currency;
-  const StrategyComparisonCard({Key? key, required this.debts, required this.currency}) : super(key: key);
+  const StrategyComparisonCard({super.key, required this.debts, required this.currency});
 
   @override
   Widget build(BuildContext context) {
@@ -753,16 +753,16 @@ class StrategyComparisonCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       child: GlassmorphismCard(
         padding: const EdgeInsets.all(16),
-        color: isDark ? const Color(0xFF1E1E2E).withOpacity(0.4) : Colors.black.withOpacity(0.02),
-        borderColor: const Color(0xFFE53935).withOpacity(0.2),
+        color: isDark ? const Color(0xFF1E1E2E).withValues(alpha: 0.4) : Colors.black.withValues(alpha: 0.02),
+        borderColor: const Color(0xFFE53935).withValues(alpha: 0.2),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(Icons.analytics_outlined, color: Color(0xFFE53935), size: 20),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.analytics_outlined, color: Color(0xFFE53935), size: 20),
+                SizedBox(width: 8),
+                Text(
                   'Debt Payoff Strategy Guide',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, fontFamily: 'Inter'),
                 ),
