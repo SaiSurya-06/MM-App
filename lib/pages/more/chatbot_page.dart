@@ -228,7 +228,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       }
       
       if (conditions.isNotEmpty) {
-        sql += " WHERE " + conditions.join(" AND ");
+        sql += " WHERE ${conditions.join(" AND ")}";
       }
       
       sql += " ORDER BY t.date DESC, t.id DESC";
@@ -263,7 +263,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       }
       
       final monthLabel = targetMonthInt != null 
-          ? _getMonthName(targetMonthInt) + " $targetYear"
+          ? "${_getMonthName(targetMonthInt)} $targetYear"
           : "this month";
           
       if (filtered.isEmpty) {
@@ -345,7 +345,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     ''', [monthStr]);
 
     final buffer = StringBuffer();
-    final monthName = _getMonthName(month) + " $year";
+    final monthName = "${_getMonthName(month)} $year";
     if (budgets.isEmpty) {
       buffer.writeln("You don't have any budgets set for **$monthName**.");
       buffer.writeln("To save money effectively, we recommend setting category spending limits. You can do this in the **Budgets** tab or use the new **Budget Blueprint** tool under the More tab to automatically generate limits based on your income!");
