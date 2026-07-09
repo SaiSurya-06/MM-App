@@ -30,42 +30,42 @@ class FinanceService(private val dbPathProvider: () -> String) {
     }
 
     @Tool
-    fun getAccountBalances(): List<Map<String, Any>> {
-        val db = getReadableDatabase() ?: return emptyList()
-        val list = mutableListOf<Map<String, Any>>()
+    fun getAccountBalances(): String {
+        val db = getReadableDatabase() ?: return "Error: Database not accessible"
+        val buffer = StringBuilder()
         try {
-            val cursor = db.rawQuery("SELECT id, name, type, balance FROM account", null)
+            val cursor = db.rawQuery("SELECT name, type, balance FROM account", null)
             if (cursor.moveToFirst()) {
                 do {
-                    val map = mapOf(
-                        "id" to cursor.getInt(0),
-                        "name" to cursor.getString(1),
-                        "type" to cursor.getString(2),
-                        "balance" to cursor.getDouble(3)
-                    )
-                    list.add(map)
+                    val name = cursor.getString(0)
+                    val type = cursor.getString(1)
+                    val balance = cursor.getDouble(2)
+                    buffer.append("- $name ($type): $$balance\n")
                 } while (cursor.moveToNext())
+            } else {
+                buffer.append("No accounts found.")
             }
             cursor.close()
         } catch (e: Exception) {
             Log.e("FinanceService", "getAccountBalances query failed: ${e.message}")
+            return "Error querying account balances"
         } finally {
             db.close()
         }
-        return list
+        return buffer.toString()
     }
 
     @Tool
     fun getSpendingByCategoryForMonth(
         @Param("The month to analyze in YYYY-MM format. Defaults to current month if empty.") month: String
-    ): List<Map<String, Any>> {
-        val db = getReadableDatabase() ?: return emptyList()
+    ): String {
+        val db = getReadableDatabase() ?: return "Error: Database not accessible"
         val targetMonth = if (month.isNullOrBlank()) {
             SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
         } else {
             month
         }
-        val list = mutableListOf<Map<String, Any>>()
+        val buffer = StringBuilder()
         try {
             val cursor = db.rawQuery(
                 "SELECT c.name, SUM(t.amount) " +
@@ -77,34 +77,36 @@ class FinanceService(private val dbPathProvider: () -> String) {
                 arrayOf(targetMonth)
             )
             if (cursor.moveToFirst()) {
+                buffer.append("Spending by category for $targetMonth:\n")
                 do {
-                    val map = mapOf(
-                        "category" to cursor.getString(0),
-                        "total_spent" to cursor.getDouble(1)
-                    )
-                    list.add(map)
+                    val catName = cursor.getString(0)
+                    val total = cursor.getDouble(1)
+                    buffer.append("- $catName: $$total\n")
                 } while (cursor.moveToNext())
+            } else {
+                buffer.append("No spending found for $targetMonth.")
             }
             cursor.close()
         } catch (e: Exception) {
             Log.e("FinanceService", "getSpendingByCategoryForMonth failed: ${e.message}")
+            return "Error querying spending by category"
         } finally {
             db.close()
         }
-        return list
+        return buffer.toString()
     }
 
     @Tool
     fun getBudgetsAndSpendingForMonth(
         @Param("The month to analyze in YYYY-MM format. Defaults to current month if empty.") month: String
-    ): List<Map<String, Any>> {
-        val db = getReadableDatabase() ?: return emptyList()
+    ): String {
+        val db = getReadableDatabase() ?: return "Error: Database not accessible"
         val targetMonth = if (month.isNullOrBlank()) {
             SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
         } else {
             month
         }
-        val list = mutableListOf<Map<String, Any>>()
+        val buffer = StringBuilder()
         try {
             // First get the spending
             val spending = mutableMapOf<String, Double>()
@@ -132,65 +134,65 @@ class FinanceService(private val dbPathProvider: () -> String) {
                 arrayOf(targetMonth)
             )
             if (budgetCursor.moveToFirst()) {
+                buffer.append("Budgets and spending for $targetMonth:\n")
                 do {
                     val category = budgetCursor.getString(0)
                     val limit = budgetCursor.getDouble(1)
                     val spent = spending[category] ?: 0.0
-                    val map = mapOf(
-                        "category" to category,
-                        "limit_amount" to limit,
-                        "total_spent" to spent,
-                        "status" to if (spent > limit) "overspent" else "within_limit"
-                    )
-                    list.add(map)
+                    val status = if (spent > limit) "OVERSPENT" else "WITHIN LIMIT"
+                    buffer.append("- $category: Limit $$limit, Spent $$spent ($status)\n")
                 } while (budgetCursor.moveToNext())
+            } else {
+                buffer.append("No budgets set for $targetMonth.")
             }
             budgetCursor.close()
         } catch (e: Exception) {
             Log.e("FinanceService", "getBudgetsAndSpendingForMonth failed: ${e.message}")
+            return "Error querying budgets and spending"
         } finally {
             db.close()
         }
-        return list
+        return buffer.toString()
     }
 
     @Tool
-    fun getSavingsGoals(): List<Map<String, Any>> {
-        val db = getReadableDatabase() ?: return emptyList()
-        val list = mutableListOf<Map<String, Any>>()
+    fun getSavingsGoals(): String {
+        val db = getReadableDatabase() ?: return "Error: Database not accessible"
+        val buffer = StringBuilder()
         try {
-            val cursor = db.rawQuery("SELECT id, name, target_amount, current_amount, target_date FROM savings_goal", null)
+            val cursor = db.rawQuery("SELECT name, target_amount, current_amount, target_date FROM savings_goal", null)
             if (cursor.moveToFirst()) {
+                buffer.append("Savings Goals:\n")
                 do {
-                    val map = mapOf(
-                        "id" to cursor.getInt(0),
-                        "name" to cursor.getString(1),
-                        "target_amount" to cursor.getDouble(2),
-                        "current_amount" to cursor.getDouble(3),
-                        "target_date" to (cursor.getString(4) ?: "")
-                    )
-                    list.add(map)
+                    val name = cursor.getString(0)
+                    val target = cursor.getDouble(1)
+                    val current = cursor.getDouble(2)
+                    val date = cursor.getString(3) ?: "No Date"
+                    buffer.append("- $name: Target $$target, Current $$current, Target Date: $date\n")
                 } while (cursor.moveToNext())
+            } else {
+                buffer.append("No savings goals found.")
             }
             cursor.close()
         } catch (e: Exception) {
             Log.e("FinanceService", "getSavingsGoals failed: ${e.message}")
+            return "Error querying savings goals"
         } finally {
             db.close()
         }
-        return list
+        return buffer.toString()
     }
 
     @Tool
     fun getRecentTransactions(
         @Param("Maximum number of transactions to return. Defaults to 10.") limit: Int
-    ): List<Map<String, Any>> {
-        val db = getReadableDatabase() ?: return emptyList()
+    ): String {
+        val db = getReadableDatabase() ?: return "Error: Database not accessible"
         val limitVal = if (limit <= 0) 10 else limit
-        val list = mutableListOf<Map<String, Any>>()
+        val buffer = StringBuilder()
         try {
             val cursor = db.rawQuery(
-                "SELECT t.id, t.title, t.amount, t.type, t.date, c.name, a.name " +
+                "SELECT t.title, t.amount, t.type, t.date, c.name, a.name " +
                 "FROM transaction_log t " +
                 "LEFT JOIN category c ON t.category_id = c.id " +
                 "LEFT JOIN account a ON t.account_id = a.id " +
@@ -198,26 +200,28 @@ class FinanceService(private val dbPathProvider: () -> String) {
                 arrayOf(limitVal.toString())
             )
             if (cursor.moveToFirst()) {
+                buffer.append("Recent Transactions (max $limitVal):\n")
                 do {
-                    val map = mapOf(
-                        "id" to cursor.getInt(0),
-                        "title" to cursor.getString(1),
-                        "amount" to cursor.getDouble(2),
-                        "type" to cursor.getString(3),
-                        "date" to cursor.getString(4),
-                        "category" to (cursor.getString(5) ?: ""),
-                        "account" to (cursor.getString(6) ?: "")
-                    )
-                    list.add(map)
+                    val title = cursor.getString(0)
+                    val amount = cursor.getDouble(1)
+                    val type = cursor.getString(2)
+                    val date = cursor.getString(3)
+                    val category = cursor.getString(4) ?: "Uncategorized"
+                    val account = cursor.getString(5) ?: "Unknown Account"
+                    val sign = if (type == "income") "+" else "-"
+                    buffer.append("- $title ($category): $sign$$amount on $date using $account ($type)\n")
                 } while (cursor.moveToNext())
+            } else {
+                buffer.append("No transactions found.")
             }
             cursor.close()
         } catch (e: Exception) {
             Log.e("FinanceService", "getRecentTransactions failed: ${e.message}")
+            return "Error querying recent transactions"
         } finally {
             db.close()
         }
-        return list
+        return buffer.toString()
     }
 }
 
