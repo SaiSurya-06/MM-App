@@ -303,7 +303,7 @@ def main():
             'income',
             iso(salary_date),
             'Salary credited for month',
-            'monthly',     # recurrence
+            'monthly' if month == 6 else 'none',     # recurrence
             None,          # recurrence_end_date
             0,             # is_private
             'salary,income',  # tags

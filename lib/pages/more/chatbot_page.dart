@@ -4,6 +4,8 @@ import '../../core/database/database.dart';
 import '../../core/agent/agent_service.dart';
 import '../../widgets/common/glassmorphism_card.dart';
 import '../../widgets/common/premium_background.dart';
+import '../../core/utils/currency_formatter.dart';
+import '../../providers/auth_provider.dart';
 
 class ChatMessage {
   final String text;
@@ -122,8 +124,42 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     final now = DateTime.now();
     final currentMonth = now.toIso8601String().substring(0, 7);
 
+    final currencyCode = ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
+    final currencySymbol = CurrencyFormatter.getSymbol(currencyCode);
+
     try {
-      // 1. Spending Queries
+      // 1. Salary & Income Queries
+      if (cleanQuery.contains("salary") ||
+          cleanQuery.contains("income") ||
+          cleanQuery.contains("earning") ||
+          cleanQuery.contains("earned") ||
+          cleanQuery.contains("paycheck") ||
+          cleanQuery.contains("getting paid")) {
+        final List<Map<String, dynamic>> results = await db.rawQuery('''
+          SELECT title, amount, date FROM transaction_log
+          WHERE type = 'income' AND strftime('%Y-%m', date) = ?
+          ORDER BY date DESC
+        ''', [currentMonth]);
+
+        if (results.isEmpty) {
+          return "You haven't recorded any income or salary transactions for this month ($currentMonth) yet. You can log income using the '+' button on the ledger or dashboard.";
+        }
+
+        double totalIncome = 0.0;
+        final buffer = StringBuffer();
+        buffer.writeln("Here is your income details for **$currentMonth**:\n");
+        for (var r in results) {
+          final title = r['title'];
+          final amt = (r['amount'] as num).toDouble();
+          final date = r['date'];
+          totalIncome += amt;
+          buffer.writeln("- **$title**: $currencySymbol${amt.toStringAsFixed(2)} on $date");
+        }
+        buffer.writeln("\n**Total Income**: **$currencySymbol${totalIncome.toStringAsFixed(2)}**");
+        return buffer.toString();
+      }
+
+      // 2. Spending Queries
       if (cleanQuery.contains("spend") ||
           cleanQuery.contains("spent") ||
           cleanQuery.contains("expense") ||
@@ -148,27 +184,28 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
         }
 
         final buffer = StringBuffer();
-        buffer.writeln("Based on your local transaction database, you have spent a total of **\$${totalSpent.toStringAsFixed(2)}** in **$currentMonth**.\n");
+        buffer.writeln("Based on your local transaction database, you have spent a total of **$currencySymbol${totalSpent.toStringAsFixed(2)}** in **$currentMonth**.\n");
         buffer.writeln("Here is your spending by category:");
         for (var r in results) {
           final cat = r['name'];
           final amt = (r['total'] as num).toDouble();
           final percentage = (amt / totalSpent * 100).toStringAsFixed(1);
-          buffer.writeln("- **$cat**: \$${amt.toStringAsFixed(2)} ($percentage%)");
+          buffer.writeln("- **$cat**: $currencySymbol${amt.toStringAsFixed(2)} ($percentage%)");
         }
 
         final highestCat = results.first['name'];
         final highestAmt = (results.first['total'] as num).toDouble();
-        buffer.writeln("\nYou spent the most on **$highestCat** this month (**\$${highestAmt.toStringAsFixed(2)}**).");
+        buffer.writeln("\nYou spent the most on **$highestCat** this month (**$currencySymbol${highestAmt.toStringAsFixed(2)}**).");
 
         return buffer.toString();
       }
 
-      // 2. Account Balances Queries
+      // 3. Account Balances Queries (Removed "how much" alone as a trigger to prevent false matches)
       if (cleanQuery.contains("balance") ||
-          cleanQuery.contains("account") ||
-          cleanQuery.contains("how much") ||
-          cleanQuery.contains("money")) {
+          (cleanQuery.contains("account") && !cleanQuery.contains("create") && !cleanQuery.contains("salary")) ||
+          cleanQuery.contains("net worth") ||
+          cleanQuery.contains("net balance") ||
+          cleanQuery.contains("my money")) {
         final List<Map<String, dynamic>> results = await db.rawQuery('''
           SELECT name, type, balance FROM account ORDER BY balance DESC
         ''');
@@ -185,13 +222,13 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
           final type = r['type'];
           final bal = (r['balance'] as num).toDouble();
           netWorth += bal;
-          buffer.writeln("- **$name** (${type.toString().toUpperCase()}): \$${bal.toStringAsFixed(2)}");
+          buffer.writeln("- **$name** (${type.toString().toUpperCase()}): $currencySymbol${bal.toStringAsFixed(2)}");
         }
-        buffer.writeln("\n**Total Net Balance**: \$${netWorth.toStringAsFixed(2)}");
+        buffer.writeln("\n**Total Net Balance**: $currencySymbol${netWorth.toStringAsFixed(2)}");
         return buffer.toString();
       }
 
-      // 3. Savings / Budget Tips Queries
+      // 4. Savings / Budget Tips Queries
       if (cleanQuery.contains("save") ||
           cleanQuery.contains("saving") ||
           cleanQuery.contains("budget") ||
@@ -227,9 +264,9 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
 
             if (diff < 0) {
               overspentAny = true;
-              buffer.writeln("- **$cat**: \$${spent.toStringAsFixed(2)} of \$${limit.toStringAsFixed(2)} (**Overspent by \$${(-diff).toStringAsFixed(2)}** ⚠️)");
+              buffer.writeln("- **$cat**: $currencySymbol${spent.toStringAsFixed(2)} of $currencySymbol${limit.toStringAsFixed(2)} (**Overspent by $currencySymbol${(-diff).toStringAsFixed(2)}** ⚠️)");
             } else {
-              buffer.writeln("- **$cat**: \$${spent.toStringAsFixed(2)} of \$${limit.toStringAsFixed(2)} (Remaining: \$${diff.toStringAsFixed(2)})");
+              buffer.writeln("- **$cat**: $currencySymbol${spent.toStringAsFixed(2)} of $currencySymbol${limit.toStringAsFixed(2)} (Remaining: $currencySymbol${diff.toStringAsFixed(2)})");
             }
           }
 
@@ -251,14 +288,14 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
             final tar = (g['target_amount'] as num).toDouble();
             final cur = (g['current_amount'] as num).toDouble();
             final pct = (cur / tar * 100).toStringAsFixed(0);
-            buffer.writeln("- **$name**: \$${cur.toStringAsFixed(0)} of \$${tar.toStringAsFixed(0)} ($pct% saved)");
+            buffer.writeln("- **$name**: $currencySymbol${cur.toStringAsFixed(0)} of $currencySymbol${tar.toStringAsFixed(0)} ($pct% saved)");
           }
         }
 
         return buffer.toString();
       }
 
-      // 4. Recent Transactions
+      // 5. Recent Transactions
       if (cleanQuery.contains("recent") ||
           cleanQuery.contains("transaction") ||
           cleanQuery.contains("ledger") ||
@@ -284,7 +321,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
           final date = r['date'];
           final category = r['category'] ?? "Uncategorized";
           final sign = type == 'income' ? '+' : '-';
-          buffer.writeln("- **$title** ($category): $sign\$${amount.toStringAsFixed(2)} on $date");
+          buffer.writeln("- **$title** ($category): $sign$currencySymbol${amount.toStringAsFixed(2)} on $date");
         }
         return buffer.toString();
       }

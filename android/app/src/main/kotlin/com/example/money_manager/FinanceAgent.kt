@@ -29,18 +29,42 @@ class FinanceService(private val dbPathProvider: () -> String) {
         }
     }
 
+    private fun getCurrencySymbol(db: SQLiteDatabase): String {
+        return try {
+            val cursor = db.rawQuery("SELECT preferred_currency FROM user_profile LIMIT 1", null)
+            var symbol = "$"
+            if (cursor.moveToFirst()) {
+                val code = cursor.getString(0).uppercase(Locale.ROOT)
+                symbol = when (code) {
+                    "INR" -> "₹"
+                    "EUR" -> "€"
+                    "GBP" -> "£"
+                    "JPY" -> "¥"
+                    "AUD" -> "A$"
+                    "CAD" -> "C$"
+                    else -> "$code "
+                }
+            }
+            cursor.close()
+            symbol
+        } catch (e: Exception) {
+            "$"
+        }
+    }
+
     @Tool
     fun getAccountBalances(): String {
         val db = getReadableDatabase() ?: return "Error: Database not accessible"
         val buffer = StringBuilder()
         try {
+            val symbol = getCurrencySymbol(db)
             val cursor = db.rawQuery("SELECT name, type, balance FROM account", null)
             if (cursor.moveToFirst()) {
                 do {
                     val name = cursor.getString(0)
                     val type = cursor.getString(1)
                     val balance = cursor.getDouble(2)
-                    buffer.append("- $name ($type): $$balance\n")
+                    buffer.append("- $name ($type): $symbol$balance\n")
                 } while (cursor.moveToNext())
             } else {
                 buffer.append("No accounts found.")
@@ -67,6 +91,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
         }
         val buffer = StringBuilder()
         try {
+            val symbol = getCurrencySymbol(db)
             val cursor = db.rawQuery(
                 "SELECT c.name, SUM(t.amount) " +
                 "FROM transaction_log t " +
@@ -81,7 +106,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
                 do {
                     val catName = cursor.getString(0)
                     val total = cursor.getDouble(1)
-                    buffer.append("- $catName: $$total\n")
+                    buffer.append("- $catName: $symbol$total\n")
                 } while (cursor.moveToNext())
             } else {
                 buffer.append("No spending found for $targetMonth.")
@@ -108,6 +133,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
         }
         val buffer = StringBuilder()
         try {
+            val symbol = getCurrencySymbol(db)
             // First get the spending
             val spending = mutableMapOf<String, Double>()
             val spendCursor = db.rawQuery(
@@ -140,7 +166,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
                     val limit = budgetCursor.getDouble(1)
                     val spent = spending[category] ?: 0.0
                     val status = if (spent > limit) "OVERSPENT" else "WITHIN LIMIT"
-                    buffer.append("- $category: Limit $$limit, Spent $$spent ($status)\n")
+                    buffer.append("- $category: Limit $symbol$limit, Spent $symbol$spent ($status)\n")
                 } while (budgetCursor.moveToNext())
             } else {
                 buffer.append("No budgets set for $targetMonth.")
@@ -160,6 +186,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
         val db = getReadableDatabase() ?: return "Error: Database not accessible"
         val buffer = StringBuilder()
         try {
+            val symbol = getCurrencySymbol(db)
             val cursor = db.rawQuery("SELECT name, target_amount, current_amount, target_date FROM savings_goal", null)
             if (cursor.moveToFirst()) {
                 buffer.append("Savings Goals:\n")
@@ -168,7 +195,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
                     val target = cursor.getDouble(1)
                     val current = cursor.getDouble(2)
                     val date = cursor.getString(3) ?: "No Date"
-                    buffer.append("- $name: Target $$target, Current $$current, Target Date: $date\n")
+                    buffer.append("- $name: Target $symbol$target, Current $symbol$current, Target Date: $date\n")
                 } while (cursor.moveToNext())
             } else {
                 buffer.append("No savings goals found.")
@@ -191,6 +218,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
         val limitVal = if (limit <= 0) 10 else limit
         val buffer = StringBuilder()
         try {
+            val symbol = getCurrencySymbol(db)
             val cursor = db.rawQuery(
                 "SELECT t.title, t.amount, t.type, t.date, c.name, a.name " +
                 "FROM transaction_log t " +
@@ -209,7 +237,7 @@ class FinanceService(private val dbPathProvider: () -> String) {
                     val category = cursor.getString(4) ?: "Uncategorized"
                     val account = cursor.getString(5) ?: "Unknown Account"
                     val sign = if (type == "income") "+" else "-"
-                    buffer.append("- $title ($category): $sign$$amount on $date using $account ($type)\n")
+                    buffer.append("- $title ($category): $sign$symbol$amount on $date using $account ($type)\n")
                 } while (cursor.moveToNext())
             } else {
                 buffer.append("No transactions found.")

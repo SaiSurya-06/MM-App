@@ -7,13 +7,13 @@ class CurrencyFormatter {
 
   static String format(double amount, String currencyCode) {
     final format = NumberFormat.currency(
-      symbol: _getSymbol(currencyCode),
+      symbol: getSymbol(currencyCode),
       decimalDigits: 2,
     );
     return format.format(roundAmount(amount));
   }
 
-  static String _getSymbol(String currencyCode) {
+  static String getSymbol(String currencyCode) {
     switch (currencyCode.toUpperCase()) {
       case 'USD':
         return '\$';
