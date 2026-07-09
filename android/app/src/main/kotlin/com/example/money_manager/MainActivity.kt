@@ -20,14 +20,18 @@ class MainActivity: FlutterFragmentActivity() {
     private var initialAction: String? = null
     
     private val sessionService = InMemorySessionService()
-    private val runner = InMemoryRunner(
-        agent = FinanceAgent.rootAgent,
-        sessionService = sessionService,
-    )
+    private val runner by lazy {
+        InMemoryRunner(
+            agent = FinanceAgent.rootAgent,
+            sessionService = sessionService,
+        )
+    }
     private val agentScope = CoroutineScope(Dispatchers.IO)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val appDocsDir = applicationContext.filesDir.parentFile?.absolutePath + "/app_flutter"
+        FinanceAgent.setDatabasePath("$appDocsDir/money_manager.db")
         handleIntent(intent)
     }
 

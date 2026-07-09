@@ -186,6 +186,28 @@ class _MorePageState extends ConsumerState<MorePage> {
           context.push('/partner-sharing');
         },
       ),
+      FeatureItem(
+        label: 'AI Financial Assistant',
+        subtitle: 'Ask AI doubts about your finances',
+        icon: Icons.chat_bubble_outline,
+        gradientColors: [const Color(0xFF6C63FF), const Color(0xFF00BCD4)],
+        routeName: '/chatbot',
+        onTap: () {
+          ref.read(recentlyUsedProvider.notifier).addFeature('/chatbot');
+          context.push('/chatbot');
+        },
+      ),
+      FeatureItem(
+        label: 'Budget Blueprint',
+        subtitle: 'Get your custom budget blueprint & tips',
+        icon: Icons.lightbulb_outline,
+        gradientColors: [const Color(0xFF4CAF50), const Color(0xFF009688)],
+        routeName: '/budget-blueprint',
+        onTap: () {
+          ref.read(recentlyUsedProvider.notifier).addFeature('/budget-blueprint');
+          context.push('/budget-blueprint');
+        },
+      ),
     ];
 
     // Filter features by query
@@ -365,6 +387,14 @@ class _MorePageState extends ConsumerState<MorePage> {
                     Expanded(child: _buildSquareCard(context, allFeatures[5])), // Trend
                     const SizedBox(width: 12),
                     Expanded(child: _buildSquareCard(context, allFeatures[6])), // Advanced
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildSquareCard(context, allFeatures[9])), // AI Assistant
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildSquareCard(context, allFeatures[10])), // Budget Blueprint
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -15,6 +15,8 @@ import 'pages/transactions/transactions_page.dart';
 import 'pages/budgets/budgets_page.dart';
 import 'pages/more/more_page.dart';
 import 'pages/more/user_guide_page.dart';
+import 'pages/more/chatbot_page.dart';
+import 'pages/more/budget_blueprint_page.dart';
 import 'pages/settings/settings_page.dart';
 import 'pages/analytics/trend_analytics_page.dart';
 import 'pages/analytics/analytics_advanced_page.dart';
@@ -119,6 +121,16 @@ class _MoneyManagerAppState extends ConsumerState<MoneyManagerApp> {
             final account = state.extra as Account;
             return PartnerDetailPage(account: account);
           },
+        ),
+        GoRoute(
+          path: '/chatbot',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const ChatbotPage(),
+        ),
+        GoRoute(
+          path: '/budget-blueprint',
+          parentNavigatorKey: _rootNavigatorKey,
+          builder: (context, state) => const BudgetBlueprintPage(),
         ),
         
         // Shell navigation for main pages

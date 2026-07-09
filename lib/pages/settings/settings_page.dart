@@ -8,6 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/accounts_provider.dart';
 import '../../providers/transactions_provider.dart';
+import '../../providers/categories_provider.dart';
+import '../../providers/budgets_provider.dart';
+import '../../providers/debts_provider.dart';
+import '../../providers/savings_goals_provider.dart';
+import '../../providers/transaction_templates_provider.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/utils/date_helpers.dart';
 import '../../widgets/common/glassmorphism_card.dart';
@@ -536,10 +541,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
       if (mounted) {
         if (success) {
-          // Reload Riverpod Providers
           ref.read(accountsProvider.notifier).loadAccounts();
           ref.read(transactionsProvider.notifier).loadTransactions();
           ref.read(authProvider.notifier).checkProfile();
+          ref.read(categoriesProvider.notifier).loadCategories();
+          ref.read(budgetsProvider.notifier).loadBudgetsForCurrentMonth();
+          ref.read(debtsProvider.notifier).loadDebts();
+          ref.read(savingsGoalsProvider.notifier).loadGoals();
+          ref.read(transactionTemplatesProvider.notifier).loadTemplates();
           
           ToastNotification.show(
             context,
