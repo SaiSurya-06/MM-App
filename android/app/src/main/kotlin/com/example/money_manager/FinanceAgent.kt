@@ -233,7 +233,6 @@ object FinanceAgent {
         dbPath = path
     }
 
-    @JvmField
     val rootAgent: LlmAgent by lazy {
         LlmAgent(
             name = "finance_agent",
