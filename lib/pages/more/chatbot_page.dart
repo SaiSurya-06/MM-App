@@ -180,13 +180,16 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       targetType = 'income';
     }
     
-    // 3. Extract keywords (strip common stop words)
+    // 3. Extract keywords (strip common stop words & question words)
     final words = cleanQuery.split(RegExp(r'\s+'));
     final stopWords = {
       'how', 'much', 'did', 'i', 'get', 'got', 'in', 'the', 'month', 'of', 'on', 'at', 
       'for', 'show', 'list', 'my', 'me', 'what', 'was', 'were', 'spend', 'spent',
       'salary', 'income', 'expense', 'expenses', 'balance', 'balances', 'account', 'accounts',
       'this', 'last', 'interest', 'money', 'transaction', 'transactions', 'to', 'from',
+      'where', 'which', 'who', 'why', 'when', 'most', 'highest', 'least', 'lowest', 'total', 
+      'sum', 'all', 'any', 'average', 'avg', 'many', 'more', 'less', 'category', 'catagoy', 
+      'catagory', 'recent', 'save', 'saving', 'savings', 'tip', 'tips', 'blueprint',
       // month names
       ...monthsMap.keys
     };
@@ -194,16 +197,25 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     final keywords = words.where((w) => !stopWords.contains(w) && w.length > 2).toList();
     
     try {
-      // Specific triggers
+      // 1. Specific Intent Triggers
       if (cleanQuery.contains("balance") || cleanQuery.contains("net worth") || cleanQuery.contains("my money")) {
         return _queryBalances(db, currencySymbol);
       }
       
-      if (cleanQuery.contains("budget") || cleanQuery.contains("saving")) {
+      if (cleanQuery.contains("budget") || cleanQuery.contains("save") || cleanQuery.contains("saving")) {
         return _queryBudgetsAndSavings(db, targetMonthInt ?? now.month, targetYear, currencySymbol);
       }
+
+      if (cleanQuery.contains("recent") || cleanQuery.contains("transaction") || cleanQuery.contains("ledger") || cleanQuery.contains("last")) {
+        return _queryRecentTransactions(db, currencySymbol);
+      }
+
+      // 2. Spending Summary Trigger (when no specific keyword is entered, show generic total & category breakdown)
+      if (keywords.isEmpty && targetType == 'expense') {
+        return _querySpendingSummary(db, targetMonthInt ?? now.month, targetYear, currencySymbol);
+      }
       
-      // General Natural Language Search
+      // 3. General Natural Language Search
       final buffer = StringBuffer();
       
       // Build SQL query
@@ -272,6 +284,9 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
           : "this month";
           
       if (filtered.isEmpty) {
+        if (targetType == 'expense') {
+          return _querySpendingSummary(db, targetMonthInt ?? now.month, targetYear, currencySymbol);
+        }
         return "I analyzed your database for $monthLabel, but I couldn't find any $searchSubject transactions. Try adjusting your query or keywords!";
       }
       
@@ -393,6 +408,72 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       }
     }
 
+    return buffer.toString();
+  }
+
+  Future<String> _querySpendingSummary(dynamic db, int month, int year, String currencySymbol) async {
+    final monthStr = "${year.toString()}-${month.toString().padLeft(2, '0')}";
+    final monthLabel = "${_getMonthName(month)} $year";
+
+    final List<Map<String, dynamic>> results = await db.rawQuery('''
+      SELECT c.name, SUM(t.amount) as total
+      FROM transaction_log t
+      JOIN category c ON t.category_id = c.id
+      WHERE t.type = 'expense' AND strftime('%Y-%m', t.date) = ?
+      GROUP BY c.name
+      ORDER BY total DESC
+    ''', [monthStr]);
+
+    if (results.isEmpty) {
+      return "You haven't recorded any expenses for $monthLabel yet. Try adding some transactions first!";
+    }
+
+    double totalSpent = 0.0;
+    for (var r in results) {
+      totalSpent += (r['total'] as num).toDouble();
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln("Based on your local transaction database, you have spent a total of **$currencySymbol${totalSpent.toStringAsFixed(2)}** in **$monthLabel**.\n");
+    buffer.writeln("Here is your spending by category:");
+    for (var r in results) {
+      final cat = r['name'];
+      final amt = (r['total'] as num).toDouble();
+      final percentage = (amt / totalSpent * 100).toStringAsFixed(1);
+      buffer.writeln("- **$cat**: $currencySymbol${amt.toStringAsFixed(2)} ($percentage%)");
+    }
+
+    final highestCat = results.first['name'];
+    final highestAmt = (results.first['total'] as num).toDouble();
+    buffer.writeln("\nYou spent the most on **$highestCat** this month (**$currencySymbol${highestAmt.toStringAsFixed(2)}**).");
+
+    return buffer.toString();
+  }
+
+  Future<String> _queryRecentTransactions(dynamic db, String currencySymbol) async {
+    final List<Map<String, dynamic>> results = await db.rawQuery('''
+      SELECT t.title, t.amount, t.type, t.date, c.name as category
+      FROM transaction_log t
+      LEFT JOIN category c ON t.category_id = c.id
+      ORDER BY t.date DESC, t.id DESC
+      LIMIT 5
+    ''');
+
+    if (results.isEmpty) {
+      return "No transactions found in database.";
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln("Here are your last 5 transactions:\n");
+    for (var r in results) {
+      final title = r['title'];
+      final amount = (r['amount'] as num).toDouble();
+      final type = r['type'];
+      final date = r['date'];
+      final category = r['category'] ?? "Uncategorized";
+      final sign = type == 'income' ? '+' : '-';
+      buffer.writeln("- **$title** ($category): $sign$currencySymbol${amount.toStringAsFixed(2)} on $date");
+    }
     return buffer.toString();
   }
 
