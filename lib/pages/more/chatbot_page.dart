@@ -239,25 +239,30 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       List<Map<String, dynamic>> filtered = allTransactions;
       String searchSubject = "transactions";
       
-      if (cleanQuery.contains("interest")) {
+      if (cleanQuery.contains("interest") || cleanQuery.contains("intrest")) {
         filtered = allTransactions.where((tx) => 
-          tx['title'].toString().toLowerCase().contains('interest') ||
-          (tx['category'] ?? '').toString().toLowerCase().contains('interest') ||
-          (tx['note'] ?? '').toString().toLowerCase().contains('interest')
+          _fuzzyMatch(tx['title'].toString(), 'interest') ||
+          _fuzzyMatch(tx['title'].toString(), 'intrest') ||
+          _fuzzyMatch(tx['category'] ?? '', 'interest') ||
+          _fuzzyMatch(tx['category'] ?? '', 'intrest') ||
+          _fuzzyMatch(tx['note'] ?? '', 'interest') ||
+          _fuzzyMatch(tx['note'] ?? '', 'intrest')
         ).toList();
         searchSubject = "interest";
-      } else if (cleanQuery.contains("salary")) {
+      } else if (cleanQuery.contains("salary") || cleanQuery.contains("salery")) {
         filtered = allTransactions.where((tx) => 
-          tx['title'].toString().toLowerCase().contains('salary') ||
-          (tx['category'] ?? '').toString().toLowerCase().contains('salary')
+          _fuzzyMatch(tx['title'].toString(), 'salary') ||
+          _fuzzyMatch(tx['title'].toString(), 'salery') ||
+          _fuzzyMatch(tx['category'] ?? '', 'salary') ||
+          _fuzzyMatch(tx['category'] ?? '', 'salery')
         ).toList();
         searchSubject = "salary";
       } else if (keywords.isNotEmpty) {
         filtered = allTransactions.where((tx) {
-          final title = tx['title'].toString().toLowerCase();
-          final note = (tx['note'] ?? '').toString().toLowerCase();
-          final cat = (tx['category'] ?? '').toString().toLowerCase();
-          return keywords.any((kw) => title.contains(kw) || note.contains(kw) || cat.contains(kw));
+          final title = tx['title'].toString();
+          final note = tx['note'] ?? '';
+          final cat = tx['category'] ?? '';
+          return keywords.any((kw) => _fuzzyMatch(title, kw) || _fuzzyMatch(note, kw) || _fuzzyMatch(cat, kw));
         }).toList();
         searchSubject = "'${keywords.join(', ')}'";
       }
@@ -391,7 +396,64 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     return buffer.toString();
   }
 
+  String _soundex(String s) {
+    if (s.isEmpty) return s;
+    final clean = s.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+    if (clean.isEmpty) return s;
+    
+    final first = clean[0];
+    final buffer = StringBuffer(first);
+    
+    final map = {
+      'b': '1', 'f': '1', 'p': '1', 'v': '1',
+      'c': '2', 'g': '2', 'j': '2', 'k': '2', 'q': '2', 's': '2', 'x': '2', 'z': '2',
+      'd': '3', 't': '3',
+      'l': '4',
+      'm': '5', 'n': '5',
+      'r': '6'
+    };
+    
+    String prevCode = map[first] ?? '';
+    for (int i = 1; i < clean.length; i++) {
+      final code = map[clean[i]] ?? '';
+      if (code.isNotEmpty && code != prevCode) {
+        buffer.write(code);
+        prevCode = code;
+      }
+    }
+    return buffer.toString();
+  }
 
+  bool _fuzzyMatch(String text, String keyword) {
+    final cleanText = text.toLowerCase();
+    final cleanKeyword = keyword.toLowerCase();
+    
+    if (cleanText.contains(cleanKeyword)) return true;
+    
+    final textWords = cleanText.replaceAll(RegExp(r'[^a-z\s]'), '').split(RegExp(r'\s+'));
+    final kwWords = cleanKeyword.replaceAll(RegExp(r'[^a-z\s]'), '').split(RegExp(r'\s+'));
+    
+    for (final kw in kwWords) {
+      if (kw.length < 3) continue;
+      final kwSoundex = _soundex(kw);
+      
+      bool wordMatched = false;
+      for (final tw in textWords) {
+        if (tw.length < 3) continue;
+        if (tw.contains(kw) || kw.contains(tw)) {
+          wordMatched = true;
+          break;
+        }
+        if (_soundex(tw) == kwSoundex) {
+          wordMatched = true;
+          break;
+        }
+      }
+      if (wordMatched) return true;
+    }
+    
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
