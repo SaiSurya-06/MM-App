@@ -24,7 +24,7 @@ class PurchaseAdvisor implements Capability<PurchaseDecision> {
   Future<PurchaseDecision> execute(OrchestratorContext context) async {
     final double amount = context.simulatedPurchaseAmount;
     if (amount <= 0.0) {
-      return const PurchaseDecision(
+      const decision = PurchaseDecision(
         purchaseAmount: 0.0,
         isApproved: true,
         postPurchaseEmergencyFund: 0.0,
@@ -33,6 +33,8 @@ class PurchaseAdvisor implements Capability<PurchaseDecision> {
         confidenceScore: 1.0,
         explanation: 'Enter a simulated purchase amount to get advisor evaluation.',
       );
+      context.purchase = decision;
+      return decision;
     }
 
     // 1. Current cash balance today

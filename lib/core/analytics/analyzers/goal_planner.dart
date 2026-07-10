@@ -26,10 +26,12 @@ class GoalPlanner implements Capability<GoalPlan> {
     String recommendations = '';
 
     if (forecast == null) {
-      return const GoalPlan(
+      const plan = GoalPlan(
         allocations: [],
         recommendations: 'No monthly forecast available to calculate goal plan.',
       );
+      context.goals = plan;
+      return plan;
     }
 
     final double income = context.incomeAnalysis?.totalIncome ?? 0.0;
