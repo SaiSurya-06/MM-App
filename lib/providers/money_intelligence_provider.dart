@@ -91,8 +91,12 @@ class MoneyIntelligenceNotifier extends StateNotifier<MoneyIntelligenceState> {
       await _archiveReportToTimeMachine(state.selectedMonth, report);
 
       state = state.copyWith(report: report, isLoading: false);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Intelligence calculation error: $e');
+    } catch (e, stackTrace) {
+      final formattedStack = stackTrace.toString().split('\n').take(8).join('\n');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Intelligence calculation error: $e\n\n$formattedStack',
+      );
     }
   }
 
