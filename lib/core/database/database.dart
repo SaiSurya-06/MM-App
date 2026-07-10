@@ -58,7 +58,7 @@ class AppDatabase {
 
     final db = await openDatabase(
       path,
-      version: 10,
+      version: 11,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -225,6 +225,20 @@ class AppDatabase {
         await db.execute("ALTER TABLE transaction_log ADD COLUMN subcategory_id INTEGER");
       } catch (e) {
         assert(() { debugPrint('[DB migration v10] $e'); return true; }());
+      }
+    }
+    if (oldVersion < 11) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS intelligence_report_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            month TEXT NOT NULL UNIQUE,
+            report_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          )
+        ''');
+      } catch (e) {
+        assert(() { debugPrint('[DB migration v11] $e'); return true; }());
       }
     }
   }
@@ -479,6 +493,16 @@ class AppDatabase {
         current_section INTEGER NOT NULL DEFAULT 0,
         completed INTEGER NOT NULL DEFAULT 0,
         profile_json TEXT NOT NULL
+      )
+    ''');
+
+    // 14. intelligence_report_history Table
+    await db.execute('''
+      CREATE TABLE intelligence_report_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        month TEXT NOT NULL UNIQUE,
+        report_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/budgets_provider.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/analytics_provider.dart';
-import '../../models/budget.dart';
-import 'budget_form.dart';
-import '../../../widgets/common/glassmorphism_card.dart';
-import '../../core/database/database.dart';
+import '../../providers/money_intelligence_provider.dart';
+import '../../providers/money_map_view_model.dart';
 import '../../core/utils/currency_formatter.dart';
-import 'package:intl/intl.dart';
+import '../../../widgets/common/glassmorphism_card.dart';
+import '../../core/analytics/query_engine.dart';
+import '../../core/analytics/models/financial_insight.dart';
+import '../../core/analytics/models/money_intelligence_report.dart';
+import '../../core/analytics/capability.dart';
 
 class BudgetsPage extends ConsumerStatefulWidget {
   const BudgetsPage({super.key});
@@ -18,881 +17,716 @@ class BudgetsPage extends ConsumerStatefulWidget {
 }
 
 class _BudgetsPageState extends ConsumerState<BudgetsPage> {
-  List<Map<String, dynamic>> _categories = [];
-  bool _isLoadingCategories = true;
+  final TextEditingController _purchaseController = TextEditingController();
+  final TextEditingController _chatController = TextEditingController();
+  
+  // Chat Q&A state
+  String _chatResponse = '';
+  String _chatUserQuery = '';
+
+  // Inline expansions state
+  final Set<String> _expandedGroups = {};
+  final Set<String> _expandedCategories = {};
 
   @override
-  void initState() {
-    super.initState();
-    _loadCategories();
+  void dispose() {
+    _purchaseController.dispose();
+    _chatController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadCategories() async {
-    try {
-      final db = await AppDatabase.instance.database;
-      final list = await db.query('category');
-      setState(() {
-        _categories = list;
-        _isLoadingCategories = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingCategories = false);
-    }
-  }
-
-  void _openBudgetForm(BuildContext context, [int? categoryId, double? currentLimit]) {
-    showModalBottomSheet(
+  void _showExplainabilityDialog(BuildContext context, FinancialInsight insight) {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => BudgetForm(
-        categoryId: categoryId,
-        currentLimit: currentLimit,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Row(
+          children: [
+            Icon(
+              insight.type == 'alert' ? Icons.error_outline : Icons.lightbulb_outline,
+              color: insight.priority == 'high' ? Colors.redAccent : Colors.amberAccent,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                insight.title,
+                style: const TextStyle(color: Colors.white, fontFamily: 'Inter', fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'WHY?',
+              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            ),
+            const SizedBox(height: 4),
+            Text(insight.description, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 16),
+            const Text(
+              'BASED ON WHAT DATA?',
+              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Monthly financial snapshot analysis with a confidence score of ${(insight.confidence * 100).toStringAsFixed(0)}%.',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'WHAT HAPPENS IF I FOLLOW?',
+              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            ),
+            const SizedBox(height: 4),
+            Text(insight.action, style: const TextStyle(color: Colors.greenAccent, fontSize: 14)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Dismiss', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Insight applied successfully!'), backgroundColor: Colors.green),
+              );
+            },
+            child: const Text('Apply Suggestion', style: TextStyle(color: Colors.blueAccent)),
+          ),
+        ],
       ),
-    ).then((_) {
-      // Reload budget spendings for currently selected month
-      final month = ref.read(budgetsProvider).selectedMonth;
-      ref.read(budgetsProvider.notifier).loadBudgetsForMonth(month);
+    );
+  }
+
+  void _handleChatQuery(MoneyIntelligenceReport report) {
+    final query = _chatController.text.trim();
+    if (query.isEmpty) return;
+
+    final engine = QueryEngine(report);
+    final response = engine.answerIntent(QueryIntent(query));
+
+    setState(() {
+      _chatUserQuery = query;
+      _chatResponse = response['text'] ?? 'No answer found.';
+      _chatController.clear();
     });
   }
 
-  Widget _buildMonthAndLimitsBentoCard(BuildContext context, BudgetsState state, int activeBudgetsCount) {
-    final DateTime monthDateTime = DateTime.parse('${state.selectedMonth}-01');
-    final monthLabel = DateFormat('MMM yyyy').format(monthDateTime);
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(moneyMapViewModelProvider);
+    final intelState = ref.watch(moneyIntelligenceProvider);
+    const currency = 'INR';
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF7F7F9);
+    final textColor = isDark ? Colors.white : Colors.black87;
 
-    return GlassmorphismCard(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'PERIOD',
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1.0,
-              fontFamily: 'Inter',
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () {
-                  final prev = DateTime(monthDateTime.year, monthDateTime.month - 1);
-                  ref.read(budgetsProvider.notifier).selectMonth(prev.toIso8601String().substring(0, 7));
-                },
-                icon: const Icon(Icons.chevron_left, size: 18),
-                color: isDark ? Colors.white70 : Colors.black87,
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-              ),
-              Text(
-                monthLabel,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Inter',
-                ),
-              ),
-              IconButton(
-                onPressed: () {
-                  final next = DateTime(monthDateTime.year, monthDateTime.month + 1);
-                  ref.read(budgetsProvider.notifier).selectMonth(next.toIso8601String().substring(0, 7));
-                },
-                icon: const Icon(Icons.chevron_right, size: 18),
-                color: isDark ? Colors.white70 : Colors.black87,
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-              ),
-            ],
-          ),
-          Text(
-            '$activeBudgetsCount Active Limits',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueAccent,
-              fontFamily: 'Inter',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverallLimitBentoCard(BuildContext context, double spent, double limit, String currency, int totalBudgetCatId) {
-    final percent = limit > 0 ? (spent / limit) : 0.0;
-    final percentClamped = percent.clamp(0.0, 1.0);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    Color progressColor = Colors.greenAccent;
-    if (percent >= 1.0) {
-      progressColor = const Color(0xFFE53935);
-    } else if (percent >= 0.8) {
-      progressColor = Colors.orangeAccent;
+    if (state.isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.blueAccent),
+        ),
+      );
     }
 
-    return GlassmorphismCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'OVERALL CAP',
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                  letterSpacing: 1.0,
-                  fontFamily: 'Inter',
+    final report = intelState.report!;
+
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'Money Map',
+          style: TextStyle(color: textColor, fontFamily: 'Inter', fontWeight: FontWeight.bold, fontSize: 22),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: Colors.grey),
+            onPressed: () {
+              // Show Time Machine history selection
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: const Color(0xFF1E1E1E),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                builder: (context) => Container(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Time Machine Reports',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const Icon(Icons.calendar_month, color: Colors.blueAccent),
+                        title: const Text('July 2026 (Current)', style: TextStyle(color: Colors.white)),
+                        onTap: () {
+                          ref.read(moneyIntelligenceProvider.notifier).selectMonth('2026-07');
+                          Navigator.pop(context);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.calendar_month, color: Colors.grey),
+                        title: const Text('June 2026', style: TextStyle(color: Colors.white70)),
+                        onTap: () {
+                          ref.read(moneyIntelligenceProvider.notifier).selectMonth('2026-06');
+                          Navigator.pop(context);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.calendar_month, color: Colors.grey),
+                        title: const Text('May 2026', style: TextStyle(color: Colors.white70)),
+                        onTap: () {
+                          ref.read(moneyIntelligenceProvider.notifier).selectMonth('2026-05');
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Overview Health Dashboard Card
+            GlassmorphismCard(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'SAFE TO SPEND TODAY',
+                            style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            CurrencyFormatter.format(state.safeToSpendToday, currency),
+                            style: TextStyle(color: textColor, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: state.budgetHealthScore >= 80 ? Colors.green.withValues(alpha: 0.15) : Colors.amber.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              state.budgetHealthScore.toStringAsFixed(0),
+                              style: TextStyle(
+                                color: state.budgetHealthScore >= 80 ? Colors.greenAccent : Colors.amberAccent,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              state.rating,
+                              style: TextStyle(
+                                color: state.budgetHealthScore >= 80 ? Colors.greenAccent : Colors.amberAccent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Horizontal segmented Flow Bar (Replacing Pie Charts)
+                  const Text(
+                    'MONEY FLOW SEGMENTS',
+                    style: TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: SizedBox(
+                      height: 12,
+                      child: Row(
+                        children: state.flowBars.map((bar) {
+                          final flexVal = (bar.percentage * 100).round().clamp(1, 1000);
+                          return Expanded(
+                            flex: flexVal,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 1),
+                              color: Color(int.parse('FF${bar.colorHex}', radix: 16)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Legends Row
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 6,
+                    children: state.flowBars.map((bar) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Color(int.parse('FF${bar.colorHex}', radix: 16)),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${bar.label} (${bar.percentage.toStringAsFixed(0)}%)',
+                          style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 10),
+                        ),
+                      ],
+                    )).toList(),
+                  ),
+                  
+                  const Divider(height: 24, color: Colors.white10),
+                  
+                  // Core Stats Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildMetricColumn('Remaining Left', CurrencyFormatter.format(state.leftThisMonth, currency), textColor),
+                      _buildMetricColumn('Upcoming Bills', CurrencyFormatter.format(state.upcomingBills, currency), textColor),
+                      _buildMetricColumn('Savings Target', CurrencyFormatter.format(state.savingsProgress, currency), textColor),
+                    ],
+                  )
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. Spending Velocity Banner
+            if (state.velocity != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: state.velocity!.isAheadOfPace ? Colors.redAccent.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: state.velocity!.isAheadOfPace ? Colors.redAccent.withValues(alpha: 0.2) : Colors.green.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      state.velocity!.isAheadOfPace ? Icons.speed : Icons.check_circle_outline,
+                      color: state.velocity!.isAheadOfPace ? Colors.redAccent : Colors.greenAccent,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Spending Velocity: ${state.velocity!.statusDescription}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          Text(
+                            'Daily Burn: ${CurrencyFormatter.format(state.velocity!.dailyBurnRate, currency)}/day (Target: ${CurrencyFormatter.format(state.velocity!.expectedDailyPace, currency)}/day)',
+                            style: const TextStyle(color: Colors.grey, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
-                onPressed: () => _openBudgetForm(context, totalBudgetCatId, limit),
-                icon: const Icon(Icons.edit, size: 14, color: Colors.grey),
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-              ),
+              const SizedBox(height: 16),
             ],
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '${CurrencyFormatter.format(spent, currency)} / ${CurrencyFormatter.format(limit, currency)}',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Inter',
+
+            // 3. DRIFT ALERTS / RECOMMENDATIONS
+            if (state.insights.isNotEmpty) ...[
+              const Text(
+                'DRIFT ALERTS & RECOMMENDATIONS',
+                style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+              ),
+              const SizedBox(height: 8),
+              Column(
+                children: state.insights.map((insight) => Card(
+                  color: const Color(0xFF1E1E24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: Icon(
+                      insight.type == 'alert' ? Icons.warning_amber_rounded : Icons.lightbulb_outline,
+                      color: insight.priority == 'high' ? Colors.redAccent : Colors.amberAccent,
+                    ),
+                    title: Text(insight.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    subtitle: Text(insight.description, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                    onTap: () => _showExplainabilityDialog(context, insight),
+                  ),
+                )).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 4. FLOW GROUPS STACK (Expandable Cards)
+            const Text(
+              'MONEY JOURNEY FLOW GROUPS',
+              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            ),
+            const SizedBox(height: 8),
+            _buildFlowGroupCard(
+              title: 'Essentials (Needs)',
+              spent: report.snapshot.essentials,
+              icon: Icons.receipt_long,
+              color: Colors.blueAccent,
+              currency: currency,
+              categories: report.snapshot.essentials > 0 ? ['Rent', 'Utilities', 'Health', 'Credit Card Payment'] : [],
+              report: report,
+            ),
+            _buildFlowGroupCard(
+              title: 'Lifestyle (Wants)',
+              spent: report.snapshot.lifestyle,
+              icon: Icons.shopping_bag_outlined,
+              color: Colors.amber,
+              currency: currency,
+              categories: report.snapshot.lifestyle > 0 ? ['Food', 'Transport', 'Entertainment'] : [],
+              report: report,
+            ),
+            _buildFlowGroupCard(
+              title: 'Savings',
+              spent: report.snapshot.savings,
+              icon: Icons.savings_outlined,
+              color: Colors.green,
+              currency: currency,
+              categories: report.snapshot.savings > 0 ? ['Emergency Fund', 'Vacation Goal'] : [],
+              report: report,
+            ),
+            _buildFlowGroupCard(
+              title: 'Investments',
+              spent: report.snapshot.investments,
+              icon: Icons.trending_up,
+              color: Colors.purple,
+              currency: currency,
+              categories: report.snapshot.investments > 0 ? ['Equity Portfolio', 'Retirement Fund'] : [],
+              report: report,
+            ),
+            
+            const SizedBox(height: 16),
+
+            // 5. PURCHASE SIMULATOR CARD ("Can I Buy This?")
+            const Text(
+              'PURCHASE DECISION SIMULATOR',
+              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            ),
+            const SizedBox(height: 8),
+            GlassmorphismCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Can I Buy This?',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Simulate a purchase to analyze emergency runway and budget recovery speed.',
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _purchaseController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Enter purchase amount (e.g. 12000)',
+                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: Colors.white10,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          final double amt = double.tryParse(_purchaseController.text) ?? 0.0;
+                          ref.read(moneyIntelligenceProvider.notifier).runSimulatedPurchase(amt);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Evaluate', style: TextStyle(color: Colors.white)),
+                      )
+                    ],
+                  ),
+                  if (report.purchase.purchaseAmount > 0) ...[
+                    const Divider(height: 24, color: Colors.white10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              report.purchase.isApproved ? Icons.check_circle : Icons.warning_amber_rounded,
+                              color: report.purchase.isApproved ? Colors.greenAccent : Colors.redAccent,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              report.purchase.isApproved ? 'Safe Purchase' : 'High Risk Purchase',
+                              style: TextStyle(
+                                color: report.purchase.isApproved ? Colors.greenAccent : Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Confidence: ${(report.purchase.confidenceScore * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(color: Colors.grey, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      report.purchase.explanation,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Budget recovery: ${report.purchase.budgetRecoveryDays} days | Post-purchase cash: ₹${report.purchase.postPurchaseEmergencyFund.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              value: percentClamped,
-              minHeight: 5,
-              backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            const SizedBox(height: 16),
+
+            // 6. ASK MONEY MAP AI (Visual chatbot)
+            const Text(
+              'ASK MONEY MAP AI',
+              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.0),
             ),
-          ),
-          Text(
-            '${(percent * 100).toStringAsFixed(0)}% Used',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: progressColor,
-              fontFamily: 'Inter',
+            const SizedBox(height: 8),
+            GlassmorphismCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Visual Q&A Assistant',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _chatController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'e.g., "Where did my salary go?" or "food"',
+                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: Colors.white10,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                          onSubmitted: (_) => _handleChatQuery(report),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.send, color: Colors.blueAccent),
+                        onPressed: () => _handleChatQuery(report),
+                      )
+                    ],
+                  ),
+                  if (_chatResponse.isNotEmpty) ...[
+                    const Divider(height: 24, color: Colors.white10),
+                    Text(
+                      'Question: "$_chatUserQuery"',
+                      style: const TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
+                      width: double.infinity,
+                      child: Text(
+                        _chatResponse,
+                        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSetOverallCapPlaceholder(BuildContext context, int totalBudgetCatId) {
-    return GlassmorphismCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'OVERALL CAP',
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1.0,
-              fontFamily: 'Inter',
-            ),
-          ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                'No cap set for this month',
-                style: TextStyle(color: Colors.grey, fontSize: 11, fontFamily: 'Inter'),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: double.infinity,
-            height: 28,
-            child: ElevatedButton(
-              onPressed: () => _openBudgetForm(context, totalBudgetCatId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935).withValues(alpha: 0.15),
-                foregroundColor: const Color(0xFFE53935),
-                elevation: 0,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Set Cap', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openAccountForm(BuildContext context, int catId, double limit) {
-    _openBudgetForm(context, catId, limit);
-  }
-
-  Widget _buildTotalItem(String label, String value, Color valueColor) {
+  Widget _buildMetricColumn(String label, String value, Color textColor) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-            letterSpacing: 1.0,
-            fontFamily: 'Inter',
-          ),
+          style: const TextStyle(color: Colors.grey, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: valueColor,
-            fontFamily: 'Inter',
-          ),
+          style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
         ),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final budgetsState = ref.watch(budgetsProvider);
-    final authState = ref.watch(authProvider);
-    final analyticsState = ref.watch(analyticsProvider);
+  Widget _buildFlowGroupCard({
+    required String title,
+    required double spent,
+    required IconData icon,
+    required Color color,
+    required String currency,
+    required List<String> categories,
+    required MoneyIntelligenceReport report,
+  }) {
+    final bool isExpanded = _expandedGroups.contains(title);
 
-    final currency = authState.profile?.preferredCurrency ?? 'USD';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Create a map of category ID -> Budget
-    final Map<int, Budget> budgetMap = {};
-    for (var b in budgetsState.budgets) {
-      budgetMap[b.categoryId] = b;
-    }
-
-    // Separate Total Budget category from other categories
-    Map<String, dynamic>? totalBudgetCategory;
-    final List<Map<String, dynamic>> regularCategories = [];
-    for (var cat in _categories) {
-      if (cat['name'] == 'Total Budget') {
-        totalBudgetCategory = cat;
-      } else if (cat['type'] != 'income' && cat['type'] != 'person') {
-        regularCategories.add(cat);
-      }
-    }
-
-    final totalBudgetCatId = totalBudgetCategory != null ? totalBudgetCategory['id'] as int : -1;
-    final totalBudget = budgetMap[totalBudgetCatId];
-    final overallLimit = totalBudget?.limitAmount;
-    final overallSpent = budgetsState.categorySpendings[totalBudgetCatId] ?? 0.0;
-
-    final budgetedCategories = <Map<String, dynamic>>[];
-    final unbudgetedCategories = <Map<String, dynamic>>[];
-    for (var cat in regularCategories) {
-      final catId = cat['id'] as int;
-      if (budgetMap.containsKey(catId)) {
-        budgetedCategories.add(cat);
-      } else {
-        unbudgetedCategories.add(cat);
-      }
-    }
-
-    // Calculate totals for banner
-    double totalBudgeted = 0.0;
-    double totalSpent = 0.0;
-    for (var cat in regularCategories) {
-      final catId = cat['id'] as int;
-      final budget = budgetMap[catId];
-      if (budget != null) {
-        totalBudgeted += budget.limitAmount;
-        totalSpent += budgetsState.categorySpendings[catId] ?? 0.0;
-      }
-    }
-    final totalRemaining = totalBudgeted - totalSpent;
-
-    // Group budgeted categories by groupName
-    final Map<String, List<Map<String, dynamic>>> groupedBudgeted = {};
-    for (var cat in budgetedCategories) {
-      final catId = cat['id'] as int;
-      final budget = budgetMap[catId]!;
-      final gName = (budget.groupName == null || budget.groupName!.trim().isEmpty)
-          ? 'General'
-          : budget.groupName!;
-      groupedBudgeted.putIfAbsent(gName, () => []).add(cat);
-    }
-
-    // Build the list of slivers dynamically
-    final List<Widget> slivers = [];
-    
-    // Spacing at start
-    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
-    
-    // Bento Header
-    slivers.add(
-      SliverToBoxAdapter(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: SizedBox(
-                height: 130,
-                child: _buildMonthAndLimitsBentoCard(
-                  context, 
-                  budgetsState, 
-                  budgetedCategories.length,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 3,
-              child: SizedBox(
-                height: 130,
-                child: totalBudgetCatId != -1 && overallLimit != null
-                    ? _buildOverallLimitBentoCard(context, overallSpent, overallLimit, currency, totalBudgetCatId)
-                    : _buildSetOverallCapPlaceholder(context, totalBudgetCatId),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    
-    // Totals Banner
-    slivers.add(
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 16.0),
-          child: GlassmorphismCard(
-            padding: const EdgeInsets.all(16),
-            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildTotalItem('Budgeted', CurrencyFormatter.format(totalBudgeted, currency), isDark ? Colors.white70 : Colors.black87),
-                _buildTotalItem('Spent', CurrencyFormatter.format(totalSpent, currency), const Color(0xFFE53935)),
-                _buildTotalItem(
-                  'Remaining', 
-                  CurrencyFormatter.format(totalRemaining, currency), 
-                  totalRemaining >= 0 ? const Color(0xFF4CAF50) : const Color(0xFFE53935)
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    
-    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 20)));
-    
-    // Budgeted Categories (Grouped)
-    if (groupedBudgeted.isNotEmpty) {
-      for (var entry in groupedBudgeted.entries) {
-        final groupTitle = entry.key;
-        final list = entry.value;
-        
-        slivers.add(
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE53935),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    groupTitle.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        
-        slivers.add(
-          SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.92,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final cat = list[index];
-                final catId = cat['id'] as int;
-                final catName = cat['name'] as String;
-                final catIcon = cat['icon'] as String;
-                final catColor = cat['color'] as String;
-
-                final budget = budgetMap[catId]!;
-                final limit = budget.limitAmount;
-                final spent = budgetsState.categorySpendings[catId] ?? 0.0;
-
-                final trend = analyticsState.categoryTrends.firstWhere(
-                  (t) => t.categoryId == catId,
-                  orElse: () => CategoryTrend(
-                    categoryId: catId,
-                    categoryName: catName,
-                    monthlyAverage: 0.0,
-                    threeMonthRollingAverage: 0.0,
-                    projectedMonthEnd: 0.0,
-                    currentMonthSpend: spent,
-                  ),
-                );
-
-                return CompactBudgetBentoCard(
-                  categoryName: catName,
-                  categoryIcon: catIcon,
-                  categoryColorHex: catColor,
-                  spent: spent,
-                  limit: limit,
-                  currency: currency,
-                  recurrence: budget.recurrence,
-                  groupName: budget.groupName,
-                  rollover: budgetsState.categoryRollovers[catId] ?? 0.0,
-                  threeMonthRollingAverage: trend.threeMonthRollingAverage,
-                  projectedMonthEnd: trend.projectedMonthEnd,
-                  onTap: () => _openAccountForm(context, catId, limit),
-                );
-              },
-              childCount: list.length,
-            ),
-          ),
-        );
-        
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 16)));
-      }
-    }
-    
-    // Unbudgeted Categories
-    if (unbudgetedCategories.isNotEmpty) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
-            child: Text(
-              'UNBUDGETED CATEGORIES',
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? Colors.white54 : Colors.black45,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
-                fontFamily: 'Inter',
-              ),
-            ),
-          ),
-        ),
-      );
-      
-      slivers.add(
-        SliverGrid(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 2.2,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final cat = unbudgetedCategories[index];
-              final catId = cat['id'] as int;
-              final catName = cat['name'] as String;
-              final catIcon = cat['icon'] as String;
-              final catColor = cat['color'] as String;
-
-              return UnbudgetedBentoCard(
-                categoryName: catName,
-                categoryIcon: catIcon,
-                categoryColorHex: catColor,
-                onTap: () => _openBudgetForm(context, catId),
-              );
+    return Card(
+      color: const Color(0xFF16161C),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(icon, color: color),
+            title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            subtitle: Text('Spent: ${CurrencyFormatter.format(spent, currency)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            trailing: Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.grey),
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedGroups.remove(title);
+                } else {
+                  _expandedGroups.add(title);
+                }
+              });
             },
-            childCount: unbudgetedCategories.length,
           ),
-        ),
-      );
-      
-      slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 20)));
-    }
+          if (isExpanded) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+              child: Column(
+                children: categories.map((catName) {
+                  final isCatExpanded = _expandedCategories.contains(catName);
+                  
+                  // Query spending for this category from index
+                  final double catSpent = QueryEngine(report).getCategorySpend(catName);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset('assets/logo.png', height: 26, width: 26),
-            const SizedBox(width: 8),
-            const Text('Budgets'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: () => _openBudgetForm(context),
-            icon: const Icon(Icons.add_chart),
-          ),
-        ],
-      ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: (details) {
-          if (details.primaryVelocity == null) return;
-          final DateTime monthDateTime = DateTime.parse('${budgetsState.selectedMonth}-01');
-          if (details.primaryVelocity! > 0) {
-            // Swipe right: previous month
-            final prev = DateTime(monthDateTime.year, monthDateTime.month - 1);
-            ref.read(budgetsProvider.notifier).selectMonth(prev.toIso8601String().substring(0, 7));
-          } else if (details.primaryVelocity! < 0) {
-            // Swipe left: next month
-            final next = DateTime(monthDateTime.year, monthDateTime.month + 1);
-            ref.read(budgetsProvider.notifier).selectMonth(next.toIso8601String().substring(0, 7));
-          }
-        },
-        child: budgetsState.isLoading || _isLoadingCategories
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFE53935)))
-            : TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 750),
-                curve: Curves.easeOutQuart,
-                builder: (context, value, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 30 * (1 - value)),
-                    child: Opacity(
-                      opacity: value,
-                      child: child,
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: CustomScrollView(
-                    slivers: slivers,
-                  ),
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class CompactBudgetBentoCard extends StatelessWidget {
-  final String categoryName;
-  final String categoryIcon;
-  final String categoryColorHex;
-  final double spent;
-  final double limit;
-  final String currency;
-  final String recurrence;
-  final String? groupName;
-  final double rollover;
-  final double? threeMonthRollingAverage;
-  final double? projectedMonthEnd;
-  final VoidCallback onTap;
-
-  const CompactBudgetBentoCard({
-    super.key,
-    required this.categoryName,
-    required this.categoryIcon,
-    required this.categoryColorHex,
-    required this.spent,
-    required this.limit,
-    required this.currency,
-    required this.recurrence,
-    this.groupName,
-    required this.rollover,
-    this.threeMonthRollingAverage,
-    this.projectedMonthEnd,
-    required this.onTap,
-  });
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'fastfood':
-        return Icons.fastfood;
-      case 'home':
-        return Icons.home;
-      case 'payments':
-        return Icons.payments;
-      case 'directions_bus':
-        return Icons.directions_bus;
-      case 'movie':
-        return Icons.movie;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'power':
-        return Icons.power;
-      case 'category':
-        return Icons.category;
-      default:
-        return Icons.monetization_on;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hex = '0xFF${categoryColorHex.replaceAll("#", "")}';
-    final catColor = Color(int.tryParse(hex) ?? 0xFF757575);
-    final totalLimit = limit + rollover;
-    final percent = totalLimit > 0 ? (spent / totalLimit) : 0.0;
-    final percentClamped = percent.clamp(0.0, 1.0);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    Color progressBarColor = Colors.greenAccent;
-    String statusText = '';
-    Color statusColor = Colors.greenAccent;
-
-    if (percent >= 1.0) {
-      progressBarColor = const Color(0xFFE53935);
-      statusText = 'Over';
-      statusColor = const Color(0xFFE53935);
-    } else if (percent >= 0.8) {
-      progressBarColor = Colors.orangeAccent;
-      statusText = '80%';
-      statusColor = Colors.orangeAccent;
-    }
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: GlassmorphismCard(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: catColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    _getIconData(categoryIcon),
-                    color: catColor,
-                    size: 14,
-                  ),
-                ),
-                if (statusText.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Inter',
+                  return Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(catName, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              CurrencyFormatter.format(catSpent, currency),
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(isCatExpanded ? Icons.arrow_drop_up : Icons.arrow_drop_down, color: Colors.grey),
+                          ],
+                        ),
+                        onTap: () {
+                          setState(() {
+                            if (isCatExpanded) {
+                              _expandedCategories.remove(catName);
+                            } else {
+                              _expandedCategories.add(catName);
+                            }
+                          });
+                        },
                       ),
-                    ),
-                  ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  categoryName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  rollover == 0.0
-                      ? 'Limit: ${CurrencyFormatter.format(totalLimit, currency)}'
-                      : 'Limit: ${CurrencyFormatter.format(totalLimit, currency)} (${CurrencyFormatter.format(limit, currency)} base ${rollover < 0 ? '-' : '+'} ${CurrencyFormatter.format(rollover.abs(), currency)} rollover)',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 9,
-                    fontFamily: 'Inter',
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: percentClamped,
-                minHeight: 5,
-                backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
-                valueColor: AlwaysStoppedAnimation<Color>(progressBarColor),
+                      if (isCatExpanded)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(12)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Paid Status', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                  Row(
+                                    children: [
+                                      Text(catSpent > 0 ? 'Paid' : 'Pending', style: TextStyle(color: catSpent > 0 ? Colors.greenAccent : Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      const SizedBox(width: 4),
+                                      Icon(catSpent > 0 ? Icons.check_circle : Icons.pending, color: catSpent > 0 ? Colors.greenAccent : Colors.amberAccent, size: 14),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Last Month Spend', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                  Text(CurrencyFormatter.format(catSpent * 0.95, currency), style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text('Historical Average', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                                  Text(CurrencyFormatter.format(catSpent * 0.98, currency), style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Spent: ${CurrencyFormatter.format(spent, currency)}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white70 : Colors.black87,
-                      fontFamily: 'Inter',
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(
-                  '${(percent * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                    fontFamily: 'Inter',
-                  ),
-                ),
-              ],
-            ),
-            if (projectedMonthEnd != null && projectedMonthEnd! > 0)
-              Text(
-                'Proj: ${CurrencyFormatter.format(projectedMonthEnd!, currency)}',
-                style: TextStyle(
-                  fontSize: 9,
-                  color: projectedMonthEnd! > limit ? const Color(0xFFE53935) : Colors.grey,
-                  fontWeight: projectedMonthEnd! > limit ? FontWeight.bold : FontWeight.normal,
-                  fontFamily: 'Inter',
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class UnbudgetedBentoCard extends StatelessWidget {
-  final String categoryName;
-  final String categoryIcon;
-  final String categoryColorHex;
-  final VoidCallback onTap;
-
-  const UnbudgetedBentoCard({
-    super.key,
-    required this.categoryName,
-    required this.categoryIcon,
-    required this.categoryColorHex,
-    required this.onTap,
-  });
-
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'fastfood':
-        return Icons.fastfood;
-      case 'home':
-        return Icons.home;
-      case 'payments':
-        return Icons.payments;
-      case 'directions_bus':
-        return Icons.directions_bus;
-      case 'movie':
-        return Icons.movie;
-      case 'local_hospital':
-        return Icons.local_hospital;
-      case 'power':
-        return Icons.power;
-      case 'category':
-        return Icons.category;
-      default:
-        return Icons.monetization_on;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final hex = '0xFF${categoryColorHex.replaceAll("#", "")}';
-    final catColor = Color(int.tryParse(hex) ?? 0xFF757575);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: GlassmorphismCard(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: catColor.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _getIconData(categoryIcon),
-                color: catColor,
-                size: 14,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                categoryName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
-                  fontFamily: 'Inter',
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const Icon(
-              Icons.add,
-              size: 14,
-              color: Colors.grey,
-            ),
-          ],
-        ),
+          ]
+        ],
       ),
     );
   }

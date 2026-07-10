@@ -187,16 +187,16 @@ class _ScaffoldWithBottomNavBarState extends ConsumerState<ScaffoldWithBottomNav
               icon: isAnyBudgetOverspent
                   ? const Badge(
                       label: Text('!'),
-                      child: Icon(Icons.pie_chart_outline_outlined),
+                      child: Icon(Icons.map_outlined),
                     )
-                  : const Icon(Icons.pie_chart_outline_outlined),
+                  : const Icon(Icons.map_outlined),
               activeIcon: isAnyBudgetOverspent
                   ? const Badge(
                       label: Text('!'),
-                      child: Icon(Icons.pie_chart),
+                      child: Icon(Icons.map),
                     )
-                  : const Icon(Icons.pie_chart),
-              label: 'Budgets',
+                  : const Icon(Icons.map),
+              label: 'Money Map',
             ),
             BottomNavigationBarItem(
               icon: isAnySyncConflict
