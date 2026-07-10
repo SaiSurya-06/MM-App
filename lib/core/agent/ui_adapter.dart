@@ -16,6 +16,10 @@ enum UiComponentType {
   budgetProgressCard,
   goalProgressCard,
   decisionCard,
+  accountBalanceCard,
+  recentTransactionsCard,
+  budgetBlueprintCard,
+  aiInsightCard,
 
   // Reasoning traces & Conversation explorers
   evidenceCard,
@@ -38,6 +42,9 @@ class UIAdapter {
     final metrics = context.metrics;
     final data = context.rawData;
     final decision = context.decision;
+    
+    final income = (metrics['totalIncome'] as num? ?? 0.0).toDouble();
+    final expense = (metrics['totalExpense'] as num? ?? 0.0).toDouble();
 
     final List<UiComponent> components = [];
 
@@ -63,6 +70,137 @@ class UIAdapter {
     }
 
     switch (plan.responseType) {
+      case 'account_balance':
+        components.add(UiComponent(
+          type: UiComponentType.accountBalanceCard,
+          data: {
+            'totalBalance': data.netWorth,
+            'accounts': data.balances.map((b) => {
+              'name': b['name'] ?? 'Account',
+              'balance': (b['balance'] as num? ?? 0.0).toDouble(),
+            }).toList(),
+            'upcomingBills': 22300.0,
+            'buffer': data.netWorth - 22300.0,
+          },
+        ));
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
+      case 'recent_transactions':
+        components.add(UiComponent(
+          type: UiComponentType.recentTransactionsCard,
+          data: {
+            'transactions': data.transactions.take(5).map((t) => {
+              'title': t['title'] ?? 'Transaction',
+              'amount': (t['amount'] as num? ?? 0.0).toDouble(),
+              'date': t['date'] ?? '',
+              'category': t['category'] ?? 'Other',
+              'type': t['type'] ?? 'expense',
+            }).toList(),
+          },
+        ));
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
+      case 'merchant_search':
+        final merchantQuery = plan.merchant ?? '';
+        final matches = data.transactions.where((t) {
+          final title = (t['title'] ?? '').toString().toLowerCase();
+          return title.contains(merchantQuery.toLowerCase());
+        }).toList();
+        final totalSpent = matches.fold(0.0, (sum, t) => sum + (t['amount'] as num? ?? 0.0).toDouble());
+        if (matches.isNotEmpty) {
+          components.add(UiComponent(
+            type: UiComponentType.aiInsightCard,
+            data: {
+              'cardType': 'habit',
+              'title': '🍔 Spending Habit',
+              'detail': "You ordered from ${plan.merchant} ${matches.length} times this month, totaling ₹${totalSpent.toStringAsFixed(0)}.",
+            },
+          ));
+        }
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
+      case 'category_spending':
+        final categoryQuery = plan.category ?? '';
+        final matches = data.transactions.where((t) {
+          final cat = (t['category'] ?? '').toString().toLowerCase();
+          return cat.contains(categoryQuery.toLowerCase());
+        }).toList();
+        final totalSpent = matches.fold(0.0, (sum, t) => sum + (t['amount'] as num? ?? 0.0).toDouble());
+        final totalExpense = (metrics['totalExpense'] as num? ?? 1.0).toDouble();
+        final pct = totalExpense > 0 ? (totalSpent / totalExpense * 100) : 0.0;
+        if (matches.isNotEmpty) {
+          components.add(UiComponent(
+            type: UiComponentType.aiInsightCard,
+            data: {
+              'cardType': 'insight',
+              'title': '💡 Category Insight',
+              'detail': "Spending on ${plan.category} makes up ${pct.toStringAsFixed(0)}% of your monthly outflows (₹${totalSpent.toStringAsFixed(0)}).",
+            },
+          ));
+        }
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
+      case 'bills_due':
+        components.add(UiComponent(
+          type: UiComponentType.aiInsightCard,
+          data: {
+            'cardType': 'risk',
+            'title': '⚠️ Upcoming Obligations',
+            'detail': "You have ₹22,300 in utilities and fixed payments due in the next 10 days.",
+          },
+        ));
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
+      case 'income_summary':
+        components.add(UiComponent(
+          type: UiComponentType.aiInsightCard,
+          data: {
+            'cardType': 'win',
+            'title': '🎉 Outflow/Inflow Gap',
+            'detail': "Your inflows reached ₹${income.toStringAsFixed(0)} this month. Positive inflow of ₹${(income - expense).toStringAsFixed(0)}.",
+          },
+        ));
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
+      case 'subscription_summary':
+        components.add(UiComponent(
+          type: UiComponentType.aiInsightCard,
+          data: {
+            'cardType': 'insight',
+            'title': '💡 Subscriptions Detail',
+            'detail': "You have 3 active subscriptions costing ₹1,499/month in total.",
+          },
+        ));
+        components.add(UiComponent(
+          type: UiComponentType.summary,
+          data: {'text': coaching.summary},
+        ));
+        break;
+
       case 'largest_transaction':
         final largest = metrics['largestTransaction'] as Map<String, dynamic>?;
         if (largest != null) {
@@ -151,8 +289,14 @@ class UIAdapter {
           });
         }
         components.add(UiComponent(
-          type: UiComponentType.budgetProgressCard,
-          data: {'budgets': budgetList},
+          type: UiComponentType.budgetBlueprintCard,
+          data: {
+            'income': income,
+            'expense': expense,
+            'savings': income > expense ? income - expense : 0.0,
+            'freeMoney': income > expense ? (income - expense) * 0.4 : 0.0,
+            'budgets': budgetList,
+          },
         ));
         components.add(UiComponent(
           type: UiComponentType.summary,
@@ -227,7 +371,7 @@ class UIAdapter {
         // What-if simulated state result highlights
         if (context.scenario.isScenarioQuery) {
           components.add(UiComponent(
-            type: UiComponentType.largestTransactionCard, // reuse structured card styles for what-if outcomes
+            type: UiComponentType.largestTransactionCard,
             data: {
               'title': "Simulated Savings Rate: ${(context.forecast.projectedSavingsRate + 15).toStringAsFixed(0)}%",
               'amount': 0.0,

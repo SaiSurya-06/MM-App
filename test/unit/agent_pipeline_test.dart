@@ -7,6 +7,8 @@ import 'package:money_manager/core/agent/prediction_engine.dart';
 import 'package:money_manager/core/agent/financial_brain.dart';
 import 'package:money_manager/core/agent/insight_engine.dart';
 import 'package:money_manager/core/agent/scenario_engine.dart';
+import 'package:money_manager/core/agent/planner.dart';
+import 'package:money_manager/core/agent/ui_adapter.dart';
 
 void main() {
   group('ExecutionPlan Rich Schema Tests', () {
@@ -210,6 +212,64 @@ void main() {
       expect(finalContext.scenario.scenarioSummary, contains('Food Delivery'));
       expect(finalContext.scenario.projections.length, equals(3));
       expect(finalContext.scenario.projections[0], contains('+₹12000'));
+    });
+  });
+
+  group('AI Product Craftsmanship Planner & Adapter Tests', () {
+    test('RulePlanner correctly extracts account_balance intent and properties', () async {
+      final memory = ConversationMemory();
+      final planner = RulePlanner();
+
+      final plan = await planner.plan("how much available money left in checkings", memory);
+
+      expect(plan.intent, equals('balance'));
+      expect(plan.responseType, equals('account_balance'));
+      expect(plan.requiredTools, contains('account'));
+    });
+
+    test('RulePlanner extracts merchant_search Domino\'s entity and properties', () async {
+      final memory = ConversationMemory();
+      final planner = RulePlanner();
+
+      final plan = await planner.plan("How much did I spend at Domino's?", memory);
+
+      expect(plan.intent, equals('merchant_search'));
+      expect(plan.responseType, equals('merchant_search'));
+      expect(plan.merchant, equals("domino's"));
+    });
+
+    test('UIAdapter maps account_balance to accountBalanceCard and hides general overview panels', () {
+      final plan = ExecutionPlan(
+        intent: 'balance',
+        responseType: 'account_balance',
+        requiredTools: ['account'],
+        requiredStrategies: [],
+        needsForecast: false,
+        needsDecision: false,
+        needsCoaching: true,
+        confidence: 1.0,
+      );
+
+      final data = RetrievedData(
+        transactions: [],
+        budgets: [],
+        goals: [],
+        balances: [
+          {'name': 'HDFC', 'balance': 40000.0, 'type': 'savings'},
+        ],
+        netWorth: 40000.0,
+      );
+
+      final context = FinancialContext.initial("what is balance", plan, data);
+      final components = UIAdapter.adapt(context);
+
+      final hasBalanceCard = components.any((c) => c.type == UiComponentType.accountBalanceCard);
+      final hasSummary = components.any((c) => c.type == UiComponentType.summary);
+      final hasHealthScore = components.any((c) => c.type == UiComponentType.healthScore);
+
+      expect(hasBalanceCard, isTrue);
+      expect(hasSummary, isTrue);
+      expect(hasHealthScore, isFalse);
     });
   });
 }

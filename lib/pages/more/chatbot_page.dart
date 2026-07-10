@@ -615,6 +615,373 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     switch (comp.type) {
+      case UiComponentType.accountBalanceCard:
+        final total = (comp.data['totalBalance'] as num? ?? 0.0).toDouble();
+        final list = comp.data['accounts'] as List? ?? [];
+        final buffer = (comp.data['buffer'] as num? ?? 0.0).toDouble();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: GlassmorphismCard(
+            borderRadius: 16,
+            blur: 20,
+            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.015),
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "💰 Available Cash",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "₹${total.toStringAsFixed(0)}",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.tealAccent : const Color(0xFF008080),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Across ${list.length} accounts",
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white10, height: 1),
+                const SizedBox(height: 14),
+                ...list.map((item) {
+                  final name = item['name']?.toString() ?? 'Account';
+                  final balance = (item['balance'] as num? ?? 0.0).toDouble();
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          name,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          "₹${balance.toStringAsFixed(0)}",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
+                const Divider(color: Colors.white10, height: 1),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Available after upcoming bills",
+                      style: TextStyle(fontSize: 11, color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
+                    Text(
+                      "₹${buffer.toStringAsFixed(0)}",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: buffer > 10000 ? Colors.tealAccent : Colors.orangeAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.recentTransactionsCard:
+        final txs = comp.data['transactions'] as List? ?? [];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: GlassmorphismCard(
+            borderRadius: 16,
+            blur: 20,
+            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.015),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "📑 Recent Activity",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (txs.isEmpty)
+                  const Text("No recent transactions found.", style: TextStyle(fontSize: 12, color: Colors.grey))
+                else
+                  ...txs.map((tx) {
+                    final title = tx['title']?.toString() ?? 'Transaction';
+                    final amount = (tx['amount'] as num? ?? 0.0).toDouble();
+                    final date = tx['date']?.toString() ?? '';
+                    final category = tx['category']?.toString() ?? 'Other';
+                    final type = tx['type']?.toString() ?? 'expense';
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: type == 'income' ? Colors.teal.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                            child: Icon(
+                              type == 'income' ? Icons.arrow_downward : Icons.arrow_upward,
+                              size: 14,
+                              color: type == 'income' ? Colors.tealAccent : Colors.orangeAccent,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "$date · $category",
+                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            "${type == 'income' ? '+' : '-'}₹${amount.toStringAsFixed(0)}",
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: type == 'income' ? Colors.tealAccent : Colors.orangeAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.budgetBlueprintCard:
+        final income = (comp.data['income'] as num? ?? 0.0).toDouble();
+        final expense = (comp.data['expense'] as num? ?? 0.0).toDouble();
+        final savings = (comp.data['savings'] as num? ?? 0.0).toDouble();
+        final list = comp.data['budgets'] as List? ?? [];
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: GlassmorphismCard(
+            borderRadius: 16,
+            blur: 20,
+            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.015),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "🗺️ Monthly Money Blueprint",
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text("Money In", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          Text("₹${income.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_rounded, color: Colors.white24, size: 16),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text("Outflow", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          Text("₹${expense.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_rounded, color: Colors.white24, size: 16),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Text("Money Saved", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          const SizedBox(height: 4),
+                          Text("₹${savings.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white10, height: 1),
+                const SizedBox(height: 12),
+                const Text(
+                  "Meters of Budget Spent",
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                if (list.isEmpty)
+                  const Text("No active category budgets found.", style: TextStyle(fontSize: 12, color: Colors.grey))
+                else
+                  ...list.map((item) {
+                    final name = item['name']?.toString() ?? 'Other';
+                    final limit = (item['limit'] as num? ?? 0.0).toDouble();
+                    final spent = (item['spent'] as num? ?? 0.0).toDouble();
+                    final percent = (item['percent'] as num? ?? 0.0).toDouble();
+
+                    String statusText = "Safe";
+                    Color statusColor = Colors.tealAccent;
+                    if (percent >= 1.0) {
+                      statusText = "Over Budget";
+                      statusColor = Colors.redAccent;
+                    } else if (percent >= 0.8) {
+                      statusText = "Almost Full";
+                      statusColor = Colors.orangeAccent;
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(name, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  statusText,
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: LinearProgressIndicator(
+                                  value: percent.clamp(0.0, 1.0),
+                                  backgroundColor: Colors.white10,
+                                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "₹${spent.toStringAsFixed(0)} / ₹${limit.toStringAsFixed(0)}",
+                                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.aiInsightCard:
+        final title = comp.data['title']?.toString() ?? '💡 Best Insight';
+        final detail = comp.data['detail']?.toString() ?? '';
+        final cardType = comp.data['cardType']?.toString() ?? 'insight';
+        
+        Color accentColor = Colors.blueAccent;
+        if (cardType == 'habit') accentColor = Colors.purpleAccent;
+        if (cardType == 'risk') accentColor = Colors.redAccent;
+        if (cardType == 'win') accentColor = Colors.tealAccent;
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: accentColor, width: 4)),
+            ),
+            child: GlassmorphismCard(
+              borderRadius: 12,
+              blur: 15,
+              color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    detail,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black87,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
       case UiComponentType.largestTransactionCard:
         final title = comp.data['title']?.toString() ?? 'Purchase';
         final amount = (comp.data['amount'] as num? ?? 0.0).toDouble();
