@@ -24,6 +24,13 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
+// Load signing credentials from key.properties
+def keyPropertiesFile = rootProject.file("key.properties")
+def keyProperties = new Properties()
+if (keyPropertiesFile.exists()) {
+    keyPropertiesFile.withReader("UTF-8") { reader -> keyProperties.load(reader) }
+}
+
 android {
     namespace = "com.example.money_manager"
     compileSdk = 34
@@ -58,10 +65,22 @@ android {
         multiDexEnabled = true
     }
 
-    buildTypes {
+    signingConfigs {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            keyAlias = keyProperties["keyAlias"]
+            keyPassword = keyProperties["keyPassword"]
+            storeFile = keyProperties["storeFile"] ? file("${keyProperties["storeFile"]}") : null
+            storePassword = keyProperties["storePassword"]
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Use the same stable key as release so debug APKs can always update
+            signingConfig = signingConfigs.release
+        }
+        release {
+            signingConfig = signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
