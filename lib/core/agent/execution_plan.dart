@@ -1,5 +1,6 @@
 class ExecutionPlan {
   final String intent; // 'search', 'compare', 'balance', 'budget', 'advice', 'forecast'
+  final String responseType; // 'largest_transaction', 'comparison', 'budget_status', 'goal_progress', 'affordability', 'financial_review'
   final String? merchant;
   final String? category;
   final double? minAmount;
@@ -22,6 +23,7 @@ class ExecutionPlan {
 
   ExecutionPlan({
     required this.intent,
+    required this.responseType,
     this.merchant,
     this.category,
     this.minAmount,
@@ -42,8 +44,19 @@ class ExecutionPlan {
   });
 
   factory ExecutionPlan.fromJson(Map<String, dynamic> json) {
+    String rt = json['responseType']?.toString() ?? 'financial_review';
+    String it = json['intent']?.toString() ?? 'search';
+    
+    // Auto-map intent to responseType if not present in JSON
+    if (json['responseType'] == null) {
+      if (it == 'compare') rt = 'comparison';
+      if (it == 'budget') rt = 'budget_status';
+      if (it == 'decision') rt = 'affordability';
+    }
+
     return ExecutionPlan(
-      intent: json['intent']?.toString() ?? 'search',
+      intent: it,
+      responseType: rt,
       merchant: json['merchant']?.toString(),
       category: json['category']?.toString(),
       minAmount: json['minAmount'] != null ? double.tryParse(json['minAmount'].toString()) : null,
@@ -67,6 +80,7 @@ class ExecutionPlan {
   factory ExecutionPlan.empty() {
     return ExecutionPlan(
       intent: 'search',
+      responseType: 'financial_review',
       requiredTools: ['transaction'],
       requiredStrategies: [],
       needsForecast: false,
@@ -79,6 +93,7 @@ class ExecutionPlan {
   Map<String, dynamic> toJson() {
     return {
       'intent': intent,
+      'responseType': responseType,
       'merchant': merchant,
       'category': category,
       'minAmount': minAmount,
@@ -164,6 +179,7 @@ class ConversationMemory {
 
     final merged = ExecutionPlan(
       intent: newPlan.intent != 'search' ? newPlan.intent : shortMemory.lastPlan!.intent,
+      responseType: newPlan.responseType != 'financial_review' ? newPlan.responseType : shortMemory.lastPlan!.responseType,
       merchant: mergedMerchant,
       category: mergedCategory,
       minAmount: mergedMinAmount,

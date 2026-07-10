@@ -17,6 +17,7 @@ import '../../core/agent/evaluation_engine.dart';
 import '../../core/agent/coaching_engine.dart';
 import '../../core/agent/ui_adapter.dart';
 import '../../core/agent/analytics_engine.dart';
+import '../../core/agent/scenario_engine.dart';
 import '../../widgets/common/glassmorphism_card.dart';
 import '../../widgets/common/premium_background.dart';
 import '../../core/utils/currency_formatter.dart';
@@ -166,6 +167,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
               if (plan.comparisonMonth != null) {
                 final compContext = ExecutionPlan(
                   intent: plan.intent,
+                  responseType: plan.responseType,
                   merchant: plan.merchant,
                   category: plan.category,
                   minAmount: plan.minAmount,
@@ -218,6 +220,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     final now = DateTime.now();
     final currentMonthPlan = ExecutionPlan(
       intent: 'search',
+      responseType: 'financial_review',
       targetMonth: now.month,
       targetYear: now.year,
       requiredTools: ['transaction', 'budget', 'goal', 'account', 'subscription'],
@@ -242,13 +245,18 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       final finalContext = await orchestrator.orchestrate(initialContext);
 
       final buffer = StringBuffer();
-      buffer.writeln("Hi! I am your AI Financial Advisor. I've compiled your **Proactive Insights Dashboard** for this month:\n");
+      final activeMonthName = _getMonthName(fetched.activeMonth ?? now.month);
+      final fallbackText = fetched.fallbackMonthUsed 
+          ? "No transactions found in this month. Showing your data from **$activeMonthName ${fetched.activeYear}** (your most recent active period):\n"
+          : "Hi! I am your AI Financial Advisor. I've compiled your **Proactive Insights Dashboard** for **$activeMonthName**:\n";
+      
+      buffer.writeln(fallbackText);
       buffer.writeln("📊 **Financial Health Summary**:");
       buffer.writeln("- **Net Worth**: **$currencySymbol${fetched.netWorth.toStringAsFixed(2)}**");
       buffer.writeln("- **Savings Rate**: ${finalContext.scores.savingsScore.toStringAsFixed(1)}%");
       buffer.writeln("- **Cash Flow**: Income $currencySymbol${(finalContext.metrics['totalIncome'] as num).toDouble().toStringAsFixed(0)} / Expenses $currencySymbol${(finalContext.metrics['totalExpense'] as num).toDouble().toStringAsFixed(0)}");
       
-      buffer.writeln("\n💡 **Impulse Habits & Proactive Alerts (Step 9)**:");
+      buffer.writeln("\n💡 **Impulse Habits & Proactive Alerts**:");
       final foodSpent = finalContext.metrics['categoryShares']['Food'] ?? 0.0;
       if (foodSpent > 0) {
         buffer.writeln("- **Food Delivery**: You spent **$currencySymbol${foodSpent.toStringAsFixed(0)}** on food delivery. Reducing this by 30% could save you **$currencySymbol${(foodSpent * 0.3).toStringAsFixed(0)}**.");
@@ -327,7 +335,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     // 2. safe SQL tool registry data fetch
     final fetched = await DatabaseRetriever.retrieve(mergedPlan);
 
-    // 3. Orchestrated Engine Pipeline (Task 1.1)
+    // 3. Orchestrated Engine Pipeline (with Scenario Engine added)
     final orchestrator = AgentOrchestrator(
       engines: [
         MetricsEngine(),
@@ -336,6 +344,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
         InvestigationEngine(),
         PredictionEngine(),
         DecisionEngine(),
+        ScenarioEngine(),
         EvaluationEngine(),
         CoachingEngine(useOnline: _useOnlineAI && !isFallback),
       ],
@@ -348,7 +357,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     final currencySymbol = CurrencyFormatter.getSymbol(currencyCode);
 
     // 4. Transform to declarative UI Presentation Components (Task 5.2)
-    final uiComponents = UIAdapter.adapt(finalContext.coaching, finalContext.scores);
+    final uiComponents = UIAdapter.adapt(finalContext);
 
     Widget? chartWidget;
     if (finalContext.coaching.chartType == 'PIE' && finalContext.metrics['categoryShares'] != null) {
@@ -557,7 +566,6 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
       );
     }
 
-    // Render dynamically adapted component cards (Task 6.1)
     final comps = msg.uiComponents;
 
     return Align(
@@ -607,6 +615,286 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     switch (comp.type) {
+      case UiComponentType.largestTransactionCard:
+        final title = comp.data['title']?.toString() ?? 'Purchase';
+        final amount = (comp.data['amount'] as num? ?? 0.0).toDouble();
+        final date = comp.data['date']?.toString() ?? '';
+        final category = comp.data['category']?.toString() ?? 'Other';
+        final pct = (comp.data['pctOfMonthly'] as num? ?? 0.0).toDouble();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: GlassmorphismCard(
+            borderRadius: 12,
+            blur: 15,
+            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("🏆 Largest Transaction", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                    ),
+                    Text(
+                      "₹${amount.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.tealAccent),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Date: $date", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text("Category: $category", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+                if (pct > 0) ...[
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 4),
+                  Text(
+                    "This represents ${pct.toStringAsFixed(0)}% of your monthly spending.",
+                    style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.comparisonTableCard:
+        final abs = (comp.data['absoluteIncrease'] as num? ?? 0.0).toDouble();
+        final pct = (comp.data['percentageIncrease'] as num? ?? 0.0).toDouble();
+        final causes = List<String>.from(comp.data['causes'] ?? []);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: GlassmorphismCard(
+            borderRadius: 12,
+            blur: 15,
+            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("⚖️ Period Comparison Summary", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text(
+                  "Expenses increased by +₹${abs.toStringAsFixed(0)} (${pct.toStringAsFixed(1)}%) compared to comparison month.",
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                ),
+                if (causes.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  const Text("Main Causes of Increase:", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  ...causes.map((c) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2.0),
+                        child: Text("• $c", style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87)),
+                      )),
+                ],
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.budgetProgressCard:
+        final list = comp.data['budgets'] as List? ?? [];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: GlassmorphismCard(
+            borderRadius: 12,
+            blur: 15,
+            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("📊 Category Budgets Progress", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                if (list.isEmpty)
+                  const Text("No active category budgets found.", style: TextStyle(fontSize: 12, color: Colors.grey))
+                else
+                  ...list.map((item) {
+                    final name = item['name']?.toString() ?? 'Other';
+                    final limit = (item['limit'] as num? ?? 0.0).toDouble();
+                    final spent = (item['spent'] as num? ?? 0.0).toDouble();
+                    final percent = (item['percent'] as num? ?? 0.0).toDouble();
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(name, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                              Text("₹${spent.toStringAsFixed(0)} / ₹${limit.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value: percent.clamp(0.0, 1.0),
+                            backgroundColor: Colors.white10,
+                            valueColor: AlwaysStoppedAnimation<Color>(percent >= 1.0 ? Colors.redAccent : Colors.orangeAccent),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.goalProgressCard:
+        final list = comp.data['goals'] as List? ?? [];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: GlassmorphismCard(
+            borderRadius: 12,
+            blur: 15,
+            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("🎯 Savings Goals Progress", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                if (list.isEmpty)
+                  const Text("No active savings goals found.", style: TextStyle(fontSize: 12, color: Colors.grey))
+                else
+                  ...list.map((item) {
+                    final name = item['name']?.toString() ?? 'Goal';
+                    final target = (item['target'] as num? ?? 1.0).toDouble();
+                    final current = (item['current'] as num? ?? 0.0).toDouble();
+                    final percent = (item['percent'] as num? ?? 0.0).toDouble();
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(name, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87)),
+                              Text("₹${current.toStringAsFixed(0)} / ₹${target.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value: percent.clamp(0.0, 1.0),
+                            backgroundColor: Colors.white10,
+                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.tealAccent),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.decisionCard:
+        final isAffordable = comp.data['isAffordable'] == true;
+        final price = (comp.data['price'] as num? ?? 0.0).toDouble();
+        final decisionText = comp.data['decisionText']?.toString() ?? '';
+        final recommendationText = comp.data['recommendationText']?.toString() ?? '';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: GlassmorphismCard(
+            borderRadius: 12,
+            blur: 15,
+            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isAffordable ? Icons.check_circle : Icons.warning_rounded,
+                      color: isAffordable ? Colors.tealAccent : Colors.orangeAccent,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isAffordable ? "Comfortably Affordable (₹${price.toStringAsFixed(0)})" : "Budget Risk Detected (₹${price.toStringAsFixed(0)})",
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  decisionText,
+                  style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+                ),
+                if (recommendationText.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 4),
+                  Text(
+                    recommendationText,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+
+      case UiComponentType.scopeCard:
+        final txs = comp.data['transactions'] ?? 0;
+        final accs = comp.data['accounts'] ?? 0;
+        final dates = comp.data['dateRange'] ?? '';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6.0, top: 2.0),
+          child: Center(
+            child: Text(
+              "Based on: $txs Transactions | $accs Accounts | $dates",
+              style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
+          ),
+        );
+
+      case UiComponentType.evidenceCard:
+        final checklist = List<String>.from(comp.data['checklist'] ?? []);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: GlassmorphismCard(
+            borderRadius: 10,
+            blur: 10,
+            color: isDark ? Colors.white.withValues(alpha: 0.01) : Colors.black.withValues(alpha: 0.005),
+            padding: EdgeInsets.zero,
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: const Text(
+                  "🔍 Reasoning & Calculation Evidence",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+                dense: true,
+                childrenPadding: const EdgeInsets.only(left: 12, right: 12, bottom: 8),
+                children: checklist.map((item) => Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      item,
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  ),
+                )).toList(),
+              ),
+            ),
+          ),
+        );
+
       case UiComponentType.healthScore:
         final overall = comp.data['overallScore'] as double? ?? 0.0;
         final savings = comp.data['savingsScore'] as double? ?? 0.0;
@@ -688,6 +976,8 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
             ),
           ),
         );
+      case UiComponentType.followUps:
+        return const SizedBox.shrink(); // follow-up chips are rendered floating at screen bottom instead
     }
   }
 
@@ -813,12 +1103,26 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
   }
 
   Widget _buildSuggestionsRow() {
-    final chips = [
+    List<String> chips = [
       "Why did expenses increase?",
       "Account balances",
       "How to save more?",
       "Recent transactions",
     ];
+
+    if (_messages.isNotEmpty) {
+      final lastMsg = _messages.last;
+      if (!lastMsg.isMe && lastMsg.uiComponents != null) {
+        final fComp = lastMsg.uiComponents!.firstWhere(
+          (c) => c.type == UiComponentType.followUps,
+          orElse: () => UiComponent(type: UiComponentType.followUps, data: {'list': []})
+        );
+        final list = List<String>.from(fComp.data['list'] ?? []);
+        if (list.isNotEmpty) {
+          chips = list;
+        }
+      }
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,

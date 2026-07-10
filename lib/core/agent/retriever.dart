@@ -7,6 +7,9 @@ class RetrievedData {
   final List<Map<String, dynamic>> goals;
   final List<Map<String, dynamic>> balances;
   final double netWorth;
+  final bool fallbackMonthUsed;
+  final int? activeMonth;
+  final int? activeYear;
 
   RetrievedData({
     required this.transactions,
@@ -14,6 +17,9 @@ class RetrievedData {
     required this.goals,
     required this.balances,
     required this.netWorth,
+    this.fallbackMonthUsed = false,
+    this.activeMonth,
+    this.activeYear,
   });
 
   factory RetrievedData.empty() {
@@ -37,10 +43,36 @@ class DatabaseRetriever {
     List<Map<String, dynamic>> balances = [];
     double netWorth = 0.0;
 
+    int? targetMonth = plan.targetMonth;
+    int? targetYear = plan.targetYear;
+    bool fallbackMonthUsed = false;
+
     final req = plan.requiredTools;
 
-    // 1. Transaction Tool Fetch
+    // 1. Check if the database has any transactions at all, and find the latest month if target is empty
     if (req.contains('transaction') || plan.intent == 'search' || plan.intent == 'compare') {
+      if (targetMonth != null) {
+        final checkRows = await db.rawQuery('''
+          SELECT date FROM transaction_log
+          WHERE strftime('%Y-%m', date) = ?
+          LIMIT 1
+        ''', ["$targetYear-${targetMonth.toString().padLeft(2, '0')}"]);
+
+        if (checkRows.isEmpty) {
+          // Fallback check: find the absolute latest transaction date in db
+          final latestRow = await db.rawQuery('SELECT date FROM transaction_log ORDER BY date DESC LIMIT 1');
+          if (latestRow.isNotEmpty) {
+            final latestDateStr = latestRow.first['date'] as String;
+            try {
+              final dt = DateTime.parse(latestDateStr);
+              targetMonth = dt.month;
+              targetYear = dt.year;
+              fallbackMonthUsed = true;
+            } catch (_) {}
+          }
+        }
+      }
+
       String sql = '''
         SELECT t.title, t.amount, t.type, t.date, c.name as category, a.name as account, t.note, t.tags, t.category_id
         FROM transaction_log t
@@ -51,13 +83,13 @@ class DatabaseRetriever {
       List<dynamic> args = [];
       List<String> conditions = [];
 
-      if (plan.targetMonth != null) {
-        final monthStr = "${plan.targetYear ?? DateTime.now().year}-${plan.targetMonth!.toString().padLeft(2, '0')}";
+      if (targetMonth != null) {
+        final monthStr = "$targetYear-${targetMonth.toString().padLeft(2, '0')}";
         conditions.add("strftime('%Y-%m', t.date) = ?");
         args.add(monthStr);
-      } else if (plan.targetYear != null) {
+      } else if (targetYear != null) {
         conditions.add("strftime('%Y', t.date) = ?");
-        args.add(plan.targetYear!.toString());
+        args.add(targetYear.toString());
       }
 
       if (plan.minAmount != null) {
@@ -127,8 +159,7 @@ class DatabaseRetriever {
 
     // 2. Budget Tool Fetch
     if (req.contains('budget') || plan.intent == 'budget') {
-      final now = DateTime.now();
-      final monthStr = "${plan.targetYear ?? now.year}-${(plan.targetMonth ?? now.month).toString().padLeft(2, '0')}";
+      final monthStr = "$targetYear-${(targetMonth ?? DateTime.now().month).toString().padLeft(2, '0')}";
       budgets = await db.rawQuery('''
         SELECT b.limit_amount, c.name, b.category_id
         FROM budget b
@@ -159,6 +190,9 @@ class DatabaseRetriever {
       goals: goals,
       balances: balances,
       netWorth: netWorth,
+      fallbackMonthUsed: fallbackMonthUsed,
+      activeMonth: targetMonth,
+      activeYear: targetYear,
     );
   }
 

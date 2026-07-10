@@ -6,6 +6,7 @@ import 'prediction_engine.dart';
 import 'decision_engine.dart';
 import 'evaluation_engine.dart';
 import 'coaching_engine.dart';
+import 'scenario_engine.dart';
 
 abstract class FinancialEngine {
   Future<FinancialContext> execute(FinancialContext context);
@@ -24,6 +25,7 @@ class FinancialContext {
   final ForecastResult forecast;
   final DecisionResult decision;
   final EvaluationResult evaluation;
+  final ScenarioResult scenario;
   final CoachingResult coaching;
   
   final List<String> actions;
@@ -40,6 +42,7 @@ class FinancialContext {
     required this.forecast,
     required this.decision,
     required this.evaluation,
+    required this.scenario,
     required this.coaching,
     required this.actions,
     required this.observabilityLogs,
@@ -57,6 +60,7 @@ class FinancialContext {
       forecast: ForecastResult.empty(),
       decision: DecisionResult.empty(),
       evaluation: EvaluationResult.empty(),
+      scenario: ScenarioResult.empty(),
       coaching: CoachingResult.empty(),
       actions: [],
       observabilityLogs: {},
@@ -71,6 +75,7 @@ class FinancialContext {
     ForecastResult? forecast,
     DecisionResult? decision,
     EvaluationResult? evaluation,
+    ScenarioResult? scenario,
     CoachingResult? coaching,
     List<String>? actions,
     Map<String, dynamic>? observabilityLogs,
@@ -86,6 +91,7 @@ class FinancialContext {
       forecast: forecast ?? this.forecast,
       decision: decision ?? this.decision,
       evaluation: evaluation ?? this.evaluation,
+      scenario: scenario ?? this.scenario,
       coaching: coaching ?? this.coaching,
       actions: actions ?? this.actions,
       observabilityLogs: observabilityLogs ?? this.observabilityLogs,

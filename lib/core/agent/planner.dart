@@ -16,6 +16,7 @@ Your only job is to analyze the user's natural language question and current con
 Execution Plan Schema:
 {
   "intent": "search" | "compare" | "balance" | "budget" | "advice" | "forecast",
+  "responseType": "largest_transaction" | "comparison" | "budget_status" | "goal_progress" | "affordability" | "financial_review",
   "merchant": String (null if not specifying a merchant name like Swiggy, Zomato, Amazon, Netflix, etc.),
   "category": String (null if not specifying a category like Food, Rent, Salary, Transport, Entertainment, Utilities, etc.),
   "minAmount": double (null if not specifying a minimum transaction value),
@@ -198,18 +199,31 @@ class RulePlanner implements Planner {
     }
 
     String intent = 'search';
+    String responseType = 'financial_review';
+
     if (clean.contains("compare") || clean.contains("vs")) {
       intent = 'compare';
-    } else if (clean.contains("balance") || clean.contains("net worth") || clean.contains("my money")) {
+      responseType = 'comparison';
+    } else if (clean.contains("balance") || clean.contains("net worth") || clean.contains("my money") || clean.contains("account balances")) {
       intent = 'balance';
-    } else if (clean.contains("budget") || clean.contains("save") || clean.contains("saving")) {
+      responseType = 'financial_review'; // Net worth is handled in standard brief
+    } else if (clean.contains("budget")) {
       intent = 'budget';
+      responseType = 'budget_status';
+    } else if (clean.contains("goal") || clean.contains("save") || clean.contains("saving") || clean.contains("how to save")) {
+      intent = 'budget';
+      responseType = 'goal_progress';
     } else if (clean.contains("afford") || clean.contains("buy")) {
       intent = 'decision';
+      responseType = 'affordability';
+    } else if (clean.contains("big") || clean.contains("large") || clean.contains("max") || clean.contains("highest") || clean.contains("most expensive")) {
+      intent = 'search';
+      responseType = 'largest_transaction';
     }
 
     return ExecutionPlan(
       intent: intent,
+      responseType: responseType,
       merchant: merchant,
       category: category,
       minAmount: minAmount,

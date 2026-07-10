@@ -38,6 +38,7 @@ class InvestigationEngine implements FinancialEngine {
 
     final compPlan = ExecutionPlan(
       intent: plan.intent,
+      responseType: plan.responseType,
       merchant: plan.merchant,
       category: plan.category,
       minAmount: plan.minAmount,

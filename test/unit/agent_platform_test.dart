@@ -13,6 +13,7 @@ void main() {
     test('Orchestrator executes metrics, insights, score, decision, and evaluation engines', () async {
       final plan = ExecutionPlan(
         intent: 'decision',
+        responseType: 'affordability',
         merchant: null,
         category: null,
         minAmount: 50000.0,
