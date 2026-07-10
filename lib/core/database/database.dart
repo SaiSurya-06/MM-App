@@ -58,7 +58,7 @@ class AppDatabase {
 
     final db = await openDatabase(
       path,
-      version: 11,
+      version: 12,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -239,6 +239,37 @@ class AppDatabase {
         ''');
       } catch (e) {
         assert(() { debugPrint('[DB migration v11] $e'); return true; }());
+      }
+    }
+    if (oldVersion < 12) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS weekly_checkins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            week_end_date TEXT NOT NULL UNIQUE,
+            mood TEXT NOT NULL,
+            reason_tags TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS planning_meta (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            month TEXT NOT NULL UNIQUE,
+            estimated_income REAL NOT NULL,
+            strategy TEXT NOT NULL,
+            needs_pct REAL NOT NULL,
+            wants_pct REAL NOT NULL,
+            savings_pct REAL NOT NULL,
+            investments_pct REAL NOT NULL,
+            emergency_pct REAL NOT NULL,
+            is_completed INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL
+          )
+        ''');
+      } catch (e) {
+        assert(() { debugPrint('[DB migration v12] $e'); return true; }());
       }
     }
   }
@@ -502,6 +533,35 @@ class AppDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         month TEXT NOT NULL UNIQUE,
         report_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
+
+    // 15. weekly_checkins Table
+    await db.execute('''
+      CREATE TABLE weekly_checkins (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        week_end_date TEXT NOT NULL UNIQUE,
+        mood TEXT NOT NULL,
+        reason_tags TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // 16. planning_meta Table
+    await db.execute('''
+      CREATE TABLE planning_meta (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        month TEXT NOT NULL UNIQUE,
+        estimated_income REAL NOT NULL,
+        strategy TEXT NOT NULL,
+        needs_pct REAL NOT NULL,
+        wants_pct REAL NOT NULL,
+        savings_pct REAL NOT NULL,
+        investments_pct REAL NOT NULL,
+        emergency_pct REAL NOT NULL,
+        is_completed INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT NOT NULL
       )
     ''');
