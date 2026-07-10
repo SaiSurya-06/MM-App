@@ -37,9 +37,10 @@ class GoalPredictor implements Capability<Map<int, ExplainableValue<String>>> {
     }
 
     for (var goal in context.snapshot.goals) {
+      final goalId = goal.id ?? 0;
       final double remaining = goal.targetAmount - goal.currentAmount;
       if (remaining <= 0) {
-        forecasts[goal.id!] = ExplainableValue<String>(
+        forecasts[goalId] = ExplainableValue<String>(
           value: 'Achieved',
           reason: 'Target already reached!',
           confidence: 1.0,
@@ -66,7 +67,7 @@ class GoalPredictor implements Capability<Map<int, ExplainableValue<String>>> {
         reason = '$reason Long-term forecast is subject to income changes.';
       }
 
-      forecasts[goal.id!] = ExplainableValue<String>(
+      forecasts[goalId] = ExplainableValue<String>(
         value: dateStr,
         reason: reason,
         confidence: confidence,

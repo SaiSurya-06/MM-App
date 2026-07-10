@@ -127,7 +127,34 @@ class _BudgetsPageState extends ConsumerState<BudgetsPage> {
     final bg = isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF7F7F9);
     final textColor = isDark ? Colors.white : Colors.black87;
 
-    if (state.isLoading) {
+    if (state.isLoading || intelState.report == null) {
+      if (state.errorMessage != null || intelState.errorMessage != null) {
+        return Scaffold(
+          backgroundColor: bg,
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Failed to Load Money Map',
+                    style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    state.errorMessage ?? intelState.errorMessage ?? 'Calculation error occurred.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(color: Colors.blueAccent),
