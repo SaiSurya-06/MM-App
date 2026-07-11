@@ -336,7 +336,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
             value: val,
             min: 0,
             max: 100,
-            divisions: 20,
+            divisions: 100,
             activeColor: color,
             onChanged: (newVal) => onChanged(newVal.roundToDouble()),
           ),

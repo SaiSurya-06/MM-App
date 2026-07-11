@@ -22,6 +22,9 @@ class PlanningState {
   // Category Budgets: Category Name -> budget amount
   final Map<String, double> categoryBudgets;
   
+  // Custom Category Groups: Category Name -> Group Name ('Needs', 'Wants', 'Savings', 'Investments')
+  final Map<String, String> customCategoryGroups;
+  
   final List<WeeklyCheckin> checkins;
   final bool isCompleted; // whether month plan exists
   final bool isLoading;
@@ -39,6 +42,7 @@ class PlanningState {
     this.investmentsPct = 0.0,
     this.emergencyPct = 0.0,
     this.categoryBudgets = const {},
+    this.customCategoryGroups = const {},
     this.checkins = const [],
     this.isCompleted = false,
     this.isLoading = false,
@@ -57,6 +61,7 @@ class PlanningState {
     double? investmentsPct,
     double? emergencyPct,
     Map<String, double>? categoryBudgets,
+    Map<String, String>? customCategoryGroups,
     List<WeeklyCheckin>? checkins,
     bool? isCompleted,
     bool? isLoading,
@@ -74,6 +79,7 @@ class PlanningState {
       investmentsPct: investmentsPct ?? this.investmentsPct,
       emergencyPct: emergencyPct ?? this.emergencyPct,
       categoryBudgets: categoryBudgets ?? this.categoryBudgets,
+      customCategoryGroups: customCategoryGroups ?? this.customCategoryGroups,
       checkins: checkins ?? this.checkins,
       isCompleted: isCompleted ?? this.isCompleted,
       isLoading: isLoading ?? this.isLoading,
@@ -113,10 +119,14 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
         final categories = _ref.read(categoriesProvider).categories;
         
         final Map<String, double> categoryBudgets = {};
+        final Map<String, String> customCategoryGroups = {};
         for (var b in budgets) {
           final cat = categories.firstWhere((c) => c.id == b.categoryId, orElse: () => const Category(id: -99, name: 'Unknown', icon: '', color: '', isDefault: false));
           if (cat.id != -99) {
             categoryBudgets[cat.name] = b.limitAmount;
+            if (b.groupName != null) {
+              customCategoryGroups[cat.name] = b.groupName!;
+            }
           }
         }
 
@@ -129,6 +139,7 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
           investmentsPct: (row['investments_pct'] as num).toDouble(),
           emergencyPct: (row['emergency_pct'] as num).toDouble(),
           categoryBudgets: categoryBudgets,
+          customCategoryGroups: customCategoryGroups,
           isCompleted: row['is_completed'] == 1,
           isLoading: false,
         );
@@ -197,6 +208,34 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
     state = state.copyWith(categoryBudgets: updated);
   }
 
+  void removeCategoryBudget(String name) {
+    final Map<String, double> updated = Map.from(state.categoryBudgets);
+    updated.remove(name);
+    final Map<String, String> updatedGroups = Map.from(state.customCategoryGroups);
+    updatedGroups.remove(name);
+    state = state.copyWith(categoryBudgets: updated, customCategoryGroups: updatedGroups);
+  }
+
+  void renameCategoryBudget(String oldName, String newName) {
+    final Map<String, double> updated = Map.from(state.categoryBudgets);
+    if (updated.containsKey(oldName)) {
+      final val = updated.remove(oldName)!;
+      updated[newName] = val;
+    }
+    final Map<String, String> updatedGroups = Map.from(state.customCategoryGroups);
+    if (updatedGroups.containsKey(oldName)) {
+      final grp = updatedGroups.remove(oldName)!;
+      updatedGroups[newName] = grp;
+    }
+    state = state.copyWith(categoryBudgets: updated, customCategoryGroups: updatedGroups);
+  }
+
+  void setCustomCategoryGroup(String name, String groupName) {
+    final Map<String, String> updatedGroups = Map.from(state.customCategoryGroups);
+    updatedGroups[name] = groupName;
+    state = state.copyWith(customCategoryGroups: updatedGroups);
+  }
+
   void setStep(int step) => state = state.copyWith(currentStep: step);
 
   Future<void> commitPlanToDatabase() async {
@@ -252,11 +291,12 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
         }
 
         if (catId != null) {
+          final group = state.customCategoryGroups[catName] ?? _classifyToGroup(catName);
           await budgetsNotifier.setBudget(
             catId,
             amount,
             recurrence: 'monthly',
-            groupName: _classifyToGroup(catName),
+            groupName: group,
           );
         }
       }
