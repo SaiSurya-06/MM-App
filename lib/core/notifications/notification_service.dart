@@ -248,6 +248,43 @@ class NotificationService {
     }
   }
 
+  Future<void> scheduleWeeklyBackupReminder() async {
+    try {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'weekly_backup_reminders',
+        'Weekly Backup Reminders',
+        channelDescription: 'Weekly reminders to backup database',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: androidDetails,
+      );
+
+      final now = DateTime.now();
+      DateTime targetLocal = DateTime(now.year, now.month, now.day, 10, 0);
+      if (targetLocal.isBefore(now)) {
+        targetLocal = targetLocal.add(const Duration(days: 1));
+      }
+      final targetUtc = targetLocal.toUtc();
+      final scheduledDate = tz.TZDateTime.from(targetUtc, tz.getLocation('UTC'));
+
+      await _localNotificationsPlugin.zonedSchedule(
+        202,
+        '💾 Database Backup Reminder',
+        "It's time to back up your database! Save a local backup now to secure your financial data.",
+        scheduledDate,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      );
+    } catch (e, stack) {
+      print('[NotificationService] scheduleWeeklyBackupReminder error: $e\n$stack');
+    }
+  }
+
   Future<void> cancelDailyReminder() async {
     try {
       await _localNotificationsPlugin.cancel(101);

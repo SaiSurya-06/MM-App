@@ -2,7 +2,11 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:sqflite/sqflite.dart' show deleteDatabase;
 import 'package:path/path.dart' show join;
-import 'package:path_provider/path_provider.dart' show getApplicationDocumentsDirectory;
+import 'package:path_provider/path_provider.dart' show getApplicationDocumentsDirectory, getTemporaryDirectory;
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
@@ -156,6 +160,135 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         ToastNotification.show(context, 'Error deleting database: $e', isError: true);
       }
+    }
+  }
+
+  Future<void> _uninstallAppData() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        title: const Text('Wipe & Uninstall Data', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE53935))),
+        content: const Text(
+          'This will wipe all application profiles, transactions, and settings to simulate a complete uninstall.\n\n'
+          'Would you like to back up your database (.db) to your local files first to avoid permanent data loss?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, true); // Wipe without backup
+            },
+            child: const Text('Wipe Without Backup', style: TextStyle(color: Color(0xFFE53935))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+            onPressed: () async {
+              Navigator.pop(context, null); // Proceed with backup
+            },
+            child: const Text('Back Up & Wipe'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == false) {
+      return; // Canceled
+    }
+
+    bool backupSuccess = true;
+    if (confirm == null) {
+      // User chose to backup first
+      backupSuccess = await _backupDatabaseBeforeWipe();
+    }
+
+    if (backupSuccess) {
+      _showPinVerificationForUninstallWipe();
+    }
+  }
+
+  void _showPinVerificationForUninstallWipe() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return _PinVerificationDialog(
+          correctPinHash: ref.read(authProvider).profile?.pinHash ?? '',
+          onVerified: () {
+            Navigator.pop(context); // Close PIN Dialog
+            _performWipeAndExit();
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _performWipeAndExit() async {
+    try {
+      final dbPath = await getApplicationDocumentsDirectory();
+      final path = join(dbPath.path, 'money_manager.db');
+      
+      // Close database connection
+      await AppDatabase.instance.close();
+      
+      // Delete database file
+      await deleteDatabase(path);
+      
+      if (mounted) {
+        ToastNotification.show(context, 'All app data wiped successfully. Exiting app...');
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          SystemNavigator.pop();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastNotification.show(context, 'Error wiping app data: $e', isError: true);
+      }
+    }
+  }
+
+  Future<bool> _backupDatabaseBeforeWipe() async {
+    try {
+      final now = DateTime.now();
+      final dateStr = '${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}';
+      final fileName = 'money_manager_backup_$dateStr.db';
+
+      final dbFolder = await getApplicationDocumentsDirectory();
+      final localDbPath = join(dbFolder.path, 'money_manager.db');
+      final dbFile = File(localDbPath);
+      if (!await dbFile.exists()) return false;
+
+      final bytes = await dbFile.readAsBytes();
+
+      // 1. Try FilePicker saveFile
+      final outputPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Database Backup',
+        fileName: fileName,
+        bytes: bytes,
+      );
+
+      if (outputPath != null) {
+        final outputFile = File(outputPath);
+        await outputFile.writeAsBytes(bytes);
+        return true;
+      }
+
+      // 2. Fallback to sharing it (which has "Save to Files")
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(join(tempDir.path, fileName));
+      await tempFile.writeAsBytes(bytes);
+
+      await Share.shareXFiles(
+        [XFile(tempFile.path, mimeType: 'application/octet-stream')],
+        subject: 'Money Manager Backup',
+      );
+      return true;
+    } catch (e) {
+      print('Error during _backupDatabaseBeforeWipe: $e');
+      return false;
     }
   }
 
@@ -1082,18 +1215,36 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 12),
             GlassmorphismCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Delete Database',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFE53935)),
-                ),
-                subtitle: const Text(
-                  'Permanently wipe all profiles, accounts, transactions, and settings. This cannot be undone.',
-                  style: TextStyle(fontSize: 11),
-                ),
-                trailing: const Icon(Icons.delete_forever, color: Color(0xFFE53935)),
-                onTap: _confirmDeleteDatabase,
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      'Delete Database',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFE53935)),
+                    ),
+                    subtitle: const Text(
+                      'Permanently wipe all profiles, accounts, transactions, and settings. This cannot be undone.',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    trailing: const Icon(Icons.delete_forever, color: Color(0xFFE53935)),
+                    onTap: _confirmDeleteDatabase,
+                  ),
+                  const Divider(),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text(
+                      'Wipe & Uninstall App Data',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFE53935)),
+                    ),
+                    subtitle: const Text(
+                      'Wipe all application data to simulate an uninstall, with an option to backup your SQLite database file first.',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    trailing: const Icon(Icons.phonelink_erase, color: Color(0xFFE53935)),
+                    onTap: _uninstallAppData,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 40),

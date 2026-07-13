@@ -12,6 +12,7 @@ import '../../models/transaction.dart';
 import '../../models/account.dart';
 import 'transaction_list_item.dart';
 import 'transaction_form.dart';
+import 'bulk_transaction_screen.dart';
 import '../../widgets/common/toast_notification.dart';
 import '../../core/database/database.dart';
 import '../../widgets/common/glassmorphism_card.dart';
@@ -461,6 +462,28 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                   tooltip: 'Select All',
                 ),
                 IconButton(
+                  icon: const Icon(Icons.edit_note),
+                  tooltip: 'Bulk Edit Details',
+                  onPressed: () async {
+                    final refresh = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BulkTransactionScreen(
+                          mode: BulkMode.edit,
+                          initialTransactions: _selectedTxs.toList(),
+                        ),
+                      ),
+                    );
+                    if (refresh == true) {
+                      setState(() {
+                        _isSelectionMode = false;
+                        _selectedTxs.clear();
+                      });
+                      ref.read(transactionsProvider.notifier).loadTransactions();
+                    }
+                  },
+                ),
+                IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () => _showBulkEditCategoryDialog(context),
                   tooltip: 'Bulk Edit Category',
@@ -481,6 +504,21 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                 ],
               ),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.playlist_add),
+                  tooltip: 'Bulk Add Transactions',
+                  onPressed: () async {
+                    final refresh = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BulkTransactionScreen(mode: BulkMode.add),
+                      ),
+                    );
+                    if (refresh == true) {
+                      ref.read(transactionsProvider.notifier).loadTransactions();
+                    }
+                  },
+                ),
                 IconButton(
                   onPressed: () {
                     ref.read(transactionsProvider.notifier).toggleSortOrder();

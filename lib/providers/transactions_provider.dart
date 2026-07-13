@@ -1126,6 +1126,47 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
     }
   }
 
+  Future<bool> bulkAddTransactions(List<Transaction> txList) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      for (var tx in txList) {
+        await addTransaction(
+          accountId: tx.accountId,
+          categoryId: tx.categoryId,
+          title: tx.title,
+          amount: tx.amount,
+          type: tx.type,
+          date: tx.date,
+          note: tx.note,
+          recurrence: tx.recurrence,
+          recurrenceEndDate: tx.recurrenceEndDate,
+          isPrivate: tx.isPrivate,
+          tags: tx.tags,
+          transferToAccountId: tx.transferToAccountId,
+        );
+      }
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: 'Bulk add failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> bulkUpdateTransactions(List<Transaction> oldList, List<Transaction> newList) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      for (int i = 0; i < oldList.length; i++) {
+        await updateTransaction(newList[i], oldList[i]);
+      }
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: 'Bulk update failed: $e');
+      return false;
+    }
+  }
+
   Future<void> importTransactionsFromCsv(BuildContext context) async {
     try {
       final pickerResult = await FilePicker.platform.pickFiles(
