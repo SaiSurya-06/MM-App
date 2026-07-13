@@ -457,6 +457,20 @@ class BackupService {
 
       final file = pickerResult.files.single;
 
+      if (format == 'sqlite') {
+        final dbFolder = await getApplicationDocumentsDirectory();
+        final localDbPath = p.join(dbFolder.path, 'money_manager.db');
+        await AppDatabase.instance.close();
+        if (file.bytes != null) {
+          await File(localDbPath).writeAsBytes(file.bytes!);
+          return true;
+        } else if (file.path != null) {
+          await File(file.path!).copy(localDbPath);
+          return true;
+        }
+        return false;
+      }
+
       // Get the file content as String (for JSON/CSV)
       String? fileContent;
       if (file.bytes != null) {
@@ -466,16 +480,7 @@ class BackupService {
         fileContent = await pickedFile.readAsString();
       }
 
-      if (format == 'sqlite') {
-        if (file.path == null) {
-          return false;
-        }
-        final dbFolder = await getApplicationDocumentsDirectory();
-        final localDbPath = p.join(dbFolder.path, 'money_manager.db');
-        await AppDatabase.instance.close();
-        await File(file.path!).copy(localDbPath);
-        return true;
-      } else if (format == 'json') {
+      if (format == 'json') {
         if (fileContent == null) return false;
         await importDataFromJson(fileContent);
         return true;

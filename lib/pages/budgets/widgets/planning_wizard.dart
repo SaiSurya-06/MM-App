@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/planning_state_provider.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../providers/categories_provider.dart';
+import '../../../models/category.dart';
 
 class PlanningWizard extends ConsumerStatefulWidget {
   final VoidCallback onCompleted;
@@ -16,6 +18,66 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
   final _salaryController = TextEditingController();
   final _otherIncomeController = TextEditingController();
   final Map<String, TextEditingController> _categoryControllers = {};
+  final Map<String, List<String>> _groupCategories = {};
+  final Set<String> _deletedCategories = {};
+
+  void _initializeCategories() {
+    if (_groupCategories.isNotEmpty) return;
+
+    final state = ref.read(planningStateProvider);
+    final dbCategories = ref.read(categoriesProvider).categories;
+
+    final defaultNeeds = ['Rent', 'Electricity', 'Internet', 'Utilities', 'Insurance'];
+    final defaultWants = ['Food', 'Shopping', 'Entertainment', 'Dining', 'Travel'];
+    final defaultSavings = ['Emergency Savings', 'Vacation Fund', 'Bike Goal'];
+    final defaultInvestments = ['Mutual Funds', 'Stocks', 'Gold'];
+
+    final Set<String> allNeeds = {...defaultNeeds};
+    final Set<String> allWants = {...defaultWants};
+    final Set<String> allSavings = {...defaultSavings};
+    final Set<String> allInvestments = {...defaultInvestments};
+
+    // 1. Add categories from DB
+    for (var cat in dbCategories) {
+      if (cat.type == 'income') continue;
+      final group = _classifyCategory(cat.name);
+      if (group == 'Needs') allNeeds.add(cat.name);
+      if (group == 'Wants') allWants.add(cat.name);
+      if (group == 'Savings') allSavings.add(cat.name);
+      if (group == 'Investments') allInvestments.add(cat.name);
+    }
+
+    // 2. Add categories from state.categoryBudgets
+    for (var catName in state.categoryBudgets.keys) {
+      final group = state.customCategoryGroups[catName] ?? _classifyCategory(catName);
+      if (group == 'Needs') allNeeds.add(catName);
+      if (group == 'Wants') allWants.add(catName);
+      if (group == 'Savings') allSavings.add(catName);
+      if (group == 'Investments') allInvestments.add(catName);
+    }
+
+    _groupCategories['Needs'] = allNeeds.toList();
+    _groupCategories['Wants'] = allWants.toList();
+    _groupCategories['Savings'] = allSavings.toList();
+    _groupCategories['Investments'] = allInvestments.toList();
+  }
+
+  String _classifyCategory(String categoryName) {
+    final name = categoryName.toLowerCase();
+    if (name.contains('rent') || name.contains('bill') || name.contains('utility') || name.contains('utilities') || name.contains('electricity') || name.contains('internet') || name.contains('water') || name.contains('insurance')) {
+      return 'Needs';
+    }
+    if (name.contains('food') || name.contains('shopping') || name.contains('entertainment') || name.contains('dining') || name.contains('movie') || name.contains('travel')) {
+      return 'Wants';
+    }
+    if (name.contains('saving') || name.contains('emergency')) {
+      return 'Savings';
+    }
+    if (name.contains('invest') || name.contains('stock') || name.contains('mutual')) {
+      return 'Investments';
+    }
+    return 'Wants';
+  }
 
   @override
   void initState() {
@@ -37,6 +99,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
 
   @override
   Widget build(BuildContext context) {
+    _initializeCategories();
     final state = ref.watch(planningStateProvider);
     final notifier = ref.read(planningStateProvider.notifier);
 
@@ -362,42 +425,47 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
         const SizedBox(height: 24),
         
         if (state.needsPct > 0)
-          _buildCategoryGroupInput('Essentials (Needs cap: ₹${needsLimit.toStringAsFixed(0)})', [
-            'Rent',
-            'Electricity',
-            'Internet',
-            'Utilities',
-            'Insurance',
-          ], state, notifier),
+          _buildCategoryGroupInput(
+            'Essentials (Needs cap: ${CurrencyFormatter.format(needsLimit, 'INR')})',
+            'Needs',
+            _groupCategories['Needs'] ?? [],
+            state,
+            notifier,
+          ),
         
         if (state.wantsPct > 0)
-          _buildCategoryGroupInput('Lifestyle (Wants cap: ₹${wantsLimit.toStringAsFixed(0)})', [
-            'Food',
-            'Shopping',
-            'Entertainment',
-            'Dining',
-            'Travel',
-          ], state, notifier),
+          _buildCategoryGroupInput(
+            'Lifestyle (Wants cap: ${CurrencyFormatter.format(wantsLimit, 'INR')})',
+            'Wants',
+            _groupCategories['Wants'] ?? [],
+            state,
+            notifier,
+          ),
 
         if (state.savingsPct > 0)
-          _buildCategoryGroupInput('Savings (Savings cap: ₹${savingsLimit.toStringAsFixed(0)})', [
-            'Emergency Savings',
-            'Vacation Fund',
-            'Bike Goal',
-          ], state, notifier),
+          _buildCategoryGroupInput(
+            'Savings (Savings cap: ${CurrencyFormatter.format(savingsLimit, 'INR')})',
+            'Savings',
+            _groupCategories['Savings'] ?? [],
+            state,
+            notifier,
+          ),
 
         if (state.investmentsPct > 0)
-          _buildCategoryGroupInput('Investments (Investments cap: ₹${investmentsLimit.toStringAsFixed(0)})', [
-            'Mutual Funds',
-            'Stocks',
-            'Gold',
-          ], state, notifier),
+          _buildCategoryGroupInput(
+            'Investments (Investments cap: ${CurrencyFormatter.format(investmentsLimit, 'INR')})',
+            'Investments',
+            _groupCategories['Investments'] ?? [],
+            state,
+            notifier,
+          ),
       ],
     );
   }
 
   Widget _buildCategoryGroupInput(
     String groupTitle,
+    String groupKey,
     List<String> items,
     PlanningState state,
     PlanningStateNotifier notifier,
@@ -416,35 +484,306 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
-              children: items.map((item) {
-                if (!_categoryControllers.containsKey(item)) {
-                  final initialVal = state.categoryBudgets[item];
-                  _categoryControllers[item] = TextEditingController(
-                    text: initialVal != null && initialVal > 0 ? initialVal.toStringAsFixed(0) : '',
-                  );
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: TextField(
-                    controller: _categoryControllers[item],
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: item,
-                      prefixText: '₹ ',
-                      border: const UnderlineInputBorder(),
+              children: [
+                ...items.map((item) {
+                  if (!_categoryControllers.containsKey(item)) {
+                    final initialVal = state.categoryBudgets[item];
+                    _categoryControllers[item] = TextEditingController(
+                      text: initialVal != null && initialVal > 0 ? initialVal.toStringAsFixed(0) : '',
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item,
+                                  style: const TextStyle(fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.edit, size: 16, color: Colors.blueAccent.withOpacity(0.8)),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Rename',
+                                onPressed: () => _showRenameCategoryDialog(context, item, groupKey, state, notifier),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline, size: 16, color: Colors.redAccent.withOpacity(0.8)),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                tooltip: 'Delete',
+                                onPressed: () => _showDeleteCategoryDialog(context, item, groupKey, state, notifier),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _categoryControllers[item],
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              prefixText: '₹ ',
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            onChanged: (val) {
+                              final valDouble = double.tryParse(val) ?? 0.0;
+                              notifier.updateCategoryBudget(item, valDouble);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                    onChanged: (val) {
-                      final valDouble = double.tryParse(val) ?? 0.0;
-                      notifier.updateCategoryBudget(item, valDouble);
-                    },
+                  );
+                }),
+                
+                const Divider(height: 24),
+                
+                OutlinedButton.icon(
+                  onPressed: () => _showAddCategoryDialog(context, groupKey, state, notifier),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text('Add Category to $groupKey'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.blueAccent,
+                    side: const BorderSide(color: Colors.blueAccent),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ),
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  void _showRenameCategoryDialog(
+    BuildContext context,
+    String oldName,
+    String groupKey,
+    PlanningState state,
+    PlanningStateNotifier notifier,
+  ) {
+    final textController = TextEditingController(text: oldName);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Rename Category'),
+          content: TextField(
+            controller: textController,
+            decoration: const InputDecoration(labelText: 'New Name'),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newName = textController.text.trim();
+                if (newName.isEmpty || newName == oldName) {
+                  Navigator.pop(context);
+                  return;
+                }
+
+                // 1. Rename in database if it exists
+                final dbCategories = ref.read(categoriesProvider).categories;
+                final existingCat = dbCategories.firstWhere(
+                  (c) => c.name.toLowerCase() == oldName.toLowerCase(),
+                  orElse: () => const Category(id: -99, name: '', icon: '', color: '', isDefault: false),
+                );
+
+                if (existingCat.id != -99) {
+                  final updatedCat = existingCat.copyWith(name: newName);
+                  final success = await ref.read(categoriesProvider.notifier).updateCategory(updatedCat);
+                  if (!success) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to rename category in database.'), backgroundColor: Colors.redAccent),
+                      );
+                    }
+                    Navigator.pop(context);
+                    return;
+                  }
+                }
+
+                // 2. Rename locally in _groupCategories list
+                setState(() {
+                  final list = _groupCategories[groupKey];
+                  if (list != null) {
+                    final index = list.indexOf(oldName);
+                    if (index != -1) {
+                      list[index] = newName;
+                    }
+                  }
+                });
+
+                // 3. Rename in notifier and update controller
+                notifier.renameCategoryBudget(oldName, newName);
+                final controller = _categoryControllers.remove(oldName);
+                if (controller != null) {
+                  _categoryControllers[newName] = controller;
+                }
+
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Rename'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteCategoryDialog(
+    BuildContext context,
+    String catName,
+    String groupKey,
+    PlanningState state,
+    PlanningStateNotifier notifier,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Category'),
+          content: Text('Are you sure you want to delete "$catName"? This will also delete any budget limits associated with it.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () async {
+                // 1. Delete from DB if exists
+                final dbCategories = ref.read(categoriesProvider).categories;
+                final existingCat = dbCategories.firstWhere(
+                  (c) => c.name.toLowerCase() == catName.toLowerCase(),
+                  orElse: () => const Category(id: -99, name: '', icon: '', color: '', isDefault: false),
+                );
+
+                if (existingCat.id != -99) {
+                  final success = await ref.read(categoriesProvider.notifier).deleteCategory(existingCat.id!);
+                  if (!success) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to delete category from database.'), backgroundColor: Colors.redAccent),
+                      );
+                    }
+                    Navigator.pop(context);
+                    return;
+                  }
+                }
+
+                // 2. Remove locally
+                setState(() {
+                  _groupCategories[groupKey]?.remove(catName);
+                  _deletedCategories.add(catName.toLowerCase());
+                });
+
+                // 3. Remove budget mapping and controller
+                notifier.removeCategoryBudget(catName);
+                final controller = _categoryControllers.remove(catName);
+                controller?.dispose();
+
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddCategoryDialog(
+    BuildContext context,
+    String groupKey,
+    PlanningState state,
+    PlanningStateNotifier notifier,
+  ) {
+    final nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Category to $groupKey'),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(labelText: 'Category Name'),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) {
+                  Navigator.pop(context);
+                  return;
+                }
+
+                // 1. Insert Category into DB
+                final newCat = Category(
+                  name: name,
+                  icon: 'account_balance_wallet',
+                  color: '607D8B',
+                  isDefault: false,
+                  type: 'expense',
+                );
+
+                final catId = await ref.read(categoriesProvider.notifier).addCategory(newCat);
+                if (catId == null) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to add category to database.'), backgroundColor: Colors.redAccent),
+                    );
+                  }
+                  Navigator.pop(context);
+                  return;
+                }
+
+                // 2. Add locally
+                setState(() {
+                  _groupCategories[groupKey]?.add(name);
+                  _deletedCategories.remove(name.toLowerCase());
+                });
+
+                // 3. Update notifier budget state & controllers
+                notifier.updateCategoryBudget(name, 0.0);
+                notifier.setCustomCategoryGroup(name, groupKey);
+                _categoryControllers[name] = TextEditingController(text: '');
+
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
     );
   }
 
