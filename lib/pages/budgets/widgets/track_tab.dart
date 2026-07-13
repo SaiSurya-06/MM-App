@@ -45,7 +45,7 @@ class TrackTab extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '₹${CurrencyFormatter.format(moneyMapState.safeToSpendToday, currency)}',
+                    CurrencyFormatter.format(moneyMapState.safeToSpendToday, currency),
                     style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: textColor, fontFamily: 'Inter'),
                   ),
                   const SizedBox(height: 6),
@@ -129,8 +129,8 @@ class TrackTab extends ConsumerWidget {
                               ),
                               Text(
                                 isOver
-                                    ? 'Over by ₹${CurrencyFormatter.format(-remaining, currency)}'
-                                    : 'Remaining: ₹${CurrencyFormatter.format(remaining, currency)}',
+                                    ? 'Over by ${CurrencyFormatter.format(-remaining, currency)}'
+                                    : 'Remaining: ${CurrencyFormatter.format(remaining, currency)}',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -157,11 +157,11 @@ class TrackTab extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Planned: ₹${CurrencyFormatter.format(plannedLimit, currency)}',
+                                'Planned: ${CurrencyFormatter.format(plannedLimit, currency)}',
                                 style: const TextStyle(color: Colors.grey, fontSize: 12),
                               ),
                               Text(
-                                'Actual: ₹${CurrencyFormatter.format(actualSpent, currency)}',
+                                'Actual: ${CurrencyFormatter.format(actualSpent, currency)}',
                                 style: TextStyle(
                                   color: isOver ? Colors.redAccent : textColor.withValues(alpha: 0.8),
                                   fontSize: 12,

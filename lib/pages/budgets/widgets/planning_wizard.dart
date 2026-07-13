@@ -329,7 +329,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text('${val.toStringAsFixed(0)}% (₹${CurrencyFormatter.format(amt, 'INR')})', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+              Text('${val.toStringAsFixed(0)}% (${CurrencyFormatter.format(amt, 'INR')})', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
             ],
           ),
           Slider(
@@ -520,7 +520,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text('₹${CurrencyFormatter.format(value, 'INR')}', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(CurrencyFormatter.format(value, 'INR'), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );

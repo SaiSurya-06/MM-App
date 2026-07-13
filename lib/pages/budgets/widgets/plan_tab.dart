@@ -54,8 +54,8 @@ class _PlanTabState extends ConsumerState<PlanTab> {
                         children: [
                           const Text('Estimated Monthly Income', style: TextStyle(color: Colors.grey, fontSize: 12)),
                           const SizedBox(height: 4),
-                          Text(
-                            '₹${CurrencyFormatter.format(totalIncome, 'INR')}',
+                           Text(
+                            CurrencyFormatter.format(totalIncome, 'INR'),
                             style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: textColor),
                           ),
                         ],

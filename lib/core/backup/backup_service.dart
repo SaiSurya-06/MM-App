@@ -448,31 +448,46 @@ class BackupService {
     try {
       final pickerResult = await FilePicker.platform.pickFiles(
         type: FileType.any,
+        withData: true,
       );
 
-      if (pickerResult == null || pickerResult.files.single.path == null) {
+      if (pickerResult == null || pickerResult.files.isEmpty) {
         return false;
       }
 
-      final pickedFile = File(pickerResult.files.single.path!);
-      final dbFolder = await getApplicationDocumentsDirectory();
+      final file = pickerResult.files.single;
+
+      // Get the file content as String (for JSON/CSV)
+      String? fileContent;
+      if (file.bytes != null) {
+        fileContent = utf8.decode(file.bytes!);
+      } else if (file.path != null) {
+        final pickedFile = File(file.path!);
+        fileContent = await pickedFile.readAsString();
+      }
 
       if (format == 'sqlite') {
+        if (file.path == null) {
+          return false;
+        }
+        final dbFolder = await getApplicationDocumentsDirectory();
         final localDbPath = p.join(dbFolder.path, 'money_manager.db');
         await AppDatabase.instance.close();
-        await pickedFile.copy(localDbPath);
+        await File(file.path!).copy(localDbPath);
         return true;
       } else if (format == 'json') {
-        final jsonStr = await pickedFile.readAsString();
-        await importDataFromJson(jsonStr);
+        if (fileContent == null) return false;
+        await importDataFromJson(fileContent);
         return true;
       } else if (format == 'csv') {
-        final csvStr = await pickedFile.readAsString();
-        await importDataFromCsv(csvStr);
+        if (fileContent == null) return false;
+        await importDataFromCsv(fileContent);
         return true;
       }
       return false;
-    } catch (_) {
+    } catch (e, stack) {
+      print('Error in restoreFromLocal: $e');
+      print(stack);
       return false;
     }
   }
