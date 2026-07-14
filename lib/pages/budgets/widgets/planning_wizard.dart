@@ -836,8 +836,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete Category'),
-          content: Text('Are you sure you want to delete "$catName"? This will also delete any budget limits associated with it.'),
+          title: const Text('Remove from Budget'),
+          content: Text('Are you sure you want to remove "$catName" from your budget plan? This will clear its budget limit for this month, but will NOT delete the category or affect your transactions.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -845,34 +845,14 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () async {
-                // 1. Delete from DB if exists
-                final dbCategories = ref.read(categoriesProvider).categories;
-                final existingCat = dbCategories.firstWhere(
-                  (c) => c.name.toLowerCase() == catName.toLowerCase(),
-                  orElse: () => const Category(id: -99, name: '', icon: '', color: '', isDefault: false),
-                );
-
-                if (existingCat.id != -99) {
-                  final success = await ref.read(categoriesProvider.notifier).deleteCategory(existingCat.id!);
-                  if (!success) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to delete category from database.'), backgroundColor: Colors.redAccent),
-                      );
-                    }
-                    Navigator.pop(context);
-                    return;
-                  }
-                }
-
-                // 2. Remove locally
+              onPressed: () {
+                // 1. Remove locally
                 setState(() {
                   _groupCategories[groupKey]?.remove(catName);
                   _deletedCategories.add(catName.toLowerCase());
                 });
 
-                // 3. Remove budget mapping and controller
+                // 2. Remove budget mapping and controller
                 notifier.removeCategoryBudget(catName);
                 final controller = _categoryControllers.remove(catName);
                 controller?.dispose();
@@ -881,7 +861,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+              child: const Text('Remove'),
             ),
           ],
         );

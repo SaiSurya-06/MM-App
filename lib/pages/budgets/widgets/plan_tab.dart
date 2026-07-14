@@ -354,8 +354,8 @@ class _PlanTabState extends ConsumerState<PlanTab> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete Category'),
-          content: Text('Are you sure you want to delete "${item.name}"? This will also delete any budget limits associated with it.'),
+          title: const Text('Remove from Budget'),
+          content: Text('Are you sure you want to remove "${item.name}" from your budget? This will clear its budget limit for this month, but will NOT delete the category or affect your transactions.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -363,27 +363,15 @@ class _PlanTabState extends ConsumerState<PlanTab> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () async {
-                // 1. Remove from DB if has ID
-                if (item.id != null) {
-                  final success = await ref.read(categoriesProvider.notifier).deleteCategory(item.id!);
-                  if (!success) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to delete category from database.'), backgroundColor: Colors.redAccent),
-                      );
-                    }
-                    Navigator.pop(context);
-                    return;
-                  }
-                } else {
-                  // If it's a default category not saved in DB yet, track it locally so we ignore it
+              onPressed: () {
+                // If it's a default category not saved in DB yet, track it locally so we ignore it
+                if (item.id == null) {
                   setState(() {
                     _deletedDefaultCategories.add(item.name.toLowerCase());
                   });
                 }
 
-                // 2. Remove budget mapping & controller
+                // Remove budget mapping & controller
                 notifier.removeCategoryBudget(item.name);
                 final controller = _controllers.remove(item.name);
                 controller?.dispose();
@@ -392,7 +380,7 @@ class _PlanTabState extends ConsumerState<PlanTab> {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+              child: const Text('Remove'),
             ),
           ],
         );
