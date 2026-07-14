@@ -262,7 +262,6 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
       );
 
       // 2. Commit category budget limits
-      final categories = _ref.read(categoriesProvider).categories;
       final budgetsNotifier = _ref.read(budgetsProvider.notifier);
 
       for (var entry in state.categoryBudgets.entries) {
@@ -270,22 +269,29 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
         final amount = entry.value;
 
         // Try to find category ID
-        var cat = categories.firstWhere(
+        final currentCategories = _ref.read(categoriesProvider).categories;
+        var cat = currentCategories.firstWhere(
           (c) => c.name.toLowerCase() == catName.toLowerCase(),
           orElse: () => const Category(id: -99, name: '', icon: '', color: '', isDefault: false),
         );
 
         int? catId;
         if (cat.id == -99) {
-          // Add Category dynamically
-          final newCat = Category(
-            name: catName,
-            icon: 'account_balance_wallet',
-            color: '607D8B',
-            isDefault: false,
-            type: 'expense',
-          );
-          catId = await _ref.read(categoriesProvider.notifier).addCategory(newCat);
+          // Fallback: query database directly by name to prevent duplicates due to asynchronous latency
+          final dbResult = await db.query('category', where: 'LOWER(name) = ?', whereArgs: [catName.toLowerCase()]);
+          if (dbResult.isNotEmpty) {
+            catId = dbResult.first['id'] as int;
+          } else {
+            // Only add if it does not exist anywhere in the database
+            final newCat = Category(
+              name: catName,
+              icon: 'account_balance_wallet',
+              color: '607D8B',
+              isDefault: false,
+              type: 'expense',
+            );
+            catId = await _ref.read(categoriesProvider.notifier).addCategory(newCat);
+          }
         } else {
           catId = cat.id;
         }

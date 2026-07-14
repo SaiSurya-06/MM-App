@@ -63,7 +63,9 @@ class BudgetDao {
         where: 'month = ?',
         whereArgs: [month],
       );
-      return result.map((json) => Budget.fromMap(json)).toList();
+      final budgets = result.map((json) => Budget.fromMap(json)).toList();
+      final seenCategoryIds = <int>{};
+      return budgets.where((b) => seenCategoryIds.add(b.categoryId)).toList();
     } catch (e) {
       throw Exception('BudgetDao.getBudgetsForMonth failed: $e');
     }

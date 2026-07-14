@@ -41,27 +41,22 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
     final state = ref.read(planningStateProvider);
     final dbCategories = ref.read(categoriesProvider).categories;
 
-    final defaultNeeds = ['Rent', 'Electricity', 'Internet', 'Utilities', 'Insurance'];
-    final defaultWants = ['Food', 'Shopping', 'Entertainment', 'Dining', 'Travel'];
-    final defaultSavings = ['Emergency Savings', 'Vacation Fund', 'Bike Goal'];
-    final defaultInvestments = ['Mutual Funds', 'Stocks', 'Gold'];
+    final Set<String> allNeeds = {};
+    final Set<String> allWants = {};
+    final Set<String> allSavings = {};
+    final Set<String> allInvestments = {};
 
-    final Set<String> allNeeds = {...defaultNeeds};
-    final Set<String> allWants = {...defaultWants};
-    final Set<String> allSavings = {...defaultSavings};
-    final Set<String> allInvestments = {...defaultInvestments};
-
-    // 1. Add categories from DB
+    // 1. Add categories from DB (Categories module)
     for (var cat in dbCategories) {
       if (cat.type == 'income') continue;
-      final group = _classifyCategory(cat.name);
+      final group = state.customCategoryGroups[cat.name] ?? _classifyCategory(cat.name);
       if (group == 'Needs') allNeeds.add(cat.name);
       if (group == 'Wants') allWants.add(cat.name);
       if (group == 'Savings') allSavings.add(cat.name);
       if (group == 'Investments') allInvestments.add(cat.name);
     }
 
-    // 2. Add categories from state.categoryBudgets
+    // 2. Add categories from state.categoryBudgets (active/historical planning budgets)
     for (var catName in state.categoryBudgets.keys) {
       final group = state.customCategoryGroups[catName] ?? _classifyCategory(catName);
       if (group == 'Needs') allNeeds.add(catName);
