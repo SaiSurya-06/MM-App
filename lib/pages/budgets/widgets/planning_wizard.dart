@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/planning_state_provider.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
+import '../../../widgets/common/toast_notification.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../models/category.dart';
@@ -18,6 +19,19 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
   final _salaryController = TextEditingController();
   final _otherIncomeController = TextEditingController();
   final Map<String, TextEditingController> _categoryControllers = {};
+  
+  final _needsAmountController = TextEditingController();
+  final _wantsAmountController = TextEditingController();
+  final _savingsAmountController = TextEditingController();
+  final _investmentsAmountController = TextEditingController();
+  final _emergencyAmountController = TextEditingController();
+
+  final _needsAmountFocus = FocusNode();
+  final _wantsAmountFocus = FocusNode();
+  final _savingsAmountFocus = FocusNode();
+  final _investmentsAmountFocus = FocusNode();
+  final _emergencyAmountFocus = FocusNode();
+
   final Map<String, List<String>> _groupCategories = {};
   final Set<String> _deletedCategories = {};
 
@@ -94,6 +108,18 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
     for (var c in _categoryControllers.values) {
       c.dispose();
     }
+    _needsAmountController.dispose();
+    _wantsAmountController.dispose();
+    _savingsAmountController.dispose();
+    _investmentsAmountController.dispose();
+    _emergencyAmountController.dispose();
+
+    _needsAmountFocus.dispose();
+    _wantsAmountFocus.dispose();
+    _savingsAmountFocus.dispose();
+    _investmentsAmountFocus.dispose();
+    _emergencyAmountFocus.dispose();
+
     super.dispose();
   }
 
@@ -323,7 +349,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
       children: [
         Text('Refine Allocations', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
         const SizedBox(height: 8),
-        const Text('Drag the sliders to adjust your core budget splits.', style: TextStyle(color: Colors.grey)),
+        const Text('Drag the sliders or enter exact amounts to adjust your core budget splits.', style: TextStyle(color: Colors.grey)),
         const SizedBox(height: 20),
         
         Text(
@@ -341,6 +367,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
           val: state.needsPct,
           color: Colors.blueAccent,
           totalIncome: totalIncome,
+          controller: _needsAmountController,
+          focusNode: _needsAmountFocus,
           onChanged: (newVal) => notifier.updatePercentages(needs: newVal),
         ),
         _buildDraggableSlider(
@@ -348,6 +376,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
           val: state.wantsPct,
           color: Colors.amber,
           totalIncome: totalIncome,
+          controller: _wantsAmountController,
+          focusNode: _wantsAmountFocus,
           onChanged: (newVal) => notifier.updatePercentages(wants: newVal),
         ),
         _buildDraggableSlider(
@@ -355,6 +385,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
           val: state.savingsPct,
           color: Colors.green,
           totalIncome: totalIncome,
+          controller: _savingsAmountController,
+          focusNode: _savingsAmountFocus,
           onChanged: (newVal) => notifier.updatePercentages(savings: newVal),
         ),
         _buildDraggableSlider(
@@ -362,6 +394,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
           val: state.investmentsPct,
           color: Colors.purple,
           totalIncome: totalIncome,
+          controller: _investmentsAmountController,
+          focusNode: _investmentsAmountFocus,
           onChanged: (newVal) => notifier.updatePercentages(investments: newVal),
         ),
         _buildDraggableSlider(
@@ -369,6 +403,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
           val: state.emergencyPct,
           color: Colors.cyan,
           totalIncome: totalIncome,
+          controller: _emergencyAmountController,
+          focusNode: _emergencyAmountFocus,
           onChanged: (newVal) => notifier.updatePercentages(emergency: newVal),
         ),
       ],
@@ -380,9 +416,17 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
     required double val,
     required Color color,
     required double totalIncome,
+    required TextEditingController controller,
+    required FocusNode focusNode,
     required ValueChanged<double> onChanged,
   }) {
     final amt = (val / 100.0) * totalIncome;
+    
+    // Sync controller with value if not focused
+    if (!focusNode.hasFocus) {
+      controller.text = amt > 0 ? amt.toStringAsFixed(0) : '';
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -392,7 +436,46 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text('${val.toStringAsFixed(0)}% (${CurrencyFormatter.format(amt, 'INR')})', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Text(
+                    '${val.toStringAsFixed(0)}%  ',
+                    style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  SizedBox(
+                    width: 110,
+                    height: 32,
+                    child: TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+                      decoration: InputDecoration(
+                        prefixText: '₹ ',
+                        prefixStyle: TextStyle(color: color.withOpacity(0.7), fontWeight: FontWeight.bold),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: color, width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey.withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onChanged: (text) {
+                        final enteredAmt = double.tryParse(text) ?? 0.0;
+                        if (totalIncome > 0) {
+                          final calculatedPct = ((enteredAmt / totalIncome) * 100.0).clamp(0.0, 100.0);
+                          onChanged(calculatedPct.roundToDouble());
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           Slider(
@@ -401,7 +484,11 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
             max: 100,
             divisions: 100,
             activeColor: color,
-            onChanged: (newVal) => onChanged(newVal.roundToDouble()),
+            onChanged: (newVal) {
+              onChanged(newVal.roundToDouble());
+              final newAmt = (newVal / 100.0) * totalIncome;
+              controller.text = newAmt.toStringAsFixed(0);
+            },
           ),
         ],
       ),
@@ -470,101 +557,194 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
     PlanningState state,
     PlanningStateNotifier notifier,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            groupTitle,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-          ),
-        ),
-        GlassmorphismCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                ...items.map((item) {
-                  if (!_categoryControllers.containsKey(item)) {
-                    final initialVal = state.categoryBudgets[item];
-                    _categoryControllers[item] = TextEditingController(
-                      text: initialVal != null && initialVal > 0 ? initialVal.toStringAsFixed(0) : '',
-                    );
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item,
-                                  style: const TextStyle(fontWeight: FontWeight.w500),
-                                  overflow: TextOverflow.ellipsis,
+    return DragTarget<String>(
+      onWillAccept: (data) => data != null && !items.contains(data),
+      onAccept: (data) {
+        String? sourceGroup;
+        for (var entry in _groupCategories.entries) {
+          if (entry.value.contains(data)) {
+            sourceGroup = entry.key;
+            break;
+          }
+        }
+        if (sourceGroup != null) {
+          setState(() {
+            _groupCategories[sourceGroup!]!.remove(data);
+            _groupCategories[groupKey]!.add(data);
+          });
+          notifier.setCustomCategoryGroup(data, groupKey);
+          ToastNotification.show(context, 'Moved "$data" to $groupKey');
+        }
+      },
+      builder: (context, candidateData, rejectedData) {
+        final isHovering = candidateData.isNotEmpty;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                groupTitle,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isHovering ? Colors.blueAccent : Colors.transparent,
+                  width: 2.0,
+                ),
+              ),
+              child: GlassmorphismCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      if (items.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            'Drag categories here',
+                            style: TextStyle(color: Colors.grey, fontSize: 13, fontStyle: FontStyle.italic),
+                          ),
+                        )
+                      else
+                        ...items.map((item) {
+                          if (!_categoryControllers.containsKey(item)) {
+                            final initialVal = state.categoryBudgets[item];
+                            _categoryControllers[item] = TextEditingController(
+                              text: initialVal != null && initialVal > 0 ? initialVal.toStringAsFixed(0) : '',
+                            );
+                          }
+                          return LongPressDraggable<String>(
+                            data: item,
+                            feedback: Material(
+                              color: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: Colors.blueAccent.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.drag_indicator, color: Colors.white, size: 16),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      item,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              IconButton(
-                                icon: Icon(Icons.edit, size: 16, color: Colors.blueAccent.withOpacity(0.8)),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: 'Rename',
-                                onPressed: () => _showRenameCategoryDialog(context, item, groupKey, state, notifier),
-                              ),
-                              const SizedBox(width: 10),
-                              IconButton(
-                                icon: Icon(Icons.delete_outline, size: 16, color: Colors.redAccent.withOpacity(0.8)),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: 'Delete',
-                                onPressed: () => _showDeleteCategoryDialog(context, item, groupKey, state, notifier),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _categoryControllers[item],
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              prefixText: '₹ ',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(vertical: 8),
                             ),
-                            onChanged: (val) {
-                              final valDouble = double.tryParse(val) ?? 0.0;
-                              notifier.updateCategoryBudget(item, valDouble);
-                            },
-                          ),
+                            childWhenDragging: Opacity(
+                              opacity: 0.3,
+                              child: _buildCategoryRow(item, groupKey, state, notifier),
+                            ),
+                            child: _buildCategoryRow(item, groupKey, state, notifier),
+                          );
+                        }),
+                      
+                      const Divider(height: 24),
+                      
+                      OutlinedButton.icon(
+                        onPressed: () => _showAddCategoryDialog(context, groupKey, state, notifier),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: Text('Add Category to $groupKey'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blueAccent,
+                          side: const BorderSide(color: Colors.blueAccent),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                      ],
-                    ),
-                  );
-                }),
-                
-                const Divider(height: 24),
-                
-                OutlinedButton.icon(
-                  onPressed: () => _showAddCategoryDialog(context, groupKey, state, notifier),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: Text('Add Category to $groupKey'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.blueAccent,
-                    side: const BorderSide(color: Colors.blueAccent),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryRow(
+    String item,
+    String groupKey,
+    PlanningState state,
+    PlanningStateNotifier notifier,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Row(
+              children: [
+                const Icon(Icons.drag_indicator, size: 18, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.edit, size: 16, color: Colors.blueAccent.withOpacity(0.8)),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Rename',
+                  onPressed: () => _showRenameCategoryDialog(context, item, groupKey, state, notifier),
+                ),
+                const SizedBox(width: 10),
+                IconButton(
+                  icon: Icon(Icons.delete_outline, size: 16, color: Colors.redAccent.withOpacity(0.8)),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Delete',
+                  onPressed: () => _showDeleteCategoryDialog(context, item, groupKey, state, notifier),
+                ),
+                const SizedBox(width: 8),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-      ],
+          Expanded(
+            child: TextField(
+              controller: _categoryControllers[item],
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                prefixText: '₹ ',
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: (val) {
+                final valDouble = double.tryParse(val) ?? 0.0;
+                notifier.updateCategoryBudget(item, valDouble);
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
