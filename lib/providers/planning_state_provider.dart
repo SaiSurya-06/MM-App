@@ -101,6 +101,14 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
     loadWeeklyCheckins();
   }
 
+  Future<void> changeMonth(String month) async {
+    state = state.copyWith(
+      selectedMonth: month,
+      isCompleted: false,
+    );
+    await loadPlanningMeta();
+  }
+
   Future<void> loadPlanningMeta() async {
     try {
       state = state.copyWith(isLoading: true);

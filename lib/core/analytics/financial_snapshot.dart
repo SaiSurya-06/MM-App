@@ -14,6 +14,7 @@ class FinancialSnapshot {
   final List<Account> accounts;
   final String selectedMonth; // e.g. '2026-07'
   final DateTime selectedDate;
+  final double estimatedIncome;
 
   const FinancialSnapshot({
     required this.transactions,
@@ -24,6 +25,7 @@ class FinancialSnapshot {
     required this.accounts,
     required this.selectedMonth,
     required this.selectedDate,
+    this.estimatedIncome = 0.0,
   });
 
   String get snapshotId {

@@ -168,7 +168,9 @@ class MoneyIntelligenceOrchestrator {
     debugPrint('[Orchestrator] Staged analytics completed in $elapsedMs ms.');
 
     // 7. Compile MoneySnapshot flow totals
-    final double incomeTotal = context.incomeAnalysis?.totalIncome ?? 0.0;
+    final double incomeTotalRaw = context.incomeAnalysis?.totalIncome ?? 0.0;
+    final double incomeTotal = incomeTotalRaw > 0.0 ? incomeTotalRaw : snapshot.estimatedIncome;
+
     final double essentials = context.expenseAnalysis?.spendByFlowGroup['Essentials'] ?? 0.0;
     final double lifestyle = context.expenseAnalysis?.spendByFlowGroup['Lifestyle'] ?? 0.0;
     final double savings = context.expenseAnalysis?.spendByFlowGroup['Savings'] ?? 0.0;

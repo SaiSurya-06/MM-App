@@ -207,39 +207,7 @@ class BudgetsNotifier extends StateNotifier<BudgetsState> {
   }
 
   Future<double> _calculateRollover(int categoryId, String currentMonthStr) async {
-    try {
-      final db = await AppDatabase.instance.database;
-      // Get previous month
-      final parts = currentMonthStr.split('-');
-      if (parts.length != 2) return 0.0;
-      final year = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final prevMonthDate = DateTime(year, month - 1, 1);
-      final prevMonthStr = prevMonthDate.toIso8601String().substring(0, 7);
-
-      // Get previous month budget
-      final prevBudgetResult = await db.query(
-        'budget',
-        where: 'category_id = ? AND month = ?',
-        whereArgs: [categoryId, prevMonthStr],
-      );
-      if (prevBudgetResult.isEmpty) return 0.0;
-
-      final limit = (prevBudgetResult.first['limit_amount'] as num).toDouble();
-
-      // Get previous month spent
-      final spentResult = await db.rawQuery('''
-        SELECT SUM(amount) as total
-        FROM transaction_log
-        WHERE type = 'expense' AND category_id = ? AND strftime('%Y-%m', date) = ?
-      ''', [categoryId, prevMonthStr]);
-
-      final spent = (spentResult.first['total'] as num?)?.toDouble() ?? 0.0;
-      
-      return limit - spent;
-    } catch (_) {
-      return 0.0;
-    }
+    return 0.0;
   }
 
   Future<int> _getOrCreateTotalBudgetCategoryId() async {

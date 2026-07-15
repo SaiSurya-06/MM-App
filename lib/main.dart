@@ -29,6 +29,7 @@ void main() async {
 
     await NotificationService.instance.initialize();
     await NotificationService.instance.scheduleWeeklyBackupReminder();
+    await NotificationService.instance.scheduleMonthEndBudgetReminder();
 
     runApp(
       const ProviderScope(

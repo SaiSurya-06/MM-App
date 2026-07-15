@@ -5,13 +5,106 @@ import '../../../providers/categories_provider.dart';
 import '../../../providers/money_map_view_model.dart';
 import '../../../widgets/common/glassmorphism_card.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/pdf_report_helper.dart';
 import '../../../models/category.dart';
+import '../../../models/budget.dart';
 
-class TrackTab extends ConsumerWidget {
+class TrackTab extends ConsumerStatefulWidget {
   const TrackTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TrackTab> createState() => _TrackTabState();
+}
+
+class _TrackTabState extends ConsumerState<TrackTab> {
+  String _sortBy = 'remaining_asc'; // Default: Critical first (Remaining Low to High)
+
+  void _showExportMenu(
+    BuildContext context,
+    List<Budget> budgets,
+    Map<int, double> spendings,
+    List<Category> categories,
+    String monthStr,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Export Monthly Budget Report',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+                title: const Text('Export as PDF Document'),
+                subtitle: const Text('A polished A4 table with health status and highlights.'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await PdfReportHelper.generateAndShareBudgetReport(
+                      budgets: budgets,
+                      spendings: spendings,
+                      categories: categories,
+                      monthStr: monthStr,
+                      currency: 'INR',
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to export PDF: $e'), backgroundColor: Colors.redAccent),
+                      );
+                    }
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.grid_on, color: Colors.green),
+                title: const Text('Export as CSV Spreadsheet'),
+                subtitle: const Text('A plain CSV file compatible with Excel or Google Sheets.'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await PdfReportHelper.generateAndShareBudgetCsv(
+                      budgets: budgets,
+                      spendings: spendings,
+                      categories: categories,
+                      monthStr: monthStr,
+                      currency: 'INR',
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to export CSV: $e'), backgroundColor: Colors.redAccent),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final budgetsState = ref.watch(budgetsProvider);
     final categoriesState = ref.watch(categoriesProvider);
     final moneyMapState = ref.watch(moneyMapViewModelProvider);
@@ -26,6 +119,36 @@ class TrackTab extends ConsumerWidget {
 
     final budgets = budgetsState.budgets;
     final categories = categoriesState.categories;
+
+    // Apply sorting
+    final sortedBudgets = List.of(budgets);
+    if (_sortBy == 'name') {
+      sortedBudgets.sort((a, b) {
+        final catA = categories.firstWhere((c) => c.id == a.categoryId, orElse: () => const Category(id: -99, name: '', icon: '', color: '', isDefault: false));
+        final catB = categories.firstWhere((c) => c.id == b.categoryId, orElse: () => const Category(id: -99, name: '', icon: '', color: '', isDefault: false));
+        return catA.name.toLowerCase().compareTo(catB.name.toLowerCase());
+      });
+    } else if (_sortBy == 'planned_desc') {
+      sortedBudgets.sort((a, b) => b.limitAmount.compareTo(a.limitAmount));
+    } else if (_sortBy == 'planned_asc') {
+      sortedBudgets.sort((a, b) => a.limitAmount.compareTo(b.limitAmount));
+    } else if (_sortBy == 'remaining_desc') {
+      sortedBudgets.sort((a, b) {
+        final spentA = budgetsState.categorySpendings[a.categoryId] ?? 0.0;
+        final remainingA = a.limitAmount - spentA;
+        final spentB = budgetsState.categorySpendings[b.categoryId] ?? 0.0;
+        final remainingB = b.limitAmount - spentB;
+        return remainingB.compareTo(remainingA);
+      });
+    } else if (_sortBy == 'remaining_asc') {
+      sortedBudgets.sort((a, b) {
+        final spentA = budgetsState.categorySpendings[a.categoryId] ?? 0.0;
+        final remainingA = a.limitAmount - spentA;
+        final spentB = budgetsState.categorySpendings[b.categoryId] ?? 0.0;
+        final remainingB = b.limitAmount - spentB;
+        return remainingA.compareTo(remainingB);
+      });
+    }
 
     return SingleChildScrollView(
       child: Column(
@@ -64,15 +187,41 @@ class TrackTab extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Budget vs Actual', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
-              Text(
-                '${budgets.length} Budgets Active',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              Row(
+                children: [
+                  Text(
+                    '${sortedBudgets.length} Budgets Active',
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.share, color: Colors.grey, size: 20),
+                    tooltip: 'Export Report',
+                    onPressed: () => _showExportMenu(context, sortedBudgets, budgetsState.categorySpendings, categories, budgetsState.selectedMonth),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.sort, color: Colors.grey, size: 20),
+                    tooltip: 'Sort Budgets',
+                    onSelected: (val) {
+                      setState(() {
+                        _sortBy = val;
+                      });
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'remaining_asc', child: Text('Critical First (Remaining Low-High)')),
+                      const PopupMenuItem(value: 'remaining_desc', child: Text('Remaining (High-Low)')),
+                      const PopupMenuItem(value: 'planned_desc', child: Text('Planned (High-Low)')),
+                      const PopupMenuItem(value: 'planned_asc', child: Text('Planned (Low-High)')),
+                      const PopupMenuItem(value: 'name', child: Text('Alphabetical (A-Z)')),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 12),
 
-          if (budgets.isEmpty)
+          if (sortedBudgets.isEmpty)
             const Padding(
               padding: EdgeInsets.all(32.0),
               child: Center(
@@ -83,9 +232,9 @@ class TrackTab extends ConsumerWidget {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: budgets.length,
+              itemCount: sortedBudgets.length,
               itemBuilder: (context, index) {
-                final budget = budgets[index];
+                final budget = sortedBudgets[index];
                 final cat = categories.firstWhere(
                   (c) => c.id == budget.categoryId,
                   orElse: () => const Category(id: -99, name: 'Other', icon: 'payments', color: 'E53935', isDefault: true),
@@ -140,7 +289,7 @@ class TrackTab extends ConsumerWidget {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          
+
                           // Linear progress indicator
                           ClipRRect(
                             borderRadius: BorderRadius.circular(4),

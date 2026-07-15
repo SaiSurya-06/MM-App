@@ -3,7 +3,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:csv/csv.dart';
 import '../../models/transaction.dart';
+import '../../models/budget.dart';
+import '../../models/category.dart';
 import 'currency_formatter.dart';
 
 class PdfReportHelper {
@@ -289,5 +292,263 @@ class PdfReportHelper {
 
   static String _formatPdfCurrency(double amount, String currencyCode) {
     return CurrencyFormatter.format(amount, currencyCode).replaceAll('₹', 'Rs.');
+  }
+
+  static Future<void> generateAndShareBudgetReport({
+    required List<Budget> budgets,
+    required Map<int, double> spendings,
+    required List<Category> categories,
+    required String monthStr,
+    required String currency,
+  }) async {
+    final pdf = pw.Document();
+    
+    // Theme definition (Modern Blue look)
+    const primaryColor = PdfColors.indigo900;
+    const cardBg = PdfColors.indigo50;
+
+    // Calculate totals
+    double totalPlanned = 0.0;
+    double totalActual = 0.0;
+    
+    for (var b in budgets) {
+      totalPlanned += b.limitAmount;
+      totalActual += spendings[b.categoryId] ?? 0.0;
+    }
+    
+    final double remainingTotal = totalPlanned - totalActual;
+    final isOverTotal = remainingTotal < 0;
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return [
+            // Title Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'MONEY PLANNER',
+                      style: pw.TextStyle(
+                        fontSize: 22,
+                        fontWeight: pw.FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                    pw.Text(
+                      'Monthly Budget Performance Report',
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('Month: $monthStr', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('Generated: ${DateTime.now().toIso8601String().substring(0, 10)}', style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ],
+            ),
+            pw.Divider(thickness: 1, color: primaryColor),
+            pw.SizedBox(height: 16),
+
+            // Overview Summary Cards
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _buildStatCard(
+                  'TOTAL BUDGET LIMIT',
+                  _formatPdfCurrency(totalPlanned, currency),
+                  primaryColor,
+                  cardBg,
+                ),
+                _buildStatCard(
+                  'TOTAL ACTUAL SPENT',
+                  _formatPdfCurrency(totalActual, currency),
+                  isOverTotal ? PdfColors.red900 : PdfColors.green900,
+                  isOverTotal ? PdfColors.red50 : PdfColors.green50,
+                ),
+                _buildStatCard(
+                  'REMAINING BUDGET',
+                  _formatPdfCurrency(remainingTotal.abs(), currency),
+                  isOverTotal ? PdfColors.red900 : PdfColors.green900,
+                  isOverTotal ? PdfColors.red50 : PdfColors.green50,
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 24),
+
+            pw.Text(
+              'BUDGET BREAKDOWN BY CATEGORY',
+              style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: primaryColor),
+            ),
+            pw.SizedBox(height: 8),
+
+            // Budget performance table
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+              columnWidths: const {
+                0: pw.FlexColumnWidth(3),
+                1: pw.FlexColumnWidth(2),
+                2: pw.FlexColumnWidth(2),
+                3: pw.FlexColumnWidth(2),
+                4: pw.FlexColumnWidth(2.5),
+              },
+              children: [
+                // Table Header Row
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text('CATEGORY', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Align(
+                        alignment: pw.Alignment.centerRight,
+                        child: pw.Text('PLANNED', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Align(
+                        alignment: pw.Alignment.centerRight,
+                        child: pw.Text('ACTUAL', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Align(
+                        alignment: pw.Alignment.centerRight,
+                        child: pw.Text('REMAINING', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Align(
+                        alignment: pw.Alignment.center,
+                        child: pw.Text('STATUS', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+                // Table Data Rows
+                ...budgets.map((b) {
+                  final cat = categories.firstWhere(
+                    (c) => c.id == b.categoryId,
+                    orElse: () => const Category(id: -99, name: 'Other', icon: '', color: '', isDefault: true),
+                  );
+                  final actual = spendings[b.categoryId] ?? 0.0;
+                  final limit = b.limitAmount;
+                  final diff = limit - actual;
+                  final isOver = diff < 0;
+                  final statusText = isOver ? 'OVER BUDGET' : 'WITHIN BUDGET';
+                  final statusColor = isOver ? PdfColors.red900 : PdfColors.green900;
+                  
+                  return pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Text(cat.name, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Align(
+                          alignment: pw.Alignment.centerRight,
+                          child: pw.Text(_formatPdfCurrency(limit, currency), style: const pw.TextStyle(fontSize: 8)),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Align(
+                          alignment: pw.Alignment.centerRight,
+                          child: pw.Text(_formatPdfCurrency(actual, currency), style: const pw.TextStyle(fontSize: 8)),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Align(
+                          alignment: pw.Alignment.centerRight,
+                          child: pw.Text(_formatPdfCurrency(diff.abs(), currency), style: pw.TextStyle(fontSize: 8, color: statusColor, fontWeight: pw.FontWeight.bold)),
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(6),
+                        child: pw.Align(
+                          alignment: pw.Alignment.center,
+                          child: pw.Text(statusText, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: statusColor)),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ];
+        },
+      ),
+    );
+
+    // Save and Share
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/budget_report_$monthStr.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'application/pdf')],
+      subject: 'Monthly Budget Report ($monthStr)',
+    );
+  }
+
+  static Future<void> generateAndShareBudgetCsv({
+    required List<Budget> budgets,
+    required Map<int, double> spendings,
+    required List<Category> categories,
+    required String monthStr,
+    required String currency,
+  }) async {
+    final List<List<dynamic>> csvRows = [
+      ['Category Name', 'Group Name', 'Planned Limit', 'Actual Spent', 'Remaining Amount', 'Status']
+    ];
+
+    for (var b in budgets) {
+      final cat = categories.firstWhere(
+        (c) => c.id == b.categoryId,
+        orElse: () => const Category(id: -99, name: 'Other', icon: '', color: '', isDefault: true),
+      );
+      final actual = spendings[b.categoryId] ?? 0.0;
+      final limit = b.limitAmount;
+      final diff = limit - actual;
+      final status = diff < 0 ? 'OVER BUDGET' : 'WITHIN BUDGET';
+
+      csvRows.add([
+        cat.name,
+        b.groupName ?? 'General',
+        limit.toStringAsFixed(2),
+        actual.toStringAsFixed(2),
+        diff.toStringAsFixed(2),
+        status,
+      ]);
+    }
+
+    final csvString = const ListToCsvConverter().convert(csvRows);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/budget_report_$monthStr.csv');
+    await file.writeAsString(csvString);
+
+    await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'text/csv')],
+      subject: 'Monthly Budget CSV Report ($monthStr)',
+    );
   }
 }
