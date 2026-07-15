@@ -62,7 +62,6 @@ class AppDatabase {
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
-    await _correctP2PTransactions(db);
     return db;
   }
 
@@ -629,59 +628,6 @@ class AppDatabase {
       await db.delete('sync_queue');
     } catch (e) {
       debugPrint('[clearSyncQueue] Error: $e');
-    }
-  }
-
-  Future<void> _correctP2PTransactions(Database db) async {
-    try {
-      // 1. Ensure "Person 1" and "Person 2" categories exist
-      int? person1Id;
-      int? person2Id;
-
-      final p1List = await db.query('category', where: "LOWER(name) = 'person 1' AND type = 'person'");
-      if (p1List.isEmpty) {
-        person1Id = await db.insert('category', {
-          'name': 'Person 1',
-          'icon': 'person',
-          'color': '9C27B0',
-          'is_default': 0,
-          'type': 'person',
-          'dark_color': '4A148C'
-        });
-      } else {
-        person1Id = p1List.first['id'] as int;
-      }
-
-      final p2List = await db.query('category', where: "LOWER(name) = 'person 2' AND type = 'person'");
-      if (p2List.isEmpty) {
-        person2Id = await db.insert('category', {
-          'name': 'Person 2',
-          'icon': 'person',
-          'color': 'E91E63',
-          'is_default': 0,
-          'type': 'person',
-          'dark_color': '880E4F'
-        });
-      } else {
-        person2Id = p2List.first['id'] as int;
-      }
-
-      // 2. Update existing transactions containing "Person 1" or "Person 2"
-      await db.update(
-        'transaction_log',
-        {'category_id': person1Id},
-        where: "LOWER(title) LIKE '%person 1%' OR LOWER(note) LIKE '%person 1%'",
-      );
-
-      await db.update(
-        'transaction_log',
-        {'category_id': person2Id},
-        where: "LOWER(title) LIKE '%person 2%' OR LOWER(note) LIKE '%person 2%'",
-      );
-      
-      debugPrint('[DB Cleanup] Successfully corrected P2P transactions for Person 1 and Person 2.');
-    } catch (e) {
-      debugPrint('[DB Cleanup] Error correcting P2P transactions: $e');
     }
   }
 }

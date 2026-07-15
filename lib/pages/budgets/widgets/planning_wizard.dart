@@ -422,6 +422,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
       controller.text = amt > 0 ? amt.toStringAsFixed(0) : '';
     }
 
+    final percentageText = val % 1 == 0 ? val.toStringAsFixed(0) : val.toStringAsFixed(1);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -434,7 +436,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
               Row(
                 children: [
                   Text(
-                    '${val.toStringAsFixed(0)}%  ',
+                    '$percentageText%  ',
                     style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   SizedBox(
@@ -464,7 +466,8 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
                         final enteredAmt = double.tryParse(text) ?? 0.0;
                         if (totalIncome > 0) {
                           final calculatedPct = ((enteredAmt / totalIncome) * 100.0).clamp(0.0, 100.0);
-                          onChanged(calculatedPct.roundToDouble());
+                          final roundedPct = (calculatedPct * 100).round() / 100.0;
+                          onChanged(roundedPct);
                         }
                       },
                     ),
@@ -477,11 +480,11 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
             value: val,
             min: 0,
             max: 100,
-            divisions: 100,
             activeColor: color,
             onChanged: (newVal) {
-              onChanged(newVal.roundToDouble());
-              final newAmt = (newVal / 100.0) * totalIncome;
+              final roundedPct = (newVal * 10).round() / 10.0;
+              onChanged(roundedPct);
+              final newAmt = (roundedPct / 100.0) * totalIncome;
               controller.text = newAmt.toStringAsFixed(0);
             },
           ),

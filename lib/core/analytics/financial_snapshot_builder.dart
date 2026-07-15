@@ -4,7 +4,9 @@ import '../database/daos/budget_dao.dart';
 import '../database/daos/savings_goal_dao.dart';
 import '../database/daos/debt_loan_dao.dart';
 import '../database/daos/account_dao.dart';
+import '../database/database.dart';
 import 'financial_snapshot.dart';
+import 'package:flutter/foundation.dart';
 
 class FinancialSnapshotBuilder {
   final TransactionDao _transactionDao = TransactionDao();
@@ -22,6 +24,21 @@ class FinancialSnapshotBuilder {
     final debts = await _debtLoanDao.getAllDebtLoans();
     final accounts = await _accountDao.getAllAccounts();
 
+    double estimatedIncome = 0.0;
+    try {
+      final db = await AppDatabase.instance.database;
+      final results = await db.query(
+        'planning_meta',
+        where: 'month = ?',
+        whereArgs: [month],
+      );
+      if (results.isNotEmpty) {
+        estimatedIncome = (results.first['estimated_income'] as num).toDouble();
+      }
+    } catch (e, stack) {
+      debugPrint('[FinancialSnapshotBuilder] Error querying planning_meta for estimatedIncome: $e\n$stack');
+    }
+
     return FinancialSnapshot(
       transactions: transactions,
       categories: categories,
@@ -31,6 +48,7 @@ class FinancialSnapshotBuilder {
       accounts: accounts,
       selectedMonth: month,
       selectedDate: DateTime.now(),
+      estimatedIncome: estimatedIncome,
     );
   }
 }

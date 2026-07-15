@@ -105,7 +105,9 @@ class ExpenseAnalyzer implements Capability<ExpenseAnalysis> {
 
     for (var tx in expenseTx) {
       final amount = tx.amount;
-      totalExpense += amount;
+      if (tx.type != 'transfer') {
+        totalExpense += amount;
+      }
 
       final cat = snapshot.categories.firstWhere(
         (c) => c.id == tx.categoryId,
