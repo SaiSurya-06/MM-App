@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/daos/transaction_dao.dart';
+import '../database/database.dart';
 import '../../models/account.dart';
 import '../../models/transaction.dart';
 import '../../providers/partner_sync_provider.dart';
 import '../../providers/accounts_provider.dart';
 import '../../providers/transactions_provider.dart';
 import '../../providers/categories_provider.dart';
+import '../../providers/budgets_provider.dart';
+import '../../providers/planning_state_provider.dart';
 
 class SyncClient {
   final Ref ref;
@@ -18,6 +21,8 @@ class SyncClient {
     required List<Account> newPartnerAccounts,
     required List<PartnerTransaction> newPartnerTransactions,
     required List<PartnerTransaction> oldPartnerTransactions,
+    List<Map<String, dynamic>>? partnerBudgets,
+    List<Map<String, dynamic>>? partnerPlanningMeta,
   }) async {
     try {
       final localAccounts = ref.read(accountsProvider).accounts;
@@ -124,9 +129,118 @@ class SyncClient {
         }
       }
 
+      final db = await AppDatabase.instance.database;
+
+      // C. Reconcile Budgets
+      if (partnerBudgets != null) {
+        for (var pb in partnerBudgets) {
+          final catName = pb['c'] as String? ?? 'Other';
+          final limit = (pb['l'] as num?)?.toDouble() ?? 0.0;
+          final month = pb['m'] as String? ?? '';
+          final recurrence = pb['r'] as String? ?? 'monthly';
+          final groupName = pb['g'] as String? ?? 'General';
+          
+          if (month.isEmpty) continue;
+          
+          final catId = getCategoryIdByName(catName);
+          if (catId != null) {
+            final existing = await db.query(
+              'budget',
+              where: 'category_id = ? AND month = ?',
+              whereArgs: [catId, month],
+            );
+            if (existing.isNotEmpty) {
+              final existingLimit = (existing.first['limit_amount'] as num).toDouble();
+              if ((existingLimit - limit).abs() > 0.01) {
+                await db.update(
+                  'budget',
+                  {
+                    'limit_amount': limit,
+                    'recurrence': recurrence,
+                    'group_name': groupName,
+                  },
+                  where: 'category_id = ? AND month = ?',
+                  whereArgs: [catId, month],
+                );
+              }
+            } else {
+              await db.insert(
+                'budget',
+                {
+                  'category_id': catId,
+                  'month': month,
+                  'limit_amount': limit,
+                  'recurrence': recurrence,
+                  'group_name': groupName,
+                },
+              );
+            }
+          }
+        }
+      }
+
+      // D. Reconcile Planning Meta (Splits & Strategies)
+      if (partnerPlanningMeta != null) {
+        for (var pm in partnerPlanningMeta) {
+          final month = pm['m'] as String? ?? '';
+          final estIncome = (pm['ei'] as num?)?.toDouble() ?? 0.0;
+          final strategy = pm['s'] as String? ?? '50/30/20';
+          final needs = (pm['n'] as num?)?.toDouble() ?? 0.0;
+          final wants = (pm['w'] as num?)?.toDouble() ?? 0.0;
+          final savings = (pm['sa'] as num?)?.toDouble() ?? 0.0;
+          final investments = (pm['i'] as num?)?.toDouble() ?? 0.0;
+          final emergency = (pm['em'] as num?)?.toDouble() ?? 0.0;
+          final isCompleted = pm['ic'] as int? ?? 1;
+          
+          if (month.isEmpty) continue;
+          
+          final existing = await db.query(
+            'planning_meta',
+            where: 'month = ?',
+            whereArgs: [month],
+          );
+          if (existing.isNotEmpty) {
+            await db.update(
+              'planning_meta',
+              {
+                'estimated_income': estIncome,
+                'strategy': strategy,
+                'needs_pct': needs,
+                'wants_pct': wants,
+                'savings_pct': savings,
+                'investments_pct': investments,
+                'emergency_pct': emergency,
+                'is_completed': isCompleted,
+                'updated_at': DateTime.now().toIso8601String(),
+              },
+              where: 'month = ?',
+              whereArgs: [month],
+            );
+          } else {
+            await db.insert(
+              'planning_meta',
+              {
+                'month': month,
+                'estimated_income': estIncome,
+                'strategy': strategy,
+                'needs_pct': needs,
+                'wants_pct': wants,
+                'savings_pct': savings,
+                'investments_pct': investments,
+                'emergency_pct': emergency,
+                'is_completed': isCompleted,
+                'updated_at': DateTime.now().toIso8601String(),
+              },
+            );
+          }
+        }
+      }
+
       // 3. Refresh providers
       await ref.read(accountsProvider.notifier).loadAccounts();
       await ref.read(transactionsProvider.notifier).loadTransactions();
+      await ref.read(budgetsProvider.notifier).loadBudgetsForCurrentMonth();
+      await ref.read(planningStateProvider.notifier).loadPlanningMeta();
     } catch (e, stack) {
       debugPrint('[SyncClient] Reconciliation error: $e\n$stack');
     }

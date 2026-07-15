@@ -477,7 +477,7 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
 
       // 1. Export local data ONLY if there are local changes, or if it's the first sync
       // Always generate and upload local payload to ensure data integrity and send any local updates
-      final localPayload = _generateLocalPayload();
+      final localPayload = await _generateLocalPayload();
       await _uploadData(localPayload);
       await AppDatabase.clearSyncQueue();
 
@@ -524,6 +524,14 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
             .map((t) => PartnerTransaction.fromMap(t as Map<String, dynamic>))
             .toList();
 
+        final partnerBudgets = (decoded['budgets'] as List?)
+            ?.map((b) => Map<String, dynamic>.from(b as Map))
+            .toList();
+
+        final partnerPlanningMeta = (decoded['planning_meta'] as List?)
+            ?.map((pm) => Map<String, dynamic>.from(pm as Map))
+            .toList();
+
         state = state.copyWith(
           syncProgress: 0.85,
           syncStatusMessage: 'Reconciling shared transactions...',
@@ -536,6 +544,8 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
           newPartnerAccounts: accountsList,
           newPartnerTransactions: txList,
           oldPartnerTransactions: oldPartnerTxs,
+          partnerBudgets: partnerBudgets,
+          partnerPlanningMeta: partnerPlanningMeta,
         );
 
         // 4. Bidirectional conflict detection for accounts with matching names
@@ -622,7 +632,7 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
     await syncNow();
   }
 
-  String _generateLocalPayload() {
+  Future<String> _generateLocalPayload() async {
     final profile = _ref.read(authProvider).profile;
     final accounts = _ref.read(accountsProvider).accounts;
     final transactions = _ref.read(transactionsProvider).transactions;
@@ -664,6 +674,43 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       };
     }).toList();
 
+    // Export budgets & planning meta
+    List<Map<String, dynamic>> budgetsPayload = [];
+    List<Map<String, dynamic>> planningMetaPayload = [];
+    try {
+      final db = await AppDatabase.instance.database;
+      final budgetsQuery = await db.query('budget');
+      final planningMetaQuery = await db.query('planning_meta');
+
+      budgetsPayload = budgetsQuery.map((b) {
+        final catId = b['category_id'] as int?;
+        final cat = categoryMap[catId];
+        return {
+          'c': cat?.name ?? 'Other',
+          'l': (b['limit_amount'] as num?)?.toDouble() ?? 0.0,
+          'm': b['month'] as String? ?? '',
+          'r': b['recurrence'] as String? ?? 'monthly',
+          'g': b['group_name'] as String? ?? 'General',
+        };
+      }).toList();
+
+      planningMetaPayload = planningMetaQuery.map((pm) {
+        return {
+          'm': pm['month'] as String? ?? '',
+          'ei': (pm['estimated_income'] as num?)?.toDouble() ?? 0.0,
+          's': pm['strategy'] as String? ?? '50/30/20',
+          'n': (pm['needs_pct'] as num?)?.toDouble() ?? 0.0,
+          'w': (pm['wants_pct'] as num?)?.toDouble() ?? 0.0,
+          'sa': (pm['savings_pct'] as num?)?.toDouble() ?? 0.0,
+          'i': (pm['investments_pct'] as num?)?.toDouble() ?? 0.0,
+          'em': (pm['emergency_pct'] as num?)?.toDouble() ?? 0.0,
+          'ic': pm['is_completed'] as int? ?? 1,
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('[PartnerSyncProvider] Error querying budgets/planning_meta for sync: $e');
+    }
+
     final payloadMap = {
       'profile': {
         'name': name,
@@ -672,6 +719,8 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       },
       'accounts': sharedAccounts.map((a) => a.toMap()..['pending_payment'] = a.pendingPayment).toList(),
       'transactions': transactionsPayload,
+      'budgets': budgetsPayload,
+      'planning_meta': planningMetaPayload,
     };
 
     final rawJson = jsonEncode(payloadMap);

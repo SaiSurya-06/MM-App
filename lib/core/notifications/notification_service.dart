@@ -53,6 +53,24 @@ class NotificationService {
       enableVibration: true,
     );
 
+    const AndroidNotificationChannel backupChannel = AndroidNotificationChannel(
+      'weekly_backup_reminders', // id
+      'Weekly Backup Reminders', // title
+      description: 'Weekly reminders to backup database',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const AndroidNotificationChannel monthEndChannel = AndroidNotificationChannel(
+      'month_end_reminders', // id
+      'Month End Reminders', // title
+      description: 'Reminders to plan your monthly budget',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
     final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
         _localNotificationsPlugin.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
@@ -60,6 +78,8 @@ class NotificationService {
     if (androidImplementation != null) {
       await androidImplementation.createNotificationChannel(alertsChannel);
       await androidImplementation.createNotificationChannel(remindersChannel);
+      await androidImplementation.createNotificationChannel(backupChannel);
+      await androidImplementation.createNotificationChannel(monthEndChannel);
     }
   }
 
@@ -282,6 +302,46 @@ class NotificationService {
       );
     } catch (e, stack) {
       print('[NotificationService] scheduleWeeklyBackupReminder error: $e\n$stack');
+    }
+  }
+
+  Future<void> scheduleMonthEndBudgetReminder() async {
+    try {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'month_end_reminders',
+        'Month End Reminders',
+        channelDescription: 'Reminders to plan your monthly budget',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: androidDetails,
+      );
+
+      final now = DateTime.now();
+      final lastDay = DateTime(now.year, now.month + 1, 0);
+      DateTime targetLocal = DateTime(lastDay.year, lastDay.month, lastDay.day, 18, 0);
+      if (targetLocal.isBefore(now)) {
+        final nextMonthLastDay = DateTime(now.year, now.month + 2, 0);
+        targetLocal = DateTime(nextMonthLastDay.year, nextMonthLastDay.month, nextMonthLastDay.day, 18, 0);
+      }
+      
+      final targetUtc = targetLocal.toUtc();
+      final scheduledDate = tz.TZDateTime.from(targetUtc, tz.getLocation('UTC'));
+
+      await _localNotificationsPlugin.zonedSchedule(
+        303,
+        '📅 Plan Your Budget',
+        "The month is ending! Plan your budget splits and category limits now in the Money Map.",
+        scheduledDate,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
+      );
+    } catch (e, stack) {
+      print('[NotificationService] scheduleMonthEndBudgetReminder error: $e\n$stack');
     }
   }
 
