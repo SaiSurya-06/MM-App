@@ -36,6 +36,10 @@ android {
     compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
+    buildFeatures {
+        buildConfig true
+    }
+
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_17
@@ -63,6 +67,7 @@ android {
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
         multiDexEnabled = true
+        buildConfigField "String", "GOOGLE_API_KEY", "\"${localProperties.getProperty('GOOGLE_API_KEY') ?: ''}\""
     }
 
     signingConfigs {

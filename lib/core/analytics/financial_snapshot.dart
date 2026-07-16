@@ -49,4 +49,42 @@ class FinancialSnapshot {
         'selectedDate': selectedDate.toIso8601String(),
         'snapshotId': snapshotId,
       };
+
+  Map<String, dynamic> toFullJson() => {
+        'transactions': transactions.map((t) => t.toMap()).toList(),
+        'categories': categories.map((c) => c.toMap()).toList(),
+        'budgets': budgets.map((b) => b.toMap()).toList(),
+        'goals': goals.map((g) => g.toMap()).toList(),
+        'debts': debts.map((d) => d.toMap()).toList(),
+        'accounts': accounts.map((a) => a.toMap()).toList(),
+        'selectedMonth': selectedMonth,
+        'selectedDate': selectedDate.toIso8601String(),
+        'estimatedIncome': estimatedIncome,
+      };
+
+  factory FinancialSnapshot.fromFullJson(Map<String, dynamic> json) {
+    return FinancialSnapshot(
+      transactions: (json['transactions'] as List)
+          .map((t) => Transaction.fromMap(Map<String, dynamic>.from(t as Map)))
+          .toList(),
+      categories: (json['categories'] as List)
+          .map((c) => Category.fromMap(Map<String, dynamic>.from(c as Map)))
+          .toList(),
+      budgets: (json['budgets'] as List)
+          .map((b) => Budget.fromMap(Map<String, dynamic>.from(b as Map)))
+          .toList(),
+      goals: (json['goals'] as List)
+          .map((g) => SavingsGoal.fromMap(Map<String, dynamic>.from(g as Map)))
+          .toList(),
+      debts: (json['debts'] as List)
+          .map((d) => DebtLoan.fromMap(Map<String, dynamic>.from(d as Map)))
+          .toList(),
+      accounts: (json['accounts'] as List)
+          .map((a) => Account.fromMap(Map<String, dynamic>.from(a as Map)))
+          .toList(),
+      selectedMonth: json['selectedMonth'] as String,
+      selectedDate: DateTime.parse(json['selectedDate'] as String),
+      estimatedIncome: (json['estimatedIncome'] as num).toDouble(),
+    );
+  }
 }

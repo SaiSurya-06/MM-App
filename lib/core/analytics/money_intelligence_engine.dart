@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, compute;
 import 'capability.dart';
 import 'financial_snapshot.dart';
 import 'explainable_value.dart';
@@ -50,7 +50,27 @@ class MoneyIntelligenceOrchestrator {
       return _cachedReport!;
     }
 
-    debugPrint('[Orchestrator] Cache miss. Starting staged analytics pipeline for month: ${snapshot.selectedMonth}');
+    debugPrint('[Orchestrator] Cache miss. Offloading staged analytics pipeline to Isolate.');
+
+    final snapshotJson = snapshot.toFullJson();
+    final args = {
+      'snapshot': snapshotJson,
+      'simulatedPurchaseAmount': simulatedPurchaseAmount,
+    };
+
+    final report = await compute(_runOrchestratorIsolate, args);
+
+    // Cache results (on the main thread)
+    _cachedReport = report;
+    _cachedSnapshotId = snapshotId;
+
+    return report;
+  }
+
+  // Runs the actual pipeline (safe to run inside Isolate)
+  Future<MoneyIntelligenceReport> executePipeline(FinancialSnapshot snapshot, {double simulatedPurchaseAmount = 0.0}) async {
+    final snapshotId = '${snapshot.snapshotId}_sim_$simulatedPurchaseAmount';
+    debugPrint('[Orchestrator] Starting staged analytics pipeline for month: ${snapshot.selectedMonth}');
     final stopwatch = Stopwatch()..start();
 
     // 2. Initialize Context
@@ -221,10 +241,16 @@ class MoneyIntelligenceOrchestrator {
       metadata: reportMetadata,
     );
 
-    // Cache results
-    _cachedReport = report;
-    _cachedSnapshotId = snapshotId;
-
     return report;
   }
+}
+
+// Top-level function for background isolate execution
+Future<MoneyIntelligenceReport> _runOrchestratorIsolate(Map<String, dynamic> args) async {
+  final snapshotJson = args['snapshot'] as Map<String, dynamic>;
+  final simulatedPurchaseAmount = (args['simulatedPurchaseAmount'] as num).toDouble();
+  
+  final snapshot = FinancialSnapshot.fromFullJson(snapshotJson);
+  final orchestrator = MoneyIntelligenceOrchestrator.instance;
+  return await orchestrator.executePipeline(snapshot, simulatedPurchaseAmount: simulatedPurchaseAmount);
 }

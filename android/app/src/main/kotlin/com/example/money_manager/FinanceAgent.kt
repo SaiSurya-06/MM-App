@@ -255,27 +255,33 @@ class FinanceService(private val dbPathProvider: () -> String) {
 
 object FinanceAgent {
     private var dbPath: String = ""
+    private var rootAgentInstance: LlmAgent? = null
 
     @JvmStatic
     fun setDatabasePath(path: String) {
         dbPath = path
     }
 
-    val rootAgent: LlmAgent by lazy {
-        LlmAgent(
-            name = "finance_agent",
-            description = "Analyzes personal finance data and answers questions.",
-            model = Gemini(
-                name = "gemini-flash-latest",
-                apiKey = System.getenv("GOOGLE_API_KEY") ?: "mock-key-for-local-testing"
-            ),
-            instruction = Instruction(
-                "You are a helpful personal finance AI assistant. " +
-                "You have access to the user's financial database through tools. " +
-                "Answer user questions accurately. If asked about spending, accounts, budgets, savings goals, or recent transactions, call the appropriate tools. " +
-                "Keep answers concise and informative."
-            ),
-            tools = FinanceService { dbPath }.generatedTools(),
-        )
+    fun getAgent(apiKey: String): LlmAgent {
+        var agent = rootAgentInstance
+        if (agent == null) {
+            agent = LlmAgent(
+                name = "finance_agent",
+                description = "Analyzes personal finance data and answers questions.",
+                model = Gemini(
+                    name = "gemini-flash-latest",
+                    apiKey = apiKey
+                ),
+                instruction = Instruction(
+                    "You are a helpful personal finance AI assistant. " +
+                    "You have access to the user's financial database through tools. " +
+                    "Answer user questions accurately. If asked about spending, accounts, budgets, savings goals, or recent transactions, call the appropriate tools. " +
+                    "Keep answers concise and informative."
+                ),
+                tools = FinanceService { dbPath }.generatedTools(),
+            )
+            rootAgentInstance = agent
+        }
+        return agent
     }
 }

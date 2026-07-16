@@ -12,6 +12,7 @@ class AgentService {
         'prompt': prompt,
         'profileId': activeProfileId,
         'sessionId': activeSessionId,
+        'apiKey': const String.fromEnvironment('GOOGLE_API_KEY'),
       });
       return response;
     } on PlatformException catch (e) {

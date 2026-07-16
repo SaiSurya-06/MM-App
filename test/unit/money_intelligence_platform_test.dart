@@ -68,6 +68,7 @@ void main() {
           amount: 650.0,
           type: 'expense',
           date: DateTime(2026, 7, 8),
+          recurrence: 'monthly',
           isPrivate: false,
           createdAt: DateTime(2026, 7, 8),
         ),

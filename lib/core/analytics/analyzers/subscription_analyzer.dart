@@ -49,7 +49,7 @@ class SubscriptionAnalyzer implements Capability<SubscriptionAnalysis> {
   @override
   String get id => 'subscription_analyzer';
   @override
-  String get version => '1.0.0';
+  String get version => '1.1.0';
   @override
   String get name => 'Subscription Analyzer';
   @override
@@ -66,7 +66,7 @@ class SubscriptionAnalyzer implements Capability<SubscriptionAnalysis> {
   final List<String> _subscriptionKeywords = [
     'netflix', 'spotify', 'prime', 'amazon prime', 'gym', 'fitness', 'youtube premium',
     'google one', 'icloud', 'disney', 'hbo', 'adobe', 'microsoft 365', 'apple music',
-    'patreon', 'github copilot', 'chatgpt', 'openai'
+    'patreon', 'github copilot', 'chatgpt', 'openai', 'subscription', 'premium'
   ];
 
   @override
@@ -77,28 +77,64 @@ class SubscriptionAnalyzer implements Capability<SubscriptionAnalysis> {
     final List<String> leaks = [];
     double totalSpend = 0.0;
 
+    // Build category map for quick category name lookups
+    final categoriesMap = {for (var cat in snapshot.categories) cat.id: cat};
+
     // Filter transactions for this month
     final thisMonthTxs = snapshot.transactions.where((tx) {
       final txMonth = tx.date.toIso8601String().substring(0, 7);
       return txMonth == currentMonth && tx.parentId == null;
     }).toList();
 
-    // Scan for subscription keywords or recurrence configurations
+    // Scan for subscription keywords, tags, and categories
     for (var tx in thisMonthTxs) {
       final titleLower = tx.title.toLowerCase();
-      final isKeywordMatch = _subscriptionKeywords.any((keyword) => titleLower.contains(keyword));
-      final isRecurMatch = tx.recurrence != 'none';
-      final isTagMatch = tx.tags.toLowerCase().contains('subscription');
+      final tagLower = tx.tags.toLowerCase();
+      
+      final category = categoriesMap[tx.categoryId];
+      final categoryNameLower = category?.name.toLowerCase() ?? '';
 
-      if ((isKeywordMatch || isRecurMatch || isTagMatch) && tx.type == 'expense') {
+      // 1. Recurrence must not be 'none'
+      final isRecurMatch = tx.recurrence != 'none';
+      if (!isRecurMatch) continue;
+
+      // 2. Explicit exclusions (Income, Salary, Rent, Debt repayment, EMI, Loan)
+      final isExcludedCategory = categoryNameLower == 'income' ||
+          categoryNameLower == 'salary' ||
+          categoryNameLower == 'rent' ||
+          categoryNameLower == 'debt repayment/emi' ||
+          categoryNameLower == 'debt' ||
+          categoryNameLower == 'emi' ||
+          categoryNameLower == 'loan';
+
+      final isExcludedTitle = titleLower.contains('rent') ||
+          titleLower.contains('salary') ||
+          titleLower.contains('emi') ||
+          titleLower.contains('loan') ||
+          titleLower.contains('mortgage') ||
+          titleLower.contains('repayment');
+
+      if (isExcludedCategory || isExcludedTitle || tx.type != 'expense') {
+        continue;
+      }
+
+      // 3. Subscription identification criteria (at least one must match)
+      final isKeywordMatch = _subscriptionKeywords.any((keyword) => titleLower.contains(keyword));
+      final isTagMatch = tagLower.contains('subscription');
+      final isSubCategory = categoryNameLower == 'entertainment' ||
+          categoryNameLower == 'software' ||
+          categoryNameLower == 'utilities' ||
+          categoryNameLower == 'streaming';
+
+      if (isKeywordMatch || isTagMatch || isSubCategory) {
         // Simple unused heuristic: if notes contain "unused" or tags contain "unused", or if it's gym and we have no checkins
-        final isUnused = titleLower.contains('gym') || tx.tags.toLowerCase().contains('unused') || tx.note?.toLowerCase().contains('unused') == true;
+        final isUnused = titleLower.contains('gym') || tagLower.contains('unused') || tx.note?.toLowerCase().contains('unused') == true;
         
         activeSubs.add(SubscriptionItem(
           title: tx.title,
           amount: tx.amount,
           lastBillingDate: tx.date,
-          frequency: tx.recurrence != 'none' ? tx.recurrence : 'monthly',
+          frequency: tx.recurrence,
           isUnused: isUnused,
         ));
         

@@ -20,13 +20,21 @@ class MainActivity: FlutterFragmentActivity() {
     private var initialAction: String? = null
     
     private val sessionService = InMemorySessionService()
-    private val runner by lazy {
-        InMemoryRunner(
-            agent = FinanceAgent.rootAgent,
-            sessionService = sessionService,
-        )
-    }
+    private var runnerInstance: InMemoryRunner? = null
     private val agentScope = CoroutineScope(Dispatchers.IO)
+
+    private fun getRunner(apiKey: String): InMemoryRunner {
+        var r = runnerInstance
+        if (r == null) {
+            val agent = FinanceAgent.getAgent(apiKey)
+            r = InMemoryRunner(
+                agent = agent,
+                sessionService = sessionService,
+            )
+            runnerInstance = r
+        }
+        return r
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,12 +79,25 @@ class MainActivity: FlutterFragmentActivity() {
                 val prompt = args?.get("prompt") as? String
                 val profileId = (args?.get("profileId") as? Number)?.toLong()
                 val sessionId = args?.get("sessionId") as? String ?: java.util.UUID.randomUUID().toString()
+                val apiKeyArg = args?.get("apiKey") as? String
+
+                // API Key Priority: BuildConfig.GOOGLE_API_KEY -> Flutter Argument
+                var apiKey = com.example.money_manager.BuildConfig.GOOGLE_API_KEY
+                if (apiKey.isNullOrBlank()) {
+                    apiKey = apiKeyArg ?: ""
+                }
+
+                if (apiKey.isBlank()) {
+                    result.error("AGENT_ERROR", "AI Service Unavailable: API Key Missing", null)
+                    return@setMethodCallHandler
+                }
                 
                 if (prompt != null) {
                     val userId = if (profileId != null) "user-$profileId" else "user-unknown"
                     agentScope.launch {
                         try {
                             var fullResponse = ""
+                            val runner = getRunner(apiKey)
                             runner.runAsync(
                                 userId = userId,
                                 sessionId = sessionId,

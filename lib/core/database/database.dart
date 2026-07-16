@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'migration_v13.dart';
+import 'migration_v14.dart';
 
 class AppDatabase {
   static final AppDatabase instance = AppDatabase._init();
@@ -59,7 +60,7 @@ class AppDatabase {
 
     final db = await openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -277,6 +278,13 @@ class AppDatabase {
         await MigrationV13.run(db);
       } catch (e) {
         assert(() { debugPrint('[DB migration v13] $e'); return true; }());
+      }
+    }
+    if (oldVersion < 14) {
+      try {
+        await MigrationV14.run(db);
+      } catch (e) {
+        assert(() { debugPrint('[DB migration v14] $e'); return true; }());
       }
     }
   }
@@ -586,6 +594,12 @@ class AppDatabase {
         FOREIGN KEY (profile_id) REFERENCES user_profile(id) ON DELETE CASCADE
       )
     ''');
+
+    // Create Indexes
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_txlog_date ON transaction_log(date)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_txlog_account ON transaction_log(account_id)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_txlog_category ON transaction_log(category_id)");
+    await db.execute("CREATE INDEX IF NOT EXISTS idx_txlog_type_date ON transaction_log(type, date)");
 
     // Seed Data
     await _seedDatabase(db);

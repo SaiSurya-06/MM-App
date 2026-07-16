@@ -82,6 +82,7 @@ class MoneyIntelligenceNotifier extends StateNotifier<MoneyIntelligenceState> {
       state = state.copyWith(isLoading: true);
       
       final snapshot = await _builder.build(state.selectedMonth);
+      MoneyIntelligenceOrchestrator.instance.invalidateCache();
       final report = await MoneyIntelligenceOrchestrator.instance.orchestrate(
         snapshot,
         simulatedPurchaseAmount: state.simulatedPurchaseAmount,
