@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:pointycastle/export.dart';
 import '../core/database/daos/user_profile_dao.dart';
 import '../models/user_profile.dart';
 import '../core/notifications/notification_service.dart';
+import '../core/agent/agent_service.dart';
 
 enum AuthStatus {
   undetermined,
@@ -58,6 +63,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final UserProfileDao _profileDao = UserProfileDao();
   final LocalAuthentication _localAuth = LocalAuthentication();
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   AuthNotifier()
       : super(AuthState(status: AuthStatus.undetermined)) {
@@ -96,11 +102,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       } else {
         final activeProfile = state.profile ?? (profiles.length == 1 ? profiles.first : null);
+        if (activeProfile != null) {
+          AgentService.activeProfileId = activeProfile.id;
+        }
+
+        // Load profile-specific lockout state
+        int wrongAttempts = 0;
+        DateTime? lockedUntil;
+        if (activeProfile?.id != null) {
+          final profileId = activeProfile!.id;
+          final wrongAttemptsStr = await _secureStorage.read(key: 'lockout_attempts_$profileId');
+          final lockedUntilStr = await _secureStorage.read(key: 'lockout_until_$profileId');
+          wrongAttempts = wrongAttemptsStr != null ? int.tryParse(wrongAttemptsStr) ?? 0 : 0;
+          lockedUntil = lockedUntilStr != null ? DateTime.tryParse(lockedUntilStr) : null;
+        }
+
         state = AuthState(
           status: AuthStatus.unauthenticated,
           profile: activeProfile,
           profiles: profiles,
           isBiometricAvailable: isBioAvailable,
+          wrongAttempts: wrongAttempts,
+          lockedUntil: lockedUntil,
         );
         if (activeProfile != null) {
           await _scheduleReminderIfEnabled(activeProfile);
@@ -121,17 +144,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  void selectProfile(UserProfile profile) {
+  void selectProfile(UserProfile profile) async {
+    final profileId = profile.id;
+    int wrongAttempts = 0;
+    DateTime? lockedUntil;
+    if (profileId != null) {
+      final wrongAttemptsStr = await _secureStorage.read(key: 'lockout_attempts_$profileId');
+      final lockedUntilStr = await _secureStorage.read(key: 'lockout_until_$profileId');
+      wrongAttempts = wrongAttemptsStr != null ? int.tryParse(wrongAttemptsStr) ?? 0 : 0;
+      lockedUntil = lockedUntilStr != null ? DateTime.tryParse(lockedUntilStr) : null;
+    }
+
+    AgentService.activeProfileId = profile.id;
+
     state = state.copyWith(
       profile: profile,
       status: AuthStatus.unauthenticated,
-      wrongAttempts: 0,
-      clearLockedUntil: true,
+      wrongAttempts: wrongAttempts,
+      lockedUntil: lockedUntil,
+      clearLockedUntil: lockedUntil == null,
     );
     _scheduleReminderIfEnabled(profile);
   }
 
   void showSelector() {
+    AgentService.activeProfileId = null;
     state = state.copyWith(
       profile: null,
       clearProfile: true,
@@ -149,13 +186,51 @@ class AuthNotifier extends StateNotifier<AuthState> {
     );
   }
 
+  Future<void> _updateLockoutState({required int wrongAttempts, DateTime? lockedUntil}) async {
+    final profileId = state.profile?.id;
+    state = state.copyWith(
+      wrongAttempts: wrongAttempts,
+      lockedUntil: lockedUntil,
+      clearLockedUntil: lockedUntil == null,
+    );
+
+    if (profileId != null) {
+      await _secureStorage.write(key: 'lockout_attempts_$profileId', value: wrongAttempts.toString());
+      if (lockedUntil != null) {
+        await _secureStorage.write(key: 'lockout_until_$profileId', value: lockedUntil.toIso8601String());
+      } else {
+        await _secureStorage.delete(key: 'lockout_until_$profileId');
+      }
+    }
+  }
+
+  String _generateSalt() {
+    final rand = Random.secure();
+    final saltBytes = Uint8List(16);
+    for (int i = 0; i < 16; i++) {
+      saltBytes[i] = rand.nextInt(256);
+    }
+    return base64.encode(saltBytes);
+  }
+
+  String _hashPinPbkdf2(String pin, String salt) {
+    final pinBytes = utf8.encode(pin);
+    final saltBytes = base64.decode(salt);
+    final pbkdf2Derivator = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
+      ..init(Pbkdf2Parameters(saltBytes, 10000, 32));
+    final hashBytes = pbkdf2Derivator.process(pinBytes);
+    return base64.encode(hashBytes);
+  }
+
   Future<bool> setupPin(String name, String currency, String pin) async {
     try {
-      final pinHash = _hashPin(pin);
+      final salt = _generateSalt();
+      final pinHash = _hashPinPbkdf2(pin, salt);
       final profile = UserProfile(
         name: name,
         preferredCurrency: currency,
         pinHash: pinHash,
+        pinSalt: salt,
         biometricEnabled: false,
         themePreference: 'dark',
         reminderEnabled: true,
@@ -164,6 +239,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final id = await _profileDao.insertProfile(profile);
       final createdProfile = profile.copyWith(id: id);
+      
+      AgentService.activeProfileId = id;
       await checkProfile();
 
       state = state.copyWith(
@@ -183,22 +260,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (profile == null) return false;
 
     // Check if currently locked out
-    if (state.lockedUntil != null && DateTime.now().isBefore(state.lockedUntil!)) {
-      final remaining = state.lockedUntil!.difference(DateTime.now());
-      state = state.copyWith(
-        errorMessage: 'App locked. Try again in ${remaining.inMinutes} minutes ${remaining.inSeconds % 60} seconds.',
-      );
-      return false;
+    if (state.lockedUntil != null) {
+      if (DateTime.now().isBefore(state.lockedUntil!)) {
+        final remaining = state.lockedUntil!.difference(DateTime.now());
+        state = state.copyWith(
+          errorMessage: 'App locked. Try again in ${remaining.inMinutes} minutes ${remaining.inSeconds % 60} seconds.',
+        );
+        return false;
+      } else {
+        // Lockout expired, reset attempts
+        await _updateLockoutState(wrongAttempts: 0, lockedUntil: null);
+      }
     }
 
-    final inputHash = _hashPin(pin);
-    if (profile.pinHash == inputHash) {
+    String inputHash;
+    bool isMatch = false;
+
+    if (profile.pinSalt == null || profile.pinSalt!.isEmpty) {
+      // Fallback for old unsalted SHA-256 hash
+      final bytes = utf8.encode(pin);
+      final digest = sha256.convert(bytes);
+      inputHash = digest.toString();
+      if (profile.pinHash == inputHash) {
+        isMatch = true;
+        // Auto-upgrade this profile to PBKDF2!
+        final newSalt = _generateSalt();
+        final newHash = _hashPinPbkdf2(pin, newSalt);
+        final upgradedProfile = profile.copyWith(pinHash: newHash, pinSalt: newSalt);
+        await updateProfile(upgradedProfile);
+      }
+    } else {
+      inputHash = _hashPinPbkdf2(pin, profile.pinSalt!);
+      if (profile.pinHash == inputHash) {
+        isMatch = true;
+      }
+    }
+
+    if (isMatch) {
       state = state.copyWith(
         status: AuthStatus.authenticated,
-        wrongAttempts: 0,
-        clearLockedUntil: true,
       );
-      await _scheduleReminderIfEnabled(profile);
+      await _updateLockoutState(wrongAttempts: 0, lockedUntil: null);
+      await _scheduleReminderIfEnabled(state.profile);
       return true;
     } else {
       final newAttempts = state.wrongAttempts + 1;
@@ -214,12 +317,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       
       final attemptsRemaining = 5 - newAttempts;
+      await _updateLockoutState(wrongAttempts: newAttempts, lockedUntil: lockoutTime);
       state = state.copyWith(
         errorMessage: lockoutTime != null 
             ? errMsg 
             : '$errMsg ($attemptsRemaining attempts remaining)',
-        wrongAttempts: newAttempts,
-        lockedUntil: lockoutTime,
       );
       return false;
     }
@@ -261,17 +363,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void logout() {
+    AgentService.activeProfileId = null;
     if (state.profile != null) {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     } else {
       state = state.copyWith(status: AuthStatus.pinSetupRequired);
     }
-  }
-
-  String _hashPin(String pin) {
-    final bytes = utf8.encode(pin);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
   }
 }
 

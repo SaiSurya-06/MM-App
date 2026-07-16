@@ -3,6 +3,7 @@ class UserProfile {
   final String name;
   final String preferredCurrency;
   final String pinHash;
+  final String? pinSalt;
   final bool biometricEnabled;
   final String themePreference; // 'light' or 'dark'
   final bool reminderEnabled;
@@ -13,6 +14,7 @@ class UserProfile {
     required this.name,
     required this.preferredCurrency,
     required this.pinHash,
+    this.pinSalt,
     required this.biometricEnabled,
     required this.themePreference,
     required this.reminderEnabled,
@@ -25,6 +27,7 @@ class UserProfile {
       'name': name,
       'preferred_currency': preferredCurrency,
       'pin_hash': pinHash,
+      'pin_salt': pinSalt,
       'biometric_enabled': biometricEnabled ? 1 : 0,
       'theme_preference': themePreference,
       'reminder_enabled': reminderEnabled ? 1 : 0,
@@ -38,6 +41,7 @@ class UserProfile {
       name: map['name'] as String,
       preferredCurrency: map['preferred_currency'] as String,
       pinHash: map['pin_hash'] as String,
+      pinSalt: map['pin_salt'] as String?,
       biometricEnabled: (map['biometric_enabled'] as int) == 1,
       themePreference: map['theme_preference'] as String,
       reminderEnabled: (map['reminder_enabled'] as int) == 1,
@@ -50,6 +54,7 @@ class UserProfile {
     String? name,
     String? preferredCurrency,
     String? pinHash,
+    String? pinSalt,
     bool? biometricEnabled,
     String? themePreference,
     bool? reminderEnabled,
@@ -60,6 +65,7 @@ class UserProfile {
       name: name ?? this.name,
       preferredCurrency: preferredCurrency ?? this.preferredCurrency,
       pinHash: pinHash ?? this.pinHash,
+      pinSalt: pinSalt ?? this.pinSalt,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,
       themePreference: themePreference ?? this.themePreference,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,

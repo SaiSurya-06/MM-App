@@ -67,14 +67,19 @@ class MainActivity: FlutterFragmentActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AGENT_CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "sendMessage") {
-                val prompt = call.arguments as? String
+                val args = call.arguments as? Map<*, *>
+                val prompt = args?.get("prompt") as? String
+                val profileId = (args?.get("profileId") as? Number)?.toLong()
+                val sessionId = args?.get("sessionId") as? String ?: java.util.UUID.randomUUID().toString()
+                
                 if (prompt != null) {
+                    val userId = if (profileId != null) "user-$profileId" else "user-unknown"
                     agentScope.launch {
                         try {
                             var fullResponse = ""
                             runner.runAsync(
-                                userId = "user-123",
-                                sessionId = "session-123",
+                                userId = userId,
+                                sessionId = sessionId,
                                 newMessage = Content(
                                     role = Role.USER,
                                     parts = listOf(Part(text = prompt)),

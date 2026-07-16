@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -22,6 +23,7 @@ import '../../widgets/common/glassmorphism_card.dart';
 import '../../widgets/common/premium_background.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/agent/agent_service.dart';
 
 class ChatMessage {
   final String text; // Conversational fallback or user text
@@ -57,10 +59,19 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
   final ConversationMemory _conversationMemory = ConversationMemory();
   bool _isTyping = false;
   bool _useOnlineAI = true;
+  late String _sessionId;
+
+  String _generateSessionId() {
+    final random = Random.secure();
+    final values = List<int>.generate(16, (_) => random.nextInt(256));
+    return values.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
 
   @override
   void initState() {
     super.initState();
+    _sessionId = _generateSessionId();
+    AgentService.activeSessionId = _sessionId;
     _loadWelcomeDashboard();
   }
 
@@ -80,10 +91,16 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     try {
       final db = await AppDatabase.instance.database;
       final savedText = structuredData != null ? jsonEncode(structuredData) : text;
+      final profileId = ref.read(authProvider).profile?.id;
+      if (profileId == null) return;
+
+      final id = _generateSessionId(); // Generate unique message ID
       await db.insert('chatbot_message', {
-        'text': savedText,
-        'is_me': isMe ? 1 : 0,
-        'timestamp': DateTime.now().toIso8601String(),
+        'id': id,
+        'profile_id': profileId,
+        'role': isMe ? 'user' : 'assistant',
+        'content': savedText,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
         'chart_type': chartType,
       });
     } catch (e) {
@@ -94,28 +111,26 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
   Future<void> _loadWelcomeDashboard() async {
     final db = await AppDatabase.instance.database;
     
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS chatbot_message (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        text TEXT NOT NULL,
-        is_me INTEGER NOT NULL,
-        timestamp TEXT NOT NULL,
-        chart_type TEXT
-      )
-    ''');
-
     final currencyCode = ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
     final currencySymbol = CurrencyFormatter.getSymbol(currencyCode);
+    final profileId = ref.read(authProvider).profile?.id;
 
-    final List<Map<String, dynamic>> rows = await db.query('chatbot_message', orderBy: 'id ASC');
+    if (profileId == null) return;
+
+    final List<Map<String, dynamic>> rows = await db.query(
+      'chatbot_message',
+      where: 'profile_id = ?',
+      whereArgs: [profileId],
+      orderBy: 'timestamp ASC',
+    );
     
     if (rows.isNotEmpty) {
       final List<ChatMessage> loaded = [];
       for (int i = 0; i < rows.length; i++) {
         final r = rows[i];
-        final rawText = r['text'] as String;
-        final isMe = (r['is_me'] as int) == 1;
-        final timestamp = DateTime.parse(r['timestamp'] as String);
+        final rawText = r['content'] as String;
+        final isMe = (r['role'] as String) == 'user';
+        final timestamp = DateTime.fromMillisecondsSinceEpoch(r['timestamp'] as int);
         final chartType = r['chart_type'] as String?;
 
         List<UiComponent>? uiComponents;
@@ -472,8 +487,17 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
             tooltip: "Clear Conversation History",
             onPressed: () async {
               final db = await AppDatabase.instance.database;
-              await db.delete('chatbot_message');
+              final profileId = ref.read(authProvider).profile?.id;
+              if (profileId != null) {
+                await db.delete(
+                  'chatbot_message',
+                  where: 'profile_id = ?',
+                  whereArgs: [profileId],
+                );
+              }
               _conversationMemory.clear();
+              _sessionId = _generateSessionId();
+              AgentService.activeSessionId = _sessionId;
               await _loadWelcomeDashboard();
             },
           ),

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'migration_v13.dart';
 
 class AppDatabase {
   static final AppDatabase instance = AppDatabase._init();
@@ -58,7 +59,7 @@ class AppDatabase {
 
     final db = await openDatabase(
       path,
-      version: 12,
+      version: 13,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -271,6 +272,13 @@ class AppDatabase {
         assert(() { debugPrint('[DB migration v12] $e'); return true; }());
       }
     }
+    if (oldVersion < 13) {
+      try {
+        await MigrationV13.run(db);
+      } catch (e) {
+        assert(() { debugPrint('[DB migration v13] $e'); return true; }());
+      }
+    }
   }
 
   Future<void> _migrateNotesToColumn(Database db) async {
@@ -354,6 +362,7 @@ class AppDatabase {
         name TEXT NOT NULL,
         preferred_currency TEXT NOT NULL,
         pin_hash TEXT NOT NULL,
+        pin_salt TEXT,
         biometric_enabled INTEGER NOT NULL DEFAULT 0,
         theme_preference TEXT NOT NULL DEFAULT 'dark',
         reminder_enabled INTEGER NOT NULL DEFAULT 1,
@@ -562,6 +571,19 @@ class AppDatabase {
         emergency_pct REAL NOT NULL,
         is_completed INTEGER NOT NULL DEFAULT 1,
         updated_at TEXT NOT NULL
+      )
+    ''');
+
+    // 17. chatbot_message Table
+    await db.execute('''
+      CREATE TABLE chatbot_message (
+        id TEXT PRIMARY KEY,
+        profile_id INTEGER NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp INTEGER NOT NULL,
+        chart_type TEXT,
+        FOREIGN KEY (profile_id) REFERENCES user_profile(id) ON DELETE CASCADE
       )
     ''');
 
