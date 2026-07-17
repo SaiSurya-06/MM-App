@@ -5,41 +5,13 @@ import android.os.Bundle
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import com.google.adk.kt.runners.InMemoryRunner
-import com.google.adk.kt.sessions.InMemorySessionService
-import com.google.adk.kt.types.Content
-import com.google.adk.kt.types.Part
-import com.google.adk.kt.types.Role
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class MainActivity: FlutterFragmentActivity() {
     private val CHANNEL = "com.example.money_manager/widget_actions"
-    private val AGENT_CHANNEL = "com.example.money_manager/agent"
     private var initialAction: String? = null
-    
-    private val sessionService = InMemorySessionService()
-    private var runnerInstance: InMemoryRunner? = null
-    private val agentScope = CoroutineScope(Dispatchers.IO)
-
-    private fun getRunner(apiKey: String): InMemoryRunner {
-        var r = runnerInstance
-        if (r == null) {
-            val agent = FinanceAgent.getAgent(apiKey)
-            r = InMemoryRunner(
-                agent = agent,
-                sessionService = sessionService,
-            )
-            runnerInstance = r
-        }
-        return r
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val appDocsDir = applicationContext.filesDir.parentFile?.absolutePath + "/app_flutter"
-        FinanceAgent.setDatabasePath("$appDocsDir/money_manager.db")
         handleIntent(intent)
     }
 
@@ -68,61 +40,6 @@ class MainActivity: FlutterFragmentActivity() {
             if (call.method == "getWidgetAction") {
                 result.success(initialAction)
                 initialAction = null // Consume the action
-            } else {
-                result.notImplemented()
-            }
-        }
-
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, AGENT_CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "sendMessage") {
-                val args = call.arguments as? Map<*, *>
-                val prompt = args?.get("prompt") as? String
-                val profileId = (args?.get("profileId") as? Number)?.toLong()
-                val sessionId = args?.get("sessionId") as? String ?: java.util.UUID.randomUUID().toString()
-                val apiKeyArg = args?.get("apiKey") as? String
-
-                // API Key Priority: BuildConfig.GOOGLE_API_KEY -> Flutter Argument
-                var apiKey = com.example.money_manager.BuildConfig.GOOGLE_API_KEY
-                if (apiKey.isNullOrBlank()) {
-                    apiKey = apiKeyArg ?: ""
-                }
-
-                if (apiKey.isBlank()) {
-                    result.error("AGENT_ERROR", "AI Service Unavailable: API Key Missing", null)
-                    return@setMethodCallHandler
-                }
-                
-                if (prompt != null) {
-                    val userId = if (profileId != null) "user-$profileId" else "user-unknown"
-                    agentScope.launch {
-                        try {
-                            var fullResponse = ""
-                            val runner = getRunner(apiKey)
-                            runner.runAsync(
-                                userId = userId,
-                                sessionId = sessionId,
-                                newMessage = Content(
-                                    role = Role.USER,
-                                    parts = listOf(Part(text = prompt)),
-                                )
-                            ).collect { event ->
-                                val text = event.content?.parts?.firstOrNull()?.text
-                                if (!text.isNullOrBlank()) {
-                                    fullResponse += text
-                                }
-                            }
-                            launch(Dispatchers.Main) {
-                                result.success(fullResponse)
-                            }
-                        } catch (e: Exception) {
-                            launch(Dispatchers.Main) {
-                                result.error("AGENT_ERROR", e.message, null)
-                            }
-                        }
-                    }
-                } else {
-                    result.error("INVALID_ARGUMENT", "Prompt must be a string", null)
-                }
             } else {
                 result.notImplemented()
             }

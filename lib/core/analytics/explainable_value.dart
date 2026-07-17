@@ -36,4 +36,12 @@ class ExplainableValue<T> {
         'confidence': confidence,
         'limitations': limitations,
       };
+
+  factory ExplainableValue.fromJson(Map<String, dynamic> json, T Function(Object? jsonValue) fromJsonT) => ExplainableValue<T>(
+        value: fromJsonT(json['value']),
+        reason: json['reason'] as String? ?? '',
+        dataUsed: json['dataUsed'] as String? ?? '',
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 1.0,
+        limitations: List<String>.from(json['limitations'] ?? []),
+      );
 }

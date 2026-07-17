@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/database/database.dart';
 import '../../core/agent/financial_brain.dart';
@@ -58,7 +60,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
   final ScrollController _scrollController = ScrollController();
   final ConversationMemory _conversationMemory = ConversationMemory();
   bool _isTyping = false;
-  bool _useOnlineAI = true;
+  bool _hasTransactions = true;
   late String _sessionId;
 
   String _generateSessionId() {
@@ -72,7 +74,28 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     super.initState();
     _sessionId = _generateSessionId();
     AgentService.activeSessionId = _sessionId;
-    _loadWelcomeDashboard();
+    _checkTransactionsAndLoad();
+  }
+
+  Future<void> _checkTransactionsAndLoad() async {
+    final db = await AppDatabase.instance.database;
+    final now = DateTime.now();
+    final monthStr = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+    final countRows = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM transaction_log
+      WHERE strftime('%Y-%m', date) = ?
+    ''', [monthStr]);
+    
+    final count = Sqflite.firstIntValue(countRows) ?? 0;
+    
+    if (mounted) {
+      setState(() {
+        _hasTransactions = count > 0;
+      });
+      if (_hasTransactions) {
+        _loadWelcomeDashboard();
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -108,6 +131,19 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
     }
   }
 
+  Future<void> _cleanupOldMessages(int profileId) async {
+    try {
+      final db = await AppDatabase.instance.database;
+      await db.delete(
+        'chatbot_message',
+        where: 'profile_id = ? AND timestamp < (strftime(\'%s\', \'now\', \'-90 days\') * 1000)',
+        whereArgs: [profileId],
+      );
+    } catch (e) {
+      debugPrint("Error cleaning up old chatbot messages: $e");
+    }
+  }
+
   Future<void> _loadWelcomeDashboard() async {
     final db = await AppDatabase.instance.database;
     
@@ -117,12 +153,17 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
 
     if (profileId == null) return;
 
-    final List<Map<String, dynamic>> rows = await db.query(
+    // Cleanup old messages in the background
+    _cleanupOldMessages(profileId);
+
+    final List<Map<String, dynamic>> rawRows = await db.query(
       'chatbot_message',
       where: 'profile_id = ?',
       whereArgs: [profileId],
-      orderBy: 'timestamp ASC',
+      orderBy: 'timestamp DESC',
+      limit: 50,
     );
+    final rows = rawRows.reversed.toList();
     
     if (rows.isNotEmpty) {
       final List<ChatMessage> loaded = [];
@@ -334,17 +375,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
 
     await _saveMessageToDb(text, true, null);
 
-    ExecutionPlan? parsedPlan;
-    bool isFallback = false;
-
-    final Planner planner = _useOnlineAI ? GeminiPlanner() : RulePlanner();
-    try {
-      parsedPlan = await planner.plan(text, _conversationMemory);
-    } catch (e) {
-      parsedPlan = await RulePlanner().plan(text, _conversationMemory);
-      isFallback = true;
-    }
-
+    final parsedPlan = await RulePlanner().plan(text, _conversationMemory);
     final mergedPlan = _conversationMemory.mergeNewPlan(parsedPlan);
 
     // 2. safe SQL tool registry data fetch
@@ -361,15 +392,15 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
         DecisionEngine(),
         ScenarioEngine(),
         EvaluationEngine(),
-        CoachingEngine(useOnline: _useOnlineAI && !isFallback),
+        CoachingEngine(useOnline: false),
       ],
     );
 
-    final initialContext = FinancialContext.initial(text, mergedPlan, fetched);
-    final finalContext = await orchestrator.orchestrate(initialContext);
-
     final currencyCode = ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
     final currencySymbol = CurrencyFormatter.getSymbol(currencyCode);
+
+    final initialContext = FinancialContext.initial(text, mergedPlan, fetched, currencyCode: currencyCode);
+    final finalContext = await orchestrator.orchestrate(initialContext);
 
     // 4. Transform to declarative UI Presentation Components (Task 5.2)
     final uiComponents = UIAdapter.adapt(finalContext);
@@ -414,7 +445,7 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
             text: finalContext.coaching.summary,
             isMe: false,
             timestamp: DateTime.now(),
-            isSystemError: isFallback && !_useOnlineAI,
+            isSystemError: false,
             chartWidget: chartWidget,
             uiComponents: uiComponents,
             scores: finalContext.scores,
@@ -440,7 +471,84 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF1F2833);
-    final isOffline = !_useOnlineAI;
+
+    if (!_hasTransactions) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: isDark ? const Color(0xFF0B0C10) : Colors.white,
+          elevation: 0,
+          title: Text(
+            "Financial Assistant",
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: textColor,
+            ),
+          ),
+        ),
+        body: PremiumBackground(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No Transactions Yet",
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "I don't have any transaction data for this month yet. Tap the button below to add your first transaction and get insights!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      color: Colors.grey,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      context.go('/transactions');
+                    },
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text(
+                      "Add Transaction",
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -464,15 +572,15 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
                 Container(
                   width: 6,
                   height: 6,
-                  decoration: BoxDecoration(
-                    color: isOffline ? Colors.orangeAccent : Colors.tealAccent,
+                  decoration: const BoxDecoration(
+                    color: Colors.orangeAccent,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  isOffline ? "Investigative OS (Offline)" : "On-Device Financial OS (ADK)",
-                  style: const TextStyle(
+                const Text(
+                  "Investigative OS (Offline)",
+                  style: TextStyle(
                     fontSize: 10,
                     color: Colors.grey,
                   ),
@@ -500,26 +608,6 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
               AgentService.activeSessionId = _sessionId;
               await _loadWelcomeDashboard();
             },
-          ),
-          Row(
-            children: [
-              Text(
-                "Offline",
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? Colors.white70 : Colors.black87,
-                ),
-              ),
-              Switch(
-                value: !_useOnlineAI,
-                onChanged: (val) {
-                  setState(() {
-                    _useOnlineAI = !val;
-                  });
-                },
-                activeColor: Colors.tealAccent,
-              ),
-            ],
           ),
         ],
       ),

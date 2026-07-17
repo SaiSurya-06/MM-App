@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import '../capability.dart';
 import '../explainable_value.dart';
+import '../../utils/currency_formatter.dart';
 
 class GoalPredictor implements Capability<Map<int, ExplainableValue<String>>> {
   @override
@@ -44,7 +45,7 @@ class GoalPredictor implements Capability<Map<int, ExplainableValue<String>>> {
           value: 'Achieved',
           reason: 'Target already reached!',
           confidence: 1.0,
-          dataUsed: 'Target: ₹${goal.targetAmount}, Current: ₹${goal.currentAmount}',
+          dataUsed: 'Target: ${CurrencyFormatter.format(goal.targetAmount, context.currencyCode)}, Current: ${CurrencyFormatter.format(goal.currentAmount, context.currencyCode)}',
         );
         continue;
       }
@@ -59,7 +60,7 @@ class GoalPredictor implements Capability<Map<int, ExplainableValue<String>>> {
       final projectedDate = now.add(Duration(days: daysNeeded));
       final dateStr = DateFormat('MMM yyyy').format(projectedDate);
 
-      String reason = 'Based on current net savings rate of ₹${shareOfSavings.toStringAsFixed(0)}/month allocated to this goal.';
+      String reason = 'Based on current net savings rate of ${CurrencyFormatter.format(shareOfSavings, context.currencyCode)}/month allocated to this goal.';
       double confidence = 0.85;
 
       if (monthsNeeded > 12) {
@@ -71,7 +72,7 @@ class GoalPredictor implements Capability<Map<int, ExplainableValue<String>>> {
         value: dateStr,
         reason: reason,
         confidence: confidence,
-        dataUsed: 'Remaining: ₹${remaining.toStringAsFixed(0)}, Share: ₹${shareOfSavings.toStringAsFixed(0)}/mo',
+        dataUsed: 'Remaining: ${CurrencyFormatter.format(remaining, context.currencyCode)}, Share: ${CurrencyFormatter.format(shareOfSavings, context.currencyCode)}/mo',
       );
     }
 

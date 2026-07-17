@@ -211,7 +211,7 @@ void main() {
       expect(finalContext.scenario.isScenarioQuery, isTrue);
       expect(finalContext.scenario.scenarioSummary, contains('Food Delivery'));
       expect(finalContext.scenario.projections.length, equals(3));
-      expect(finalContext.scenario.projections[0], contains('+₹12000'));
+      expect(finalContext.scenario.projections[0], contains('+₹12,000.00'));
     });
   });
 

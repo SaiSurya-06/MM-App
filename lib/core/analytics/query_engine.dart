@@ -1,6 +1,7 @@
 import 'models/money_intelligence_report.dart';
 import 'models/financial_insight.dart';
 import 'capability.dart';
+import '../utils/currency_formatter.dart';
 
 class QueryEngine {
   final MoneyIntelligenceReport report;
@@ -9,7 +10,9 @@ class QueryEngine {
   final Map<String, double> _categorySpendIndex = {};
   final Map<String, double> _flowGroupSpendIndex = {};
 
-  QueryEngine(this.report) {
+  final String currencyCode;
+  
+  QueryEngine(this.report, {this.currencyCode = 'INR'}) {
     _buildIndex();
   }
 
@@ -64,7 +67,7 @@ class QueryEngine {
           'success': true,
           'intent': 'safe_spend',
           'value': report.health.score,
-          'text': 'Your Safe to Spend Today is ₹${(report.snapshot.moneyLeft / 14.0).toStringAsFixed(0)}. calculated as Money Left / Days Remaining.',
+          'text': 'Your Safe to Spend Today is ${CurrencyFormatter.format(report.snapshot.moneyLeft / 14.0, currencyCode)}. calculated as Money Left / Days Remaining.',
         };
       }
 
@@ -77,7 +80,7 @@ class QueryEngine {
         return {
           'success': true,
           'intent': 'subscriptions',
-          'text': 'You have subscriptions totalling ₹${report.snapshot.others.toStringAsFixed(0)} this month. $subsStr',
+          'text': 'You have subscriptions totalling ${CurrencyFormatter.format(report.snapshot.others, currencyCode)} this month. $subsStr',
         };
       }
 
@@ -88,7 +91,7 @@ class QueryEngine {
             'success': true,
             'intent': 'category_spend',
             'category': catName,
-            'text': 'You spent ₹${_categorySpendIndex[catName]!.toStringAsFixed(0)} on $catName this month.',
+            'text': 'You spent ${CurrencyFormatter.format(_categorySpendIndex[catName]!, currencyCode)} on $catName this month.',
           };
         }
       }

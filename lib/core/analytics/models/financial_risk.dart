@@ -27,6 +27,16 @@ class FinancialRisk {
         'reason': reason,
       };
 
+  factory FinancialRisk.fromJson(Map<String, dynamic> json) => FinancialRisk(
+        cashRunwayMonths: (json['cashRunwayMonths'] as num?)?.toDouble() ?? 0.0,
+        debtToIncomeRatio: (json['debtToIncomeRatio'] as num?)?.toDouble() ?? 0.0,
+        overspendingProbability: (json['overspendingProbability'] as num?)?.toDouble() ?? 0.0,
+        budgetCollapseProbability: (json['budgetCollapseProbability'] as num?)?.toDouble() ?? 0.0,
+        riskLevel: json['riskLevel'] as String? ?? 'Low',
+        riskFactors: List<String>.from(json['riskFactors'] ?? []),
+        reason: json['reason'] as String? ?? '',
+      );
+
   FinancialRisk copyWith({
     double? cashRunwayMonths,
     double? debtToIncomeRatio,

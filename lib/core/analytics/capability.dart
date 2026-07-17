@@ -16,6 +16,7 @@ import 'models/visualization_models.dart';
 
 class OrchestratorContext {
   final FinancialSnapshot snapshot;
+  final String currencyCode;
   
   // Accumulated facts
   IncomeAnalysis? incomeAnalysis;
@@ -39,7 +40,7 @@ class OrchestratorContext {
   
   double simulatedPurchaseAmount = 0.0;
 
-  OrchestratorContext(this.snapshot);
+  OrchestratorContext(this.snapshot, {this.currencyCode = 'INR'});
 }
 
 abstract class Intent {

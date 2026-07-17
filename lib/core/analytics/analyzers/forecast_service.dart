@@ -4,6 +4,7 @@ import '../models/monthly_forecast.dart';
 import 'income_predictor.dart';
 import 'cash_flow_predictor.dart';
 import 'goal_predictor.dart';
+import '../../utils/currency_formatter.dart';
 
 class ForecastService implements Capability<MonthlyForecast> {
   @override
@@ -40,9 +41,9 @@ class ForecastService implements Capability<MonthlyForecast> {
     
     final predictedMonthEndSpend = ExplainableValue<double>(
       value: projectedSpend,
-      reason: 'Extrapolated from spending burn rate of ₹${(spentSoFar / elapsedDays).toStringAsFixed(0)}/day over $elapsedDays days.',
+      reason: 'Extrapolated from spending burn rate of ${CurrencyFormatter.format(spentSoFar / elapsedDays, context.currencyCode)}/day over $elapsedDays days.',
       confidence: spendConfidence,
-      dataUsed: 'Spent: ₹${spentSoFar.toStringAsFixed(0)}, Month Days: $totalDays',
+      dataUsed: 'Spent: ${CurrencyFormatter.format(spentSoFar, context.currencyCode)}, Month Days: $totalDays',
     );
 
     // 2. Income Forecast
@@ -56,9 +57,9 @@ class ForecastService implements Capability<MonthlyForecast> {
     final double projectedEndBalance = balance + (predictedIncome.value - projectedSpend);
     final predictedMonthEndBalance = ExplainableValue<double>(
       value: projectedEndBalance,
-      reason: 'Calculated as cash balance plus predicted net monthly savings (₹${(predictedIncome.value - projectedSpend).toStringAsFixed(0)}).',
+      reason: 'Calculated as cash balance plus predicted net monthly savings (${CurrencyFormatter.format(predictedIncome.value - projectedSpend, context.currencyCode)}).',
       confidence: predictedIncome.confidence * spendConfidence,
-      dataUsed: 'Cash: ₹${balance.toStringAsFixed(0)}, Net Savings: ₹${(predictedIncome.value - projectedSpend).toStringAsFixed(0)}',
+      dataUsed: 'Cash: ${CurrencyFormatter.format(balance, context.currencyCode)}, Net Savings: ${CurrencyFormatter.format(predictedIncome.value - projectedSpend, context.currencyCode)}',
     );
 
     // 4. Cash Flow Daily coordinates

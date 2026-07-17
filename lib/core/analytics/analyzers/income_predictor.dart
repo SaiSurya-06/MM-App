@@ -1,5 +1,6 @@
 import '../capability.dart';
 import '../explainable_value.dart';
+import '../../utils/currency_formatter.dart';
 
 class IncomePredictor implements Capability<ExplainableValue<double>> {
   @override
@@ -36,7 +37,7 @@ class IncomePredictor implements Capability<ExplainableValue<double>> {
       if (soFar == 0.0) {
         predicted = historicalAverage;
         confidence = 0.90;
-        reason = 'Income not yet received this month. Expected baseline salary of ₹${historicalAverage.toStringAsFixed(0)}.';
+        reason = 'Income not yet received this month. Expected baseline salary of ${CurrencyFormatter.format(historicalAverage, context.currencyCode)}.';
       } else {
         predicted = soFar > historicalAverage ? soFar : historicalAverage;
         confidence = 0.98;
@@ -46,14 +47,14 @@ class IncomePredictor implements Capability<ExplainableValue<double>> {
       // Freelance / Seasonal
       predicted = soFar + (historicalAverage * 0.2); // Project slight additional freelance earnings
       confidence = 0.70;
-      reason = 'Freelance/Seasonal income is variable. Expected baseline total of ₹${predicted.toStringAsFixed(0)}.';
+      reason = 'Freelance/Seasonal income is variable. Expected baseline total of ${CurrencyFormatter.format(predicted, context.currencyCode)}.';
     }
 
     return ExplainableValue<double>(
       value: predicted,
       reason: reason,
       confidence: confidence,
-      dataUsed: 'Current Month Inflows: ₹${soFar.toStringAsFixed(0)}, Historical Avg: ₹${historicalAverage.toStringAsFixed(0)}',
+      dataUsed: 'Current Month Inflows: ${CurrencyFormatter.format(soFar, context.currencyCode)}, Historical Avg: ${CurrencyFormatter.format(historicalAverage, context.currencyCode)}',
     );
   }
 }

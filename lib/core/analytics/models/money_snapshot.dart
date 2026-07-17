@@ -43,6 +43,21 @@ class MoneySnapshot {
         'moneyLeft': moneyLeft,
       };
 
+  factory MoneySnapshot.fromJson(Map<String, dynamic> json) => MoneySnapshot(
+        salary: (json['salary'] as num?)?.toDouble() ?? 0.0,
+        essentials: (json['essentials'] as num?)?.toDouble() ?? 0.0,
+        lifestyle: (json['lifestyle'] as num?)?.toDouble() ?? 0.0,
+        savings: (json['savings'] as num?)?.toDouble() ?? 0.0,
+        investments: (json['investments'] as num?)?.toDouble() ?? 0.0,
+        debt: (json['debt'] as num?)?.toDouble() ?? 0.0,
+        taxes: (json['taxes'] as num?)?.toDouble() ?? 0.0,
+        transfers: (json['transfers'] as num?)?.toDouble() ?? 0.0,
+        others: (json['others'] as num?)?.toDouble() ?? 0.0,
+        totalIncome: (json['totalIncome'] as num?)?.toDouble() ?? 0.0,
+        totalExpense: (json['totalExpense'] as num?)?.toDouble() ?? 0.0,
+        moneyLeft: (json['moneyLeft'] as num?)?.toDouble() ?? 0.0,
+      );
+
   MoneySnapshot copyWith({
     double? salary,
     double? essentials,

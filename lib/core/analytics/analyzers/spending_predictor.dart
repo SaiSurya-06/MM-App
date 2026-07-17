@@ -34,7 +34,7 @@ class SpendingPredictor implements Capability<SpendingVelocity> {
     final double weeklyBurnRate = dailyBurnRate * 7.0;
 
     // Expected daily speed based on budget caps
-    final double expectedDailyPace = totalLimits > 0 ? totalLimits / totalDays : 2000.0; // Fallback ₹2,000/day
+    final double expectedDailyPace = totalLimits > 0 ? totalLimits / totalDays : 2000.0; // Fallback 2000/day
 
     final bool isAhead = dailyBurnRate > expectedDailyPace;
     final double drift = expectedDailyPace > 0

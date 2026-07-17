@@ -63,11 +63,6 @@ class SubscriptionAnalyzer implements Capability<SubscriptionAnalysis> {
   @override
   bool supports(Intent intent) => false;
 
-  final List<String> _subscriptionKeywords = [
-    'netflix', 'spotify', 'prime', 'amazon prime', 'gym', 'fitness', 'youtube premium',
-    'google one', 'icloud', 'disney', 'hbo', 'adobe', 'microsoft 365', 'apple music',
-    'patreon', 'github copilot', 'chatgpt', 'openai', 'subscription', 'premium'
-  ];
 
   @override
   Future<SubscriptionAnalysis> execute(OrchestratorContext context) async {
@@ -88,46 +83,28 @@ class SubscriptionAnalyzer implements Capability<SubscriptionAnalysis> {
 
     // Scan for subscription keywords, tags, and categories
     for (var tx in thisMonthTxs) {
+      if (tx.type != 'expense') continue;
+      if (tx.recurrence == 'none') continue;
+
       final titleLower = tx.title.toLowerCase();
       final tagLower = tx.tags.toLowerCase();
       
       final category = categoriesMap[tx.categoryId];
       final categoryNameLower = category?.name.toLowerCase() ?? '';
 
-      // 1. Recurrence must not be 'none'
-      final isRecurMatch = tx.recurrence != 'none';
-      if (!isRecurMatch) continue;
-
-      // 2. Explicit exclusions (Income, Salary, Rent, Debt repayment, EMI, Loan)
-      final isExcludedCategory = categoryNameLower == 'income' ||
-          categoryNameLower == 'salary' ||
-          categoryNameLower == 'rent' ||
-          categoryNameLower == 'debt repayment/emi' ||
-          categoryNameLower == 'debt' ||
-          categoryNameLower == 'emi' ||
-          categoryNameLower == 'loan';
-
-      final isExcludedTitle = titleLower.contains('rent') ||
-          titleLower.contains('salary') ||
-          titleLower.contains('emi') ||
-          titleLower.contains('loan') ||
-          titleLower.contains('mortgage') ||
-          titleLower.contains('repayment');
-
-      if (isExcludedCategory || isExcludedTitle || tx.type != 'expense') {
+      final excludedCategories = ['salary', 'income', 'rent', 'loan', 'emi', 'debt', 'transfer', 'investment'];
+      if (excludedCategories.contains(categoryNameLower)) {
         continue;
       }
 
-      // 3. Subscription identification criteria (at least one must match)
-      final isKeywordMatch = _subscriptionKeywords.any((keyword) => titleLower.contains(keyword));
+      final subscriptionKeywords = ['netflix', 'spotify', 'premium', 'subscription'];
+      final isKeywordMatch = subscriptionKeywords.any((k) => titleLower.contains(k) || categoryNameLower.contains(k));
       final isTagMatch = tagLower.contains('subscription');
-      final isSubCategory = categoryNameLower == 'entertainment' ||
-          categoryNameLower == 'software' ||
-          categoryNameLower == 'utilities' ||
-          categoryNameLower == 'streaming';
+      
+      final subscriptionCategories = ['entertainment', 'streaming', 'software', 'utilities'];
+      final isCategoryMatch = subscriptionCategories.contains(categoryNameLower);
 
-      if (isKeywordMatch || isTagMatch || isSubCategory) {
-        // Simple unused heuristic: if notes contain "unused" or tags contain "unused", or if it's gym and we have no checkins
+      if (isKeywordMatch || isTagMatch || isCategoryMatch) {
         final isUnused = titleLower.contains('gym') || tagLower.contains('unused') || tx.note?.toLowerCase().contains('unused') == true;
         
         activeSubs.add(SubscriptionItem(

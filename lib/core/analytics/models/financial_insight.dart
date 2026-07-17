@@ -30,6 +30,17 @@ class FinancialInsight {
         'impactAmount': impactAmount,
       };
 
+  factory FinancialInsight.fromJson(Map<String, dynamic> json) => FinancialInsight(
+        type: json['type'] as String? ?? 'tip',
+        priority: json['priority'] as String? ?? 'low',
+        title: json['title'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        action: json['action'] as String? ?? '',
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 1.0,
+        categoryName: json['categoryName'] as String?,
+        impactAmount: (json['impactAmount'] as num?)?.toDouble(),
+      );
+
   FinancialInsight copyWith({
     String? type,
     String? priority,

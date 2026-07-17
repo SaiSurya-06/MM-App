@@ -37,7 +37,7 @@ class CashFlowPredictor implements Capability<Map<String, double>> {
 
     // Daily variable spending burn rate
     final velocity = context.velocity;
-    final double dailyBurn = velocity?.dailyBurnRate ?? 1000.0; // Fallback ₹1,000/day
+    final double dailyBurn = velocity?.dailyBurnRate ?? 1000.0; // Fallback 1000/day
 
     // Identify upcoming bills (categories that have budget limits but haven't been spent yet)
     final budgetAnalysis = context.budget;

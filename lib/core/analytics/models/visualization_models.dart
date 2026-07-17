@@ -3,6 +3,10 @@ class LineChartDataPoint {
   final double y;
   const LineChartDataPoint(this.x, this.y);
   Map<String, dynamic> toJson() => {'x': x.toIso8601String(), 'y': y};
+  factory LineChartDataPoint.fromJson(Map<String, dynamic> json) => LineChartDataPoint(
+        DateTime.parse(json['x'] as String),
+        (json['y'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
 class HeatmapDataPoint {
@@ -10,6 +14,10 @@ class HeatmapDataPoint {
   final double amount;
   const HeatmapDataPoint(this.date, this.amount);
   Map<String, dynamic> toJson() => {'date': date.toIso8601String(), 'amount': amount};
+  factory HeatmapDataPoint.fromJson(Map<String, dynamic> json) => HeatmapDataPoint(
+        DateTime.parse(json['date'] as String),
+        (json['amount'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
 class FlowBarItem {
@@ -29,6 +37,12 @@ class FlowBarItem {
         'percentage': percentage,
         'colorHex': colorHex,
       };
+  factory FlowBarItem.fromJson(Map<String, dynamic> json) => FlowBarItem(
+        label: json['label'] as String? ?? '',
+        amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+        percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
+        colorHex: json['colorHex'] as String? ?? '',
+      );
 }
 
 class TimelineItem {
@@ -51,6 +65,13 @@ class TimelineItem {
         'type': type,
         'categoryName': categoryName,
       };
+  factory TimelineItem.fromJson(Map<String, dynamic> json) => TimelineItem(
+        date: DateTime.parse(json['date'] as String),
+        title: json['title'] as String? ?? '',
+        amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+        type: json['type'] as String? ?? 'expense',
+        categoryName: json['categoryName'] as String? ?? 'Other',
+      );
 }
 
 class VisualizationModels {
@@ -72,4 +93,23 @@ class VisualizationModels {
         'flowBars': flowBars.map((e) => e.toJson()).toList(),
         'timelineEvents': timelineEvents.map((e) => e.toJson()).toList(),
       };
+
+  factory VisualizationModels.fromJson(Map<String, dynamic> json) => VisualizationModels(
+        forecastPoints: (json['forecastPoints'] as List?)
+                ?.map((e) => LineChartDataPoint.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        dailySpends: (json['dailySpends'] as List?)
+                ?.map((e) => HeatmapDataPoint.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        flowBars: (json['flowBars'] as List?)
+                ?.map((e) => FlowBarItem.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        timelineEvents: (json['timelineEvents'] as List?)
+                ?.map((e) => TimelineItem.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+      );
 }

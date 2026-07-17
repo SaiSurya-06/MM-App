@@ -1,4 +1,5 @@
 import 'financial_brain.dart';
+import '../utils/currency_formatter.dart';
 
 class InsightEngine implements FinancialEngine {
   @override
@@ -50,7 +51,7 @@ class InsightEngine implements FinancialEngine {
       insights.add("Weekend discretionary spending is high (${(weekendSum / expense * 100).toStringAsFixed(0)}% of expenses)");
     }
     if (impulseSum > 0) {
-      insights.add("Impulse shopping/eating out makes up ₹${impulseSum.toStringAsFixed(0)} of this period.");
+      insights.add("Impulse shopping/eating out makes up ${CurrencyFormatter.format(impulseSum, context.currencyCode)} of this period.");
     }
     if (subscriptions.isNotEmpty) {
       insights.add("Found ${subscriptions.length} active recurring subscriptions.");

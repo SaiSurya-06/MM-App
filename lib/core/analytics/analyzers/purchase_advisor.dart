@@ -1,6 +1,7 @@
 import '../capability.dart';
 import '../models/purchase_decision.dart';
 import '../../../../models/savings_goal.dart';
+import '../../utils/currency_formatter.dart';
 
 class PurchaseAdvisor implements Capability<PurchaseDecision> {
   @override
@@ -80,17 +81,17 @@ class PurchaseAdvisor implements Capability<PurchaseDecision> {
 
     String explanation = '';
     if (isApproved) {
-      explanation = 'Yes! Buying this still leaves ₹${remainingCash.toStringAsFixed(0)} cash, '
-          'leaving your emergency fund (₹${emergencyGoal.currentAmount.toStringAsFixed(0)}) untouched. '
+      explanation = 'Yes! Buying this still leaves ${CurrencyFormatter.format(remainingCash, context.currencyCode)} cash, '
+          'leaving your emergency fund (${CurrencyFormatter.format(emergencyGoal.currentAmount, context.currencyCode)}) untouched. '
           'Your savings goals are unaffected. Budget recovery time: $recoveryDays days.';
     } else if (remainingCash >= 0) {
       explanation = 'Warning: Buying this will dip into your emergency fund by '
-          '₹${(emergencyGoal.currentAmount - remainingCash).toStringAsFixed(0)}. '
+          '${CurrencyFormatter.format(emergencyGoal.currentAmount - remainingCash, context.currencyCode)}. '
           'While you have enough cash today, your emergency cushion is compromised. '
           'Budget recovery time: $recoveryDays days.';
     } else {
       explanation = 'No: Buying this exceeds your total cash balance today by '
-          '₹${(amount - totalBalance).toStringAsFixed(0)}. This purchase is unsafe and '
+          '${CurrencyFormatter.format(amount - totalBalance, context.currencyCode)}. This purchase is unsafe and '
           'would result in immediate cash depletion. Budget recovery time: $recoveryDays days.';
     }
 

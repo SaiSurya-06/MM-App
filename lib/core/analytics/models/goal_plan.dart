@@ -29,6 +29,17 @@ class GoalAllocation {
         'allocatedMonthlyAmount': allocatedMonthlyAmount,
         'achievementProbability': achievementProbability,
       };
+
+  factory GoalAllocation.fromJson(Map<String, dynamic> json) => GoalAllocation(
+        goalId: json['goalId'] as int? ?? 0,
+        name: json['name'] as String? ?? '',
+        targetAmount: (json['targetAmount'] as num?)?.toDouble() ?? 0.0,
+        currentAmount: (json['currentAmount'] as num?)?.toDouble() ?? 0.0,
+        delayDays: json['delayDays'] as int? ?? 0,
+        accelerationPotential: (json['accelerationPotential'] as num?)?.toDouble() ?? 0.0,
+        allocatedMonthlyAmount: (json['allocatedMonthlyAmount'] as num?)?.toDouble() ?? 0.0,
+        achievementProbability: (json['achievementProbability'] as num?)?.toDouble() ?? 0.0,
+      );
 }
 
 class GoalPlan {
@@ -44,4 +55,12 @@ class GoalPlan {
         'allocations': allocations.map((e) => e.toJson()).toList(),
         'recommendations': recommendations,
       };
+
+  factory GoalPlan.fromJson(Map<String, dynamic> json) => GoalPlan(
+        allocations: (json['allocations'] as List?)
+                ?.map((e) => GoalAllocation.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        recommendations: json['recommendations'] as String? ?? '',
+      );
 }

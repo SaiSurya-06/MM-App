@@ -1,6 +1,7 @@
 import 'financial_brain.dart';
 import 'execution_plan.dart';
 import 'retriever.dart';
+import '../utils/currency_formatter.dart';
 
 class InvestigationResult {
   final double absoluteIncrease;
@@ -106,9 +107,9 @@ class InvestigationEngine implements FinancialEngine {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     for (var entry in sortedCatDiffs) {
-      causes.add("${entry.key} spending increased by +₹${entry.value.toStringAsFixed(0)}");
+      causes.add("${entry.key} spending increased by +${CurrencyFormatter.format(entry.value, context.currencyCode)}");
       if (entry.value > 1000) {
-        anomalies.add("⚠️ **Anomaly**: Spikes in **${entry.key}** spending (+₹${entry.value.toStringAsFixed(0)}) compared to comparison month.");
+        anomalies.add("⚠️ **Anomaly**: Spikes in **${entry.key}** spending (+${CurrencyFormatter.format(entry.value, context.currencyCode)}) compared to comparison month.");
       }
     }
 

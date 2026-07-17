@@ -18,6 +18,13 @@ class MoneyStory {
         'yearlyStory': yearlyStory,
       };
 
+  factory MoneyStory.fromJson(Map<String, dynamic> json) => MoneyStory(
+        dailyStory: json['dailyStory'] as String? ?? '',
+        weeklyStory: json['weeklyStory'] as String? ?? '',
+        monthlyStory: json['monthlyStory'] as String? ?? '',
+        yearlyStory: json['yearlyStory'] as String? ?? '',
+      );
+
   MoneyStory copyWith({
     String? dailyStory,
     String? weeklyStory,

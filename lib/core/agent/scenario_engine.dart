@@ -1,4 +1,5 @@
 import 'financial_brain.dart';
+import '../utils/currency_formatter.dart';
 
 class ScenarioResult {
   final bool isScenarioQuery;
@@ -68,7 +69,7 @@ class ScenarioEngine implements FinancialEngine {
           isScenarioQuery: true,
           scenarioSummary: "I recognized your simulation request, but couldn't parse the specific parameters.",
           projections: [],
-          advice: "Try asking: 'What if I stop ordering food?' or 'What if I save ₹5,000 more monthly?'",
+          advice: "Try asking: 'What if I stop ordering food?' or 'What if I save ${CurrencyFormatter.getSymbol(context.currencyCode)}5,000 more monthly?'",
         ),
       );
     }
@@ -78,22 +79,22 @@ class ScenarioEngine implements FinancialEngine {
 
     if (cutValue > 0) {
       totalMonthlySavings += cutValue;
-      summary += "Simulating cutting **$cutTarget** expenses (saving **₹${cutValue.toStringAsFixed(0)}/month**). ";
+      summary += "Simulating cutting **$cutTarget** expenses (saving **${CurrencyFormatter.format(cutValue, context.currencyCode)}/month**). ";
     }
     if (incomePercent > 0) {
       final currentIncome = (context.metrics['totalIncome'] as num? ?? 50000.0).toDouble();
       final extraIncome = currentIncome * (incomePercent / 100.0);
       totalMonthlySavings += extraIncome;
-      summary += "Simulating a **${incomePercent.toStringAsFixed(0)}% salary increase** (+₹${extraIncome.toStringAsFixed(0)}/month). ";
+      summary += "Simulating a **${incomePercent.toStringAsFixed(0)}% salary increase** (+${CurrencyFormatter.format(extraIncome, context.currencyCode)}/month). ";
     }
     if (monthlyBooster > 0 && cutValue == 0 && incomePercent == 0) {
-      summary += "Simulating saving an extra **₹${monthlyBooster.toStringAsFixed(0)}/month**. ";
+      summary += "Simulating saving an extra **${CurrencyFormatter.format(monthlyBooster, context.currencyCode)}/month**. ";
     }
 
     final projections = [
-      "📈 Cumulative Savings in **3 months**: +₹${(totalMonthlySavings * 3).toStringAsFixed(0)}",
-      "📈 Cumulative Savings in **6 months**: +₹${(totalMonthlySavings * 6).toStringAsFixed(0)}",
-      "📈 Cumulative Savings in **12 months**: +₹${(totalMonthlySavings * 12).toStringAsFixed(0)}",
+      "📈 Cumulative Savings in **3 months**: +${CurrencyFormatter.format(totalMonthlySavings * 3, context.currencyCode)}",
+      "📈 Cumulative Savings in **6 months**: +${CurrencyFormatter.format(totalMonthlySavings * 6, context.currencyCode)}",
+      "📈 Cumulative Savings in **12 months**: +${CurrencyFormatter.format(totalMonthlySavings * 12, context.currencyCode)}",
     ];
 
     String advice = "This extra buffer could pay off your credit card balances faster, or secure your emergency fund target earlier.";

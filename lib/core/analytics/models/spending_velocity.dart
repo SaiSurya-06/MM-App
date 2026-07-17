@@ -24,6 +24,15 @@ class SpendingVelocity {
         'statusDescription': statusDescription,
       };
 
+  factory SpendingVelocity.fromJson(Map<String, dynamic> json) => SpendingVelocity(
+        dailyBurnRate: (json['dailyBurnRate'] as num?)?.toDouble() ?? 0.0,
+        weeklyBurnRate: (json['weeklyBurnRate'] as num?)?.toDouble() ?? 0.0,
+        expectedDailyPace: (json['expectedDailyPace'] as num?)?.toDouble() ?? 0.0,
+        isAheadOfPace: json['isAheadOfPace'] as bool? ?? false,
+        paceDriftPercentage: (json['paceDriftPercentage'] as num?)?.toDouble() ?? 0.0,
+        statusDescription: json['statusDescription'] as String? ?? 'On Pace',
+      );
+
   SpendingVelocity copyWith({
     double? dailyBurnRate,
     double? weeklyBurnRate,

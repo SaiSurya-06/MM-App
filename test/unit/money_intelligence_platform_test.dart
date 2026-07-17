@@ -6,6 +6,9 @@ import 'package:money_manager/core/analytics/analyzers/expense_analyzer.dart';
 import 'package:money_manager/core/analytics/analyzers/subscription_analyzer.dart';
 import 'package:money_manager/core/analytics/analyzers/spending_predictor.dart';
 import 'package:money_manager/core/analytics/analyzers/purchase_advisor.dart';
+import 'package:money_manager/core/analytics/analyzers/goal_planner.dart';
+import 'package:money_manager/core/analytics/models/monthly_forecast.dart';
+import 'package:money_manager/core/analytics/explainable_value.dart';
 import 'package:money_manager/models/transaction.dart';
 import 'package:money_manager/models/category.dart';
 import 'package:money_manager/models/budget.dart';
@@ -174,6 +177,72 @@ void main() {
       // Net savings: 80k - 27650 = 52350
       // Recovery days: 10000 / (52350 / 30.43) = 6 days
       expect(result.budgetRecoveryDays, equals(6));
+    });
+
+    test('GoalPlanner allocates savings proportionally based on goal urgency weighting', () async {
+      final now = DateTime(2026, 7, 10);
+      final testSnapshot = FinancialSnapshot(
+        transactions: [],
+        categories: [],
+        budgets: [],
+        goals: [
+          SavingsGoal(
+            id: 1,
+            name: 'Urgent Goal',
+            targetAmount: 15000.0,
+            currentAmount: 5000.0, // Gap: 10,000
+            targetDate: now.add(const Duration(days: 30)), // ~1 month
+            color: '00ACC1',
+            icon: 'savings',
+            createdAt: now,
+          ),
+          SavingsGoal(
+            id: 2,
+            name: 'Non-Urgent Goal',
+            targetAmount: 30000.0,
+            currentAmount: 10000.0, // Gap: 20,000
+            targetDate: now.add(const Duration(days: 304)), // ~10 months
+            color: '00ACC1',
+            icon: 'savings',
+            createdAt: now,
+          ),
+        ],
+        debts: [],
+        accounts: [],
+        selectedMonth: '2026-07',
+        selectedDate: now,
+      );
+
+      final context = OrchestratorContext(testSnapshot);
+      context.incomeAnalysis = const IncomeAnalysis(totalIncome: 20000.0, incomeTransactions: [], incomeBySource: {});
+      context.expenseAnalysis = const ExpenseAnalysis(
+        totalExpense: 8000.0,
+        expenseTransactions: [],
+        spendByCategory: {},
+        spendByFlowGroup: {},
+      );
+      // Net savings = 12000.0
+
+      context.forecast = const MonthlyForecast(
+        predictedMonthEndSpend: ExplainableValue(value: 8000.0),
+        predictedMonthEndBalance: ExplainableValue(value: 62000.0),
+        predictedIncomeTotal: ExplainableValue(value: 20000.0),
+        cashFlowTrend: {},
+        goalForecasts: {
+          1: ExplainableValue(value: '2026-08', confidence: 0.9, dataUsed: 'Months: 1'),
+          2: ExplainableValue(value: '2027-05', confidence: 0.8, dataUsed: 'Months: 10'),
+        },
+      );
+
+      final planner = GoalPlanner();
+      final result = await planner.execute(context);
+
+      expect(result.allocations.length, equals(2));
+      final alloc1 = result.allocations.firstWhere((a) => a.goalId == 1);
+      final alloc2 = result.allocations.firstWhere((a) => a.goalId == 2);
+
+      expect(alloc1.allocatedMonthlyAmount, closeTo(10000.0, 1.0));
+      expect(alloc2.allocatedMonthlyAmount, closeTo(1978.0, 1.0));
     });
   });
 }

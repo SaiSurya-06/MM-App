@@ -30,6 +30,17 @@ class BudgetHealth {
         'algorithmVersion': algorithmVersion,
       };
 
+  factory BudgetHealth.fromJson(Map<String, dynamic> json) => BudgetHealth(
+        score: (json['score'] as num?)?.toDouble() ?? 0.0,
+        rating: json['rating'] as String? ?? 'Fair',
+        positiveFactors: List<String>.from(json['positiveFactors'] ?? []),
+        warningFactors: List<String>.from(json['warningFactors'] ?? []),
+        confidence: (json['confidence'] as num?)?.toDouble() ?? 1.0,
+        reason: json['reason'] as String? ?? '',
+        dataUsed: json['dataUsed'] as String? ?? '',
+        algorithmVersion: json['algorithmVersion'] as String? ?? '1.0.0',
+      );
+
   BudgetHealth copyWith({
     double? score,
     String? rating,

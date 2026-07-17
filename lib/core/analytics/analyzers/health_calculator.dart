@@ -1,5 +1,6 @@
 import '../capability.dart';
 import '../models/budget_health.dart';
+import '../../utils/currency_formatter.dart';
 
 class HealthCalculator implements Capability<BudgetHealth> {
   @override
@@ -110,7 +111,7 @@ class HealthCalculator implements Capability<BudgetHealth> {
     final reason = 'Your Budget Health is $rating (${compositeScore.toStringAsFixed(0)}/100). '
         'Key drivers: Savings Rate is ${savingsRate.toStringAsFixed(0)}% (score: ${savingsRateScore.toStringAsFixed(0)}), '
         'Budget compliance is ${budgetComplianceScore.toStringAsFixed(0)}%, '
-        'and Debt payments are ₹${debtPayments.toStringAsFixed(0)}.';
+        'and Debt payments are ${CurrencyFormatter.format(debtPayments, context.currencyCode)}.';
 
     final dataUsed = 'Transactions: ${context.snapshot.transactions.length}, '
         'Budgets: ${context.snapshot.budgets.length}, '

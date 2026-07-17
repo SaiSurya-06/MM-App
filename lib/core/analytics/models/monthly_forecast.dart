@@ -23,6 +23,23 @@ class MonthlyForecast {
         'goalForecasts': goalForecasts.map((key, val) => MapEntry(key.toString(), val.toJson((v) => v))),
       };
 
+  factory MonthlyForecast.fromJson(Map<String, dynamic> json) => MonthlyForecast(
+        predictedMonthEndSpend: ExplainableValue.fromJson(
+            json['predictedMonthEndSpend'] as Map<String, dynamic>, (v) => (v as num).toDouble()),
+        predictedMonthEndBalance: ExplainableValue.fromJson(
+            json['predictedMonthEndBalance'] as Map<String, dynamic>, (v) => (v as num).toDouble()),
+        predictedIncomeTotal: ExplainableValue.fromJson(
+            json['predictedIncomeTotal'] as Map<String, dynamic>, (v) => (v as num).toDouble()),
+        cashFlowTrend: Map<String, double>.from(json['cashFlowTrend'] ?? {}),
+        goalForecasts: (json['goalForecasts'] as Map?)?.map(
+              (key, val) => MapEntry(
+                int.parse(key.toString()),
+                ExplainableValue.fromJson(val as Map<String, dynamic>, (v) => v as String),
+              ),
+            ) ??
+            {},
+      );
+
   MonthlyForecast copyWith({
     ExplainableValue<double>? predictedMonthEndSpend,
     ExplainableValue<double>? predictedMonthEndBalance,

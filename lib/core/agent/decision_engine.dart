@@ -1,4 +1,5 @@
 import 'financial_brain.dart';
+import '../utils/currency_formatter.dart';
 
 class DecisionResult {
   final bool isDecisionQuery;
@@ -48,7 +49,7 @@ class DecisionEngine implements FinancialEngine {
         decision: DecisionResult(
           isDecisionQuery: true,
           decisionText: "I couldn't identify the price of the item you want to purchase.",
-          recommendationText: "Please ask again specifying the amount (e.g. 'Can I buy a ₹50,000 laptop?').",
+          recommendationText: "Please ask again specifying the amount (e.g. 'Can I buy a ${CurrencyFormatter.getSymbol(context.currencyCode)}50,000 laptop?').",
           purchaseAmount: 0.0,
         ),
       );
@@ -62,14 +63,14 @@ class DecisionEngine implements FinancialEngine {
     String recommendationText = "";
 
     if (balance >= purchaseAmt + emergencyReserve) {
-      decisionText = "Yes, you can comfortably afford this purchase of ₹${purchaseAmt.toStringAsFixed(0)}.";
-      recommendationText = "Your emergency reserve of 3 months (₹${emergencyReserve.toStringAsFixed(0)}) remains untouched, leaving a surplus of ₹${(balance - purchaseAmt - emergencyReserve).toStringAsFixed(0)}.";
+      decisionText = "Yes, you can comfortably afford this purchase of ${CurrencyFormatter.format(purchaseAmt, context.currencyCode)}.";
+      recommendationText = "Your emergency reserve of 3 months (${CurrencyFormatter.format(emergencyReserve, context.currencyCode)}) remains untouched, leaving a surplus of ${CurrencyFormatter.format(balance - purchaseAmt - emergencyReserve, context.currencyCode)}.";
     } else if (balance >= purchaseAmt) {
-      decisionText = "Technically yes, you have the cash, but your emergency fund would fall below the safe 3-month boundary (₹${emergencyReserve.toStringAsFixed(0)}).";
-      recommendationText = "Your emergency buffer would drop to ₹${(balance - purchaseAmt).toStringAsFixed(0)}. Recommendation: Wait until you save an additional ₹${(purchaseAmt + emergencyReserve - balance).toStringAsFixed(0)} to maintain financial safety.";
+      decisionText = "Technically yes, you have the cash, but your emergency fund would fall below the safe 3-month boundary (${CurrencyFormatter.format(emergencyReserve, context.currencyCode)}).";
+      recommendationText = "Your emergency buffer would drop to ${CurrencyFormatter.format(balance - purchaseAmt, context.currencyCode)}. Recommendation: Wait until you save an additional ${CurrencyFormatter.format(purchaseAmt + emergencyReserve - balance, context.currencyCode)} to maintain financial safety.";
     } else {
-      decisionText = "No, you cannot afford this purchase of ₹${purchaseAmt.toStringAsFixed(0)} right now.";
-      recommendationText = "This purchase exceeds your current net balances by ₹${(purchaseAmt - balance).toStringAsFixed(0)}. Try saving ₹3,000/month to accumulate the funds in ${((purchaseAmt - balance) / 3000.0).ceil()} months.";
+      decisionText = "No, you cannot afford this purchase of ${CurrencyFormatter.format(purchaseAmt, context.currencyCode)} right now.";
+      recommendationText = "This purchase exceeds your current net balances by ${CurrencyFormatter.format(purchaseAmt - balance, context.currencyCode)}. Try saving ${CurrencyFormatter.format(3000, context.currencyCode)}/month to accumulate the funds in ${((purchaseAmt - balance) / 3000.0).ceil()} months.";
     }
 
     final result = DecisionResult(

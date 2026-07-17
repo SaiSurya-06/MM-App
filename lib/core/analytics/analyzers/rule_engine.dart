@@ -1,5 +1,6 @@
 import '../capability.dart';
 import '../models/financial_insight.dart';
+import '../../utils/currency_formatter.dart';
 
 class RuleEngine implements Capability<List<FinancialInsight>> {
   @override
@@ -101,7 +102,7 @@ class RuleEngine implements Capability<List<FinancialInsight>> {
             type: 'alert',
             priority: 'medium',
             title: 'Budget Overrun: ${status.categoryName}',
-            description: 'You exceeded your budget limit for ${status.categoryName} by ₹${(status.spent - status.limit).toStringAsFixed(0)}.',
+            description: 'You exceeded your budget limit for ${status.categoryName} by ${CurrencyFormatter.format(status.spent - status.limit, context.currencyCode)}.',
             action: 'Shift cash from Lifestyle to cover this category deficit.',
             confidence: 0.98,
             categoryName: status.categoryName,

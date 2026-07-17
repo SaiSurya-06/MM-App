@@ -1,4 +1,5 @@
 import 'financial_brain.dart';
+import '../utils/currency_formatter.dart';
 
 class ForecastResult {
   final List<String> burnRateAlerts;
@@ -95,7 +96,7 @@ class PredictionEngine implements FinancialEngine {
         final diff = monthsToTarget - acceleratedMonths;
 
         if (diff > 0.5) {
-          goalAccelerationTips.add("🎯 **Goal Accelerate**: Saving an extra **₹${addedSavings.toStringAsFixed(0)}/month** gets you to your **'$name'** goal **${diff.toStringAsFixed(1)} months** earlier!");
+          goalAccelerationTips.add("🎯 **Goal Accelerate**: Saving an extra **${CurrencyFormatter.format(addedSavings, context.currencyCode)}/month** gets you to your **'$name'** goal **${diff.toStringAsFixed(1)} months** earlier!");
         }
       }
     }

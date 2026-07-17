@@ -11,6 +11,7 @@ import 'budgets_provider.dart';
 import 'savings_goals_provider.dart';
 import 'debts_provider.dart';
 import 'accounts_provider.dart';
+import 'auth_provider.dart';
 
 class MoneyIntelligenceState {
   final MoneyIntelligenceReport? report;
@@ -83,9 +84,13 @@ class MoneyIntelligenceNotifier extends StateNotifier<MoneyIntelligenceState> {
       
       final snapshot = await _builder.build(state.selectedMonth);
       MoneyIntelligenceOrchestrator.instance.invalidateCache();
+      
+      final currencyCode = _ref.read(authProvider).profile?.preferredCurrency ?? 'USD';
+      
       final report = await MoneyIntelligenceOrchestrator.instance.orchestrate(
         snapshot,
         simulatedPurchaseAmount: state.simulatedPurchaseAmount,
+        currencyCode: currencyCode,
       );
 
       // Auto-archive report to Time Machine database
@@ -142,7 +147,9 @@ class MoneyIntelligenceNotifier extends StateNotifier<MoneyIntelligenceState> {
         whereArgs: [month],
       );
       if (results.isEmpty) return null;
-      return null;
+      final jsonString = results.first['report_json'] as String;
+      final decoded = jsonDecode(jsonString) as Map<String, dynamic>;
+      return MoneyIntelligenceReport.fromJson(decoded);
     } catch (_) {
       return null;
     }

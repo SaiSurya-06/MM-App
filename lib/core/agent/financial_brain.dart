@@ -16,6 +16,7 @@ class FinancialContext {
   final String query;
   final ExecutionPlan plan;
   final RetrievedData rawData;
+  final String currencyCode;
   
   // Enriched stages
   final Map<String, dynamic> metrics;
@@ -46,9 +47,10 @@ class FinancialContext {
     required this.coaching,
     required this.actions,
     required this.observabilityLogs,
+    this.currencyCode = 'INR',
   });
 
-  factory FinancialContext.initial(String query, ExecutionPlan plan, RetrievedData rawData) {
+  factory FinancialContext.initial(String query, ExecutionPlan plan, RetrievedData rawData, {String currencyCode = 'INR'}) {
     return FinancialContext(
       query: query,
       plan: plan,
@@ -64,6 +66,7 @@ class FinancialContext {
       coaching: CoachingResult.empty(),
       actions: [],
       observabilityLogs: {},
+      currencyCode: currencyCode,
     );
   }
 
@@ -79,6 +82,7 @@ class FinancialContext {
     CoachingResult? coaching,
     List<String>? actions,
     Map<String, dynamic>? observabilityLogs,
+    String? currencyCode,
   }) {
     return FinancialContext(
       query: query,
@@ -95,6 +99,7 @@ class FinancialContext {
       coaching: coaching ?? this.coaching,
       actions: actions ?? this.actions,
       observabilityLogs: observabilityLogs ?? this.observabilityLogs,
+      currencyCode: currencyCode ?? this.currencyCode,
     );
   }
 }

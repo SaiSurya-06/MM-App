@@ -41,8 +41,12 @@ class MoneyIntelligenceOrchestrator {
     _cachedSnapshotId = null;
   }
 
-  Future<MoneyIntelligenceReport> orchestrate(FinancialSnapshot snapshot, {double simulatedPurchaseAmount = 0.0}) async {
-    final snapshotId = '${snapshot.snapshotId}_sim_$simulatedPurchaseAmount';
+  Future<MoneyIntelligenceReport> orchestrate(
+    FinancialSnapshot snapshot, {
+    double simulatedPurchaseAmount = 0.0,
+    String currencyCode = 'INR',
+  }) async {
+    final snapshotId = '${snapshot.snapshotId}_sim_${simulatedPurchaseAmount}_curr_$currencyCode';
 
     // 1. Caching Check
     if (_cachedReport != null && _cachedSnapshotId == snapshotId) {
@@ -56,6 +60,7 @@ class MoneyIntelligenceOrchestrator {
     final args = {
       'snapshot': snapshotJson,
       'simulatedPurchaseAmount': simulatedPurchaseAmount,
+      'currencyCode': currencyCode,
     };
 
     final report = await compute(_runOrchestratorIsolate, args);
@@ -68,13 +73,17 @@ class MoneyIntelligenceOrchestrator {
   }
 
   // Runs the actual pipeline (safe to run inside Isolate)
-  Future<MoneyIntelligenceReport> executePipeline(FinancialSnapshot snapshot, {double simulatedPurchaseAmount = 0.0}) async {
-    final snapshotId = '${snapshot.snapshotId}_sim_$simulatedPurchaseAmount';
+  Future<MoneyIntelligenceReport> executePipeline(
+    FinancialSnapshot snapshot, {
+    double simulatedPurchaseAmount = 0.0,
+    String currencyCode = 'INR',
+  }) async {
+    final snapshotId = '${snapshot.snapshotId}_sim_${simulatedPurchaseAmount}_curr_$currencyCode';
     debugPrint('[Orchestrator] Starting staged analytics pipeline for month: ${snapshot.selectedMonth}');
     final stopwatch = Stopwatch()..start();
 
     // 2. Initialize Context
-    final context = OrchestratorContext(snapshot);
+    final context = OrchestratorContext(snapshot, currencyCode: currencyCode);
     context.simulatedPurchaseAmount = simulatedPurchaseAmount;
 
     // 3. Stage 1: Facts & Basic Analyzers
@@ -245,12 +254,12 @@ class MoneyIntelligenceOrchestrator {
   }
 }
 
-// Top-level function for background isolate execution
 Future<MoneyIntelligenceReport> _runOrchestratorIsolate(Map<String, dynamic> args) async {
   final snapshotJson = args['snapshot'] as Map<String, dynamic>;
   final simulatedPurchaseAmount = (args['simulatedPurchaseAmount'] as num).toDouble();
+  final currencyCode = args['currencyCode'] as String? ?? 'INR';
   
   final snapshot = FinancialSnapshot.fromFullJson(snapshotJson);
   final orchestrator = MoneyIntelligenceOrchestrator.instance;
-  return await orchestrator.executePipeline(snapshot, simulatedPurchaseAmount: simulatedPurchaseAmount);
+  return await orchestrator.executePipeline(snapshot, simulatedPurchaseAmount: simulatedPurchaseAmount, currencyCode: currencyCode);
 }

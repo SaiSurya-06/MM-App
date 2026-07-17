@@ -28,6 +28,13 @@ class ReportMetadata {
         'analysisDurationMs': analysisDurationMs,
         'snapshotId': snapshotId,
       };
+
+  factory ReportMetadata.fromJson(Map<String, dynamic> json) => ReportMetadata(
+        reportVersion: json['reportVersion'] as String? ?? '1.0.0',
+        generatedAt: DateTime.parse(json['generatedAt'] as String),
+        analysisDurationMs: json['analysisDurationMs'] as int? ?? 0,
+        snapshotId: json['snapshotId'] as String? ?? '',
+      );
 }
 
 class MoneyIntelligenceReport {
@@ -73,6 +80,24 @@ class MoneyIntelligenceReport {
         'plugins': plugins,
         'metadata': metadata.toJson(),
       };
+
+  factory MoneyIntelligenceReport.fromJson(Map<String, dynamic> json) => MoneyIntelligenceReport(
+        snapshot: MoneySnapshot.fromJson(json['snapshot'] as Map<String, dynamic>),
+        velocity: SpendingVelocity.fromJson(json['velocity'] as Map<String, dynamic>),
+        health: BudgetHealth.fromJson(json['health'] as Map<String, dynamic>),
+        forecast: MonthlyForecast.fromJson(json['forecast'] as Map<String, dynamic>),
+        risk: FinancialRisk.fromJson(json['risk'] as Map<String, dynamic>),
+        purchase: PurchaseDecision.fromJson(json['purchase'] as Map<String, dynamic>),
+        goals: GoalPlan.fromJson(json['goals'] as Map<String, dynamic>),
+        insights: (json['insights'] as List?)
+                ?.map((e) => FinancialInsight.fromJson(e as Map<String, dynamic>))
+                .toList() ??
+            [],
+        visualizations: VisualizationModels.fromJson(json['visualizations'] as Map<String, dynamic>),
+        story: MoneyStory.fromJson(json['story'] as Map<String, dynamic>),
+        plugins: Map<String, dynamic>.from(json['plugins'] ?? {}),
+        metadata: ReportMetadata.fromJson(json['metadata'] as Map<String, dynamic>),
+      );
 
   MoneyIntelligenceReport copyWith({
     MoneySnapshot? snapshot,

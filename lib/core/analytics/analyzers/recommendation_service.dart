@@ -1,6 +1,7 @@
 import '../capability.dart';
 import '../models/financial_insight.dart';
 import 'rule_engine.dart';
+import '../../utils/currency_formatter.dart';
 
 class RecommendationService implements Capability<List<FinancialInsight>> {
   @override
@@ -40,9 +41,9 @@ class RecommendationService implements Capability<List<FinancialInsight>> {
             type: 'warning',
             priority: 'high',
             title: 'Drift Warning: Monthly Cap Risk',
-            description: 'You are spending at a pace of ₹${velocity.dailyBurnRate.toStringAsFixed(0)}/day. '
-                'At this rate, you will exceed your overall budget by ₹${projectedOver.toStringAsFixed(0)} at month end.',
-            action: 'Slow down daily discretionary spending to ₹${velocity.expectedDailyPace.toStringAsFixed(0)}/day.',
+            description: 'You are spending at a pace of ${CurrencyFormatter.format(velocity.dailyBurnRate, context.currencyCode)}/day. '
+                'At this rate, you will exceed your overall budget by ${CurrencyFormatter.format(projectedOver, context.currencyCode)} at month end.',
+            action: 'Slow down daily discretionary spending to ${CurrencyFormatter.format(velocity.expectedDailyPace, context.currencyCode)}/day.',
             confidence: forecast.predictedMonthEndSpend.confidence,
             impactAmount: projectedOver,
           ));
@@ -60,7 +61,7 @@ class RecommendationService implements Capability<List<FinancialInsight>> {
             priority: 'high',
             title: 'Accelerate Emergency Fund',
             description: 'Your Emergency Fund goal is delayed by ${alloc.delayDays} days due to lower savings rates.',
-            action: 'Allocate ₹${alloc.accelerationPotential.toStringAsFixed(0)} from Lifestyle wants to hit this target sooner.',
+            action: 'Allocate ${CurrencyFormatter.format(alloc.accelerationPotential, context.currencyCode)} from Lifestyle wants to hit this target sooner.',
             confidence: 0.90,
             impactAmount: alloc.accelerationPotential,
           ));
