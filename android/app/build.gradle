@@ -23,15 +23,32 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
-// Load signing credentials from key.properties
+// Load signing credentials from key.properties, environment variables, or local.properties
+def keyAliasVal = System.getenv("KEY_ALIAS") ?: (localProperties.getProperty("keyAlias") ?: "money_manager")
+def keyPasswordVal = System.getenv("KEY_PASSWORD") ?: localProperties.getProperty("keyPassword")
+def storePasswordVal = System.getenv("KEYSTORE_PASSWORD") ?: localProperties.getProperty("storePassword")
+def storeFileVal = System.getenv("KEYSTORE_FILE") ?: (localProperties.getProperty("storeFile") ?: "money_manager.keystore")
+
 def keyPropertiesFile = rootProject.file("key.properties")
-def keyProperties = new Properties()
 if (keyPropertiesFile.exists()) {
+    def keyProperties = new Properties()
     keyPropertiesFile.withReader("UTF-8") { reader -> keyProperties.load(reader) }
+    if (System.getenv("KEY_ALIAS") == null && keyProperties.containsKey("keyAlias")) {
+        keyAliasVal = keyProperties.getProperty("keyAlias")
+    }
+    if (System.getenv("KEY_PASSWORD") == null && keyProperties.containsKey("keyPassword")) {
+        keyPasswordVal = keyProperties.getProperty("keyPassword")
+    }
+    if (System.getenv("KEYSTORE_PASSWORD") == null && keyProperties.containsKey("storePassword")) {
+        storePasswordVal = keyProperties.getProperty("storePassword")
+    }
+    if (System.getenv("KEYSTORE_FILE") == null && keyProperties.containsKey("storeFile")) {
+        storeFileVal = keyProperties.getProperty("storeFile")
+    }
 }
 
 android {
-    namespace = "com.example.money_manager"
+    namespace = "com.saisurya.moneymanager"
     compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
@@ -60,7 +77,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.money_manager"
+        applicationId = "com.saisurya.moneymanager"
         minSdk = 26
         targetSdk = 34
         versionCode = flutterVersionCode.toInteger()
@@ -71,21 +88,36 @@ android {
 
     signingConfigs {
         release {
-            keyAlias = keyProperties["keyAlias"]
-            keyPassword = keyProperties["keyPassword"]
-            storeFile = keyProperties["storeFile"] ? file("${keyProperties["storeFile"]}") : null
-            storePassword = keyProperties["storePassword"]
+            keyAlias = keyAliasVal
+            keyPassword = keyPasswordVal
+            storeFile = storeFileVal ? file(storeFileVal) : null
+            storePassword = storePasswordVal
         }
     }
 
     buildTypes {
         debug {
-            // Use the same stable key as release so debug APKs can always update
-            signingConfig = signingConfigs.release
+            // Use the same stable key as release if configured, or default signing config
+            signingConfig = (keyPasswordVal != null && storePasswordVal != null) ? signingConfigs.release : null
         }
         release {
             signingConfig = signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // Fail release builds gracefully if any configuration is missing
+    gradle.taskGraph.whenReady { taskGraph ->
+        if (taskGraph.hasTask(':app:assembleRelease') || taskGraph.hasTask(':app:bundleRelease')) {
+            if (keyPasswordVal == null || storePasswordVal == null || storeFileVal == null) {
+                throw new GradleException("Release signing configuration is missing. " +
+                    "Please configure keyAlias, keyPassword, storePassword, and storeFile in key.properties, " +
+                    "local.properties, or via environment variables (KEY_ALIAS, KEY_PASSWORD, KEYSTORE_PASSWORD, KEYSTORE_FILE).")
+            }
+            if (storeFileVal != null && !file(storeFileVal).exists()) {
+                throw new GradleException("Keystore file not found at: " + file(storeFileVal).absolutePath + 
+                    ". Please check storeFile configuration.")
+            }
         }
     }
 }

@@ -94,10 +94,18 @@ jobs:
           echo "flutter.versionCode=${VERSION_CODE}" >> android/local.properties
           echo "flutter.versionName=${VERSION}"      >> android/local.properties
 
+      # ── Decode Keystore from Secrets ─────────────────────────────
+      - name: 🔑 Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/money_manager.keystore
+
       # ── Build exactly ONE release APK ────────────────────────────
-      # Keystore and key.properties are committed in the repo.
-      # No secrets needed.
       - name: 🔨 Build release APK
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEYSTORE_FILE: "money_manager.keystore"
         run: flutter build apk --release --android-skip-build-dependency-validation
 
       # ── Rename to a human-friendly filename ──────────────────────

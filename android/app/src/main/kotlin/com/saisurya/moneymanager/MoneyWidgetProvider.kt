@@ -1,4 +1,4 @@
-package com.example.money_manager
+package com.saisurya.moneymanager
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
