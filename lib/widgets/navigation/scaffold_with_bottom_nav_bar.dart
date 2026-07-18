@@ -60,7 +60,9 @@ class _ScaffoldWithBottomNavBarState extends ConsumerState<ScaffoldWithBottomNav
       if (action != null) {
         _handleWidgetAction(action);
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      debugPrint('Silent error checking initial widget action in ScaffoldWithBottomNavBar: $e\n$stackTrace');
+    }
   }
 
   void _handleWidgetAction(String action) {

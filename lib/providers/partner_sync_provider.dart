@@ -1003,7 +1003,9 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       if (await file.exists()) {
         await file.delete();
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      debugPrint('Silent error deleting partner state file in PartnerSyncNotifier.disconnect: $e\n$stackTrace');
+    }
   }
 
   @override

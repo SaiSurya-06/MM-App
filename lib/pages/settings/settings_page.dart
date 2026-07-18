@@ -521,7 +521,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         if (!BackupService.instance.isSignedIn && !BackupService.instance.isSimulatedMode) {
           final signedIn = await BackupService.instance.signIn();
           if (!signedIn) {
-            if (mounted) {
+            if (context.mounted) {
               ToastNotification.show(context, 'Failed to sign in to Google Drive', isError: true);
             }
             return;
@@ -530,7 +530,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         success = await BackupService.instance.backupToGoogleDrive(format);
       }
 
-      if (mounted) {
+      if (context.mounted) {
         if (success) {
           ToastNotification.show(
             context,
@@ -543,7 +543,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         }
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ToastNotification.show(context, 'Backup error: $e', isError: true);
       }
     }
@@ -663,7 +663,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         if (!BackupService.instance.isSignedIn && !BackupService.instance.isSimulatedMode) {
           final signedIn = await BackupService.instance.signIn();
           if (!signedIn) {
-            if (mounted) {
+            if (context.mounted) {
               ToastNotification.show(context, 'Failed to sign in to Google Drive', isError: true);
             }
             return;
@@ -672,7 +672,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         success = await BackupService.instance.restoreFromGoogleDrive(format);
       }
 
-      if (mounted) {
+      if (context.mounted) {
         if (success) {
           ref.read(accountsProvider.notifier).loadAccounts();
           ref.read(transactionsProvider.notifier).loadTransactions();
@@ -694,7 +694,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         }
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         ToastNotification.show(context, 'Restore error: $e', isError: true);
       }
     }
@@ -734,7 +734,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ],
           ),
         );
-        if (discard == true && mounted) {
+        if (discard == true && context.mounted) {
           Navigator.pop(context);
         }
       },
@@ -1016,10 +1016,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     onTap: () async {
                       if (BackupService.instance.isSignedIn || BackupService.instance.isSimulatedMode) {
                         await BackupService.instance.signOut();
+                        if (!context.mounted) return;
                         setState(() {});
                         ToastNotification.show(context, 'Signed out of backup services.');
                       } else {
                         final success = await BackupService.instance.signIn();
+                        if (!context.mounted) return;
                         setState(() {});
                         if (success) {
                           ToastNotification.show(
@@ -1027,7 +1029,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             'Google Drive Backup connected successfully!'
                           );
                         } else {
-                          if (mounted) {
+                          if (context.mounted) {
                             showDialog(
                               context: context,
                               builder: (BuildContext ctx) {

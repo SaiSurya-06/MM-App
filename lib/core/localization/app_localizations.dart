@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -215,7 +216,9 @@ class LocaleNotifier extends StateNotifier<String> {
           state = savedLocale;
         }
       }
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      debugPrint('Silent error loading locale in LocaleNotifier: $e\n$stackTrace');
+    }
   }
 
   Future<void> setLocale(String locale) async {
@@ -225,7 +228,9 @@ class LocaleNotifier extends StateNotifier<String> {
         final directory = await getApplicationDocumentsDirectory();
         final file = File('${directory.path}/language.txt');
         await file.writeAsString(locale);
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error writing locale in LocaleNotifier.setLocale: $e\n$stackTrace');
+      }
     }
   }
 }

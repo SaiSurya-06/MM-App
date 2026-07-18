@@ -211,6 +211,8 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
       _testingSuccess = success;
     });
 
+    if (!mounted) return;
+
     if (success) {
       ToastNotification.show(context, 'Connection successful! Web App is active.');
     } else {
@@ -226,6 +228,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
     }
 
     final code = await ref.read(partnerSyncProvider.notifier).generateInviteCode(url);
+    if (!mounted) return;
     if (code != null) {
       setState(() {
         _generatedInviteCode = code;
@@ -242,6 +245,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
     }
 
     final success = await ref.read(partnerSyncProvider.notifier).joinWithInviteCode(code);
+    if (!mounted) return;
     if (success) {
       ToastNotification.show(context, 'Successfully joined the partner sharing room!');
     } else {
@@ -252,10 +256,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
 
   Future<void> _scanQrCode() async {
     final status = await Permission.camera.request();
+    if (!mounted) return;
     if (status != PermissionStatus.granted) {
-      if (mounted) {
-        ToastNotification.show(context, 'Camera permission is required to scan QR codes.', isError: true);
-      }
+      ToastNotification.show(context, 'Camera permission is required to scan QR codes.', isError: true);
       return;
     }
 
@@ -301,6 +304,8 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
     final success = await ref.read(partnerSyncProvider.notifier).syncNow();
     _syncIconController.stop();
 
+    if (!mounted) return;
+
     if (success) {
       ToastNotification.show(context, 'Data synced successfully.');
     } else {
@@ -331,6 +336,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
 
     if (confirm == true) {
       await ref.read(partnerSyncProvider.notifier).disconnect();
+      if (!mounted) return;
       setState(() {
         _generatedInviteCode = null;
         _urlController.clear();
@@ -1251,7 +1257,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
               padding: const EdgeInsets.symmetric(horizontal: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () => _showConflictResolverDialog(context, syncState),
+            onPressed: () => _showConflictResolverDialog(syncState),
             child: const Text(
               'Resolve',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Inter'),
@@ -1262,16 +1268,16 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
     );
   }
 
-  void _showConflictResolverDialog(BuildContext context, PartnerSyncState syncState) {
+  void _showConflictResolverDialog(PartnerSyncState syncState) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
+      builder: (dialogCtx) {
+        final isDark = Theme.of(dialogCtx).brightness == Brightness.dark;
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (statefulCtx, setState) {
             if (syncState.conflicts.isEmpty) {
-              Navigator.pop(context);
+              Navigator.pop(statefulCtx);
               return const SizedBox.shrink();
             }
             final conflict = syncState.conflicts.first;
@@ -1300,8 +1306,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                   // Option 1: Keep Mine
                   InkWell(
                     onTap: () async {
-                      Navigator.pop(context);
+                      Navigator.pop(statefulCtx);
                       await ref.read(partnerSyncProvider.notifier).resolveConflict(conflict, true);
+                      if (!mounted) return;
                       ToastNotification.show(context, 'Resolved: Kept your local version.');
                     },
                     child: Container(
@@ -1335,8 +1342,9 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
                   // Option 2: Keep Partner's
                   InkWell(
                     onTap: () async {
-                      Navigator.pop(context);
+                      Navigator.pop(statefulCtx);
                       await ref.read(partnerSyncProvider.notifier).resolveConflict(conflict, false);
+                      if (!mounted) return;
                       ToastNotification.show(context, 'Resolved: Kept partner\'s version.');
                     },
                     child: Container(
@@ -1369,7 +1377,7 @@ class _PartnersPageState extends ConsumerState<PartnersPage> with SingleTickerPr
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(statefulCtx),
                   child: const Text('Cancel'),
                 ),
               ],

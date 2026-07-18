@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'execution_plan.dart';
 import 'retriever.dart';
 
@@ -132,7 +133,9 @@ class FinancialAnalyticsEngine {
         if (dt.hour >= 20) {
           nightSum += amt;
         }
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error in AnalyticsEngine._runHeuristicCalculations: $e\n$stackTrace');
+      }
 
       if (amt >= 1000 && (cat == 'Food' || cat == 'Entertainment')) {
         impulseSum += amt;

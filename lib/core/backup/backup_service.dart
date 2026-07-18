@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:path/path.dart' as p;
@@ -74,7 +75,9 @@ class BackupService {
     }
     try {
       _currentUser = await _googleSignIn.signOut();
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      debugPrint('Silent error in BackupService.signOut: $e\n$stackTrace');
+    }
   }
 
   // --- General Google Drive File Upload & Download Helpers ---
@@ -194,7 +197,9 @@ class BackupService {
       try {
         final list = await db.query(table);
         data[table] = list;
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error exporting table $table in BackupService.exportDatabaseToJson: $e\n$stackTrace');
+      }
     }
     return jsonEncode(data);
   }
@@ -361,7 +366,9 @@ class BackupService {
         if (recurrence != 'none' && recEndStr.isNotEmpty) {
           try {
             recurrenceEndDate = DateTime.parse(recEndStr);
-          } catch (_) {}
+          } catch (e, stackTrace) {
+            debugPrint('Silent error parsing recurrenceEndDate in BackupService.importDataFromJson: $e\n$stackTrace');
+          }
         }
 
         final isPrivate = isPrivateStr == 'yes' || isPrivateStr == 'true' || isPrivateStr == '1';

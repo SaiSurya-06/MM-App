@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -85,7 +86,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } else {
       try {
         await NotificationService.instance.cancelDailyReminder();
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error canceling daily reminder in AuthNotifier: $e\n$stackTrace');
+      }
     }
   }
 
@@ -313,7 +316,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         errMsg = 'Too many failed attempts. App locked for 30 minutes.';
         try {
           await NotificationService.instance.showLockoutAlert();
-        } catch (_) {}
+        } catch (e, stackTrace) {
+          debugPrint('Silent error showing lockout alert in AuthNotifier.verifyPin: $e\n$stackTrace');
+        }
       }
       
       final attemptsRemaining = 5 - newAttempts;

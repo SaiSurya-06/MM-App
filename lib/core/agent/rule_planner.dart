@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'planner.dart';
 import 'execution_plan.dart';
 import 'financial_brain.dart';
@@ -711,7 +712,9 @@ class RulePlanner implements Planner {
           weekendCount++;
           weekendSum += amt;
         }
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error in RulePlanner._buildOverviewResponse: $e\n$stackTrace');
+      }
     }
 
     final fallbackText = data.fallbackMonthUsed 

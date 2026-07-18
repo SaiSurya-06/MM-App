@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'database.dart';
 import '../agent/execution_plan.dart';
@@ -38,7 +39,9 @@ class DatabaseRetriever {
               targetMonth = dt.month;
               targetYear = dt.year;
               fallbackMonthUsed = true;
-            } catch (_) {}
+            } catch (e, stackTrace) {
+              debugPrint('Silent error parsing latestDateStr in DatabaseRetriever.retrieveOverviewData: $e\n$stackTrace');
+            }
           }
         }
       }

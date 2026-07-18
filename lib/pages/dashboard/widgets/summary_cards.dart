@@ -67,6 +67,8 @@ class _SummaryCardsState extends ConsumerState<SummaryCards> {
       authenticated = await authNotifier.authenticateBiometrically();
     }
 
+    if (!mounted) return;
+
     // 2. Fallback to PIN dialog if not authenticated
     if (!authenticated) {
       final pinVerified = await showDialog<bool>(
@@ -740,6 +742,7 @@ class _PinVerificationDialogState extends State<PinVerificationDialog> {
 
   Future<void> _verify() async {
     final success = await widget.onVerify(_pin);
+    if (!mounted) return;
     if (success) {
       Navigator.of(context).pop(true);
     } else {

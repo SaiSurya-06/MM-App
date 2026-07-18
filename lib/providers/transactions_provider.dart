@@ -290,7 +290,9 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
               }
             }
           }
-        } catch (_) {}
+        } catch (e, stackTrace) {
+          debugPrint('Silent error checking category limit alert in TransactionsNotifier.addTransaction: $e\n$stackTrace');
+        }
       }
 
       // Check budget threshold alerts immediately
@@ -389,7 +391,9 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
               }
             }
           }
-        } catch (_) {}
+        } catch (e, stackTrace) {
+          debugPrint('Silent error checking category limit alert in TransactionsNotifier.editTransaction: $e\n$stackTrace');
+        }
       }
 
       await _ref.read(budgetsProvider.notifier).checkBudgetThreshold(
@@ -1304,7 +1308,9 @@ class TransactionsNotifier extends StateNotifier<TransactionsState> {
           if (recurrence != 'none' && recEndStr.isNotEmpty) {
             try {
               recurrenceEndDate = DateTime.parse(recEndStr);
-            } catch (_) {}
+            } catch (e, stackTrace) {
+              debugPrint('Silent error parsing recurrenceEndDate in TransactionsNotifier.importTransactionsFromCSV: $e\n$stackTrace');
+            }
           }
 
           final isPrivate = isPrivateStr == 'yes' || isPrivateStr == 'true' || isPrivateStr == '1';

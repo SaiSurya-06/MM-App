@@ -128,6 +128,7 @@ class _AdjustTabState extends ConsumerState<AdjustTab> {
                             await ref.read(budgetsProvider.notifier).setBudget(_sourceCategoryId!, sourceBudget.limitAmount - reallocAmt);
                             await ref.read(budgetsProvider.notifier).setBudget(_destCategoryId!, destBudget.limitAmount + reallocAmt);
 
+                            if (!context.mounted) return;
                             _amountController.clear();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Budget reallocated successfully!'), backgroundColor: Colors.green),

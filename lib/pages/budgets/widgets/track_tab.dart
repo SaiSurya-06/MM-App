@@ -64,7 +64,7 @@ class _TrackTabState extends ConsumerState<TrackTab> {
                       currency: 'INR',
                     );
                   } catch (e) {
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Failed to export PDF: $e'), backgroundColor: Colors.redAccent),
                       );
@@ -87,7 +87,7 @@ class _TrackTabState extends ConsumerState<TrackTab> {
                       currency: 'INR',
                     );
                   } catch (e) {
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Failed to export CSV: $e'), backgroundColor: Colors.redAccent),
                       );

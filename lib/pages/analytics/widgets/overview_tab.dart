@@ -411,6 +411,7 @@ class _OverviewTabState extends ConsumerState<OverviewTab> {
                           rec.title,
                           rec.description,
                         );
+                        if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Alert Reminder Created!')),
                         );

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart' show ConflictAlgorithm;
 import '../core/database/database.dart';
@@ -169,7 +170,9 @@ class PlanningStateNotifier extends StateNotifier<PlanningState> {
     try {
       final list = await _checkinDao.getAllCheckins();
       state = state.copyWith(checkins: list);
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      debugPrint('Silent error loading weekly checkins in PlanningNotifier.loadWeeklyCheckins: $e\n$stackTrace');
+    }
   }
 
   void updateSalary(double amount) => state = state.copyWith(salary: amount);

@@ -168,7 +168,9 @@ class _AnalyticsAdvancedPageState extends ConsumerState<AnalyticsAdvancedPage> {
                       const SnackBar(content: Text('Alert saved! You will be notified.')),
                     );
                   }
-                } catch (_) {}
+                } catch (e, stackTrace) {
+                  debugPrint('Silent error setting alert in _showRecommendationDetail: $e\n$stackTrace');
+                }
               },
               icon: const Icon(Icons.notifications_active, size: 14, color: Colors.white),
               label: const Text('Set Alert', style: TextStyle(color: Colors.white, fontSize: 12)),

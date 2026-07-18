@@ -107,6 +107,7 @@ class _ReviewTabState extends ConsumerState<ReviewTab> {
                               _notesController.text.isNotEmpty ? _notesController.text : null,
                             );
 
+                            if (!context.mounted) return;
                             setState(() {
                               _selectedMood = null;
                               _selectedReasonTags.clear();

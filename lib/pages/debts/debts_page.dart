@@ -96,7 +96,7 @@ class _DebtsPageState extends ConsumerState<DebtsPage> {
                 }
 
                 final success = await ref.read(debtsProvider.notifier).recordPayment(debt.id!, amt, selectedAccountId!);
-                if (success && mounted) {
+                if (success && context.mounted) {
                   ToastNotification.show(context, 'Payment of ${CurrencyFormatter.format(amt, currency)} recorded.');
                   Navigator.pop(context);
                 }

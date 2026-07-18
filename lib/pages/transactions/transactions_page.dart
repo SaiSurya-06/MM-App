@@ -62,14 +62,16 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                     _selectedTxs.toList(),
                     cat.id!,
                   );
-                  if (success && mounted) {
+                  if (success && context.mounted) {
                     ToastNotification.show(context, 'Updated category for ${_selectedTxs.length} transactions.');
                     setState(() {
                       _isSelectionMode = false;
                       _selectedTxs.clear();
                     });
                   }
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                 },
               );
             },
@@ -94,14 +96,16 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
             onPressed: () async {
               final success = await ref.read(transactionsProvider.notifier).bulkDeleteTransactions(_selectedTxs.toList());
-              if (success && mounted) {
+              if (success && context.mounted) {
                 ToastNotification.show(context, 'Deleted ${_selectedTxs.length} transactions.');
                 setState(() {
                   _isSelectionMode = false;
                   _selectedTxs.clear();
                 });
               }
-              Navigator.pop(context);
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
             },
             child: const Text('Delete'),
           ),
@@ -148,7 +152,7 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                       recurrence: 'none',
                       isPrivate: false,
                     );
-                    if (success && mounted) {
+                    if (success && context.mounted) {
                       ToastNotification.show(context, 'Logged: ${tmpl.title} (${CurrencyFormatter.format(tmpl.amount, currency)})');
                     }
                   },
@@ -164,7 +168,9 @@ class _TransactionsPageState extends ConsumerState<TransactionsPage> {
                             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
                             onPressed: () async {
                               await ref.read(transactionTemplatesProvider.notifier).deleteTemplate(tmpl.id!);
-                              Navigator.pop(context);
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                              }
                             },
                             child: const Text('Delete'),
                           ),
@@ -1837,6 +1843,7 @@ class _AdvancedFiltersSheetState extends ConsumerState<AdvancedFiltersSheet> {
                             );
                             if (confirmed == true) {
                               await ref.read(transactionsProvider.notifier).deletePreset(preset['id'] as int);
+                              if (!context.mounted) return;
                               ToastNotification.show(context, 'Preset deleted.');
                             }
                           },
@@ -1869,7 +1876,7 @@ class _AdvancedFiltersSheetState extends ConsumerState<AdvancedFiltersSheet> {
                     }
                     await ref.read(transactionsProvider.notifier).savePreset(name);
                     _presetNameController.clear();
-                    if (mounted) {
+                    if (context.mounted) {
                       ToastNotification.show(context, 'Preset "$name" saved.');
                     }
                   },

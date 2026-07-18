@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'financial_brain.dart';
 import '../utils/currency_formatter.dart';
 
@@ -26,7 +27,9 @@ class InsightEngine implements FinancialEngine {
         if (dt.hour >= 20) {
           nightSum += amt;
         }
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error in InsightEngine._runHeuristicCalculations: $e\n$stackTrace');
+      }
 
       if (amt >= 1000 && (cat == 'Food' || cat == 'Entertainment')) {
         impulseSum += amt;

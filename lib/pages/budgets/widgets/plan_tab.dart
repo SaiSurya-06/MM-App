@@ -112,6 +112,7 @@ class _PlanTabState extends ConsumerState<PlanTab> {
             onPressed: totalPct == 100.0
                 ? () async {
                     await notifier.commitPlanToDatabase();
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Plan saved successfully!'), backgroundColor: Colors.green),
                     );
@@ -320,11 +321,10 @@ class _PlanTabState extends ConsumerState<PlanTab> {
                   final updatedCat = item.category!.copyWith(name: newName);
                   final success = await ref.read(categoriesProvider.notifier).updateCategory(updatedCat);
                   if (!success) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to rename category in database.'), backgroundColor: Colors.redAccent),
-                      );
-                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to rename category in database.'), backgroundColor: Colors.redAccent),
+                    );
                     Navigator.pop(context);
                     return;
                   }
@@ -337,7 +337,7 @@ class _PlanTabState extends ConsumerState<PlanTab> {
                   _controllers[newName] = controller;
                 }
 
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                 }
               },
@@ -448,11 +448,10 @@ class _PlanTabState extends ConsumerState<PlanTab> {
 
                     final catId = await ref.read(categoriesProvider.notifier).addCategory(newCat);
                     if (catId == null) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to add category to database.'), backgroundColor: Colors.redAccent),
-                        );
-                      }
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to add category to database.'), backgroundColor: Colors.redAccent),
+                      );
                       Navigator.pop(context);
                       return;
                     }
@@ -467,7 +466,7 @@ class _PlanTabState extends ConsumerState<PlanTab> {
                       _deletedDefaultCategories.remove(name.toLowerCase());
                     });
 
-                    if (mounted) {
+                    if (context.mounted) {
                       Navigator.pop(context);
                     }
                   },

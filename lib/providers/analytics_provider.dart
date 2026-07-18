@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:home_widget/home_widget.dart';
@@ -423,7 +424,9 @@ class AnalyticsNotifier extends StateNotifier<AnalyticsState> {
           name: 'MoneyWidgetProvider',
           androidName: 'MoneyWidgetProvider',
         );
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        debugPrint('Silent error updating HomeWidget in AnalyticsNotifier._calculateAnalytics: $e\n$stackTrace');
+      }
 
       // E. Calculate Category Trends
       final ninetyDaysAgo = now.subtract(const Duration(days: 90));

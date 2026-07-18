@@ -100,7 +100,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                       fromAccountId: selectedAccountId!,
                       amount: amt,
                     );
-                if (success && mounted) {
+                if (success && context.mounted) {
                   ToastNotification.show(context, 'Contributed ${CurrencyFormatter.format(amt, currency)} to ${goal.name}!');
                   Navigator.pop(context);
                 }
@@ -181,7 +181,7 @@ class _SavingsGoalsPageState extends ConsumerState<SavingsGoalsPage> {
                       toAccountId: selectedAccountId!,
                       amount: amt,
                     );
-                if (success && mounted) {
+                if (success && context.mounted) {
                   ToastNotification.show(context, 'Withdrew ${CurrencyFormatter.format(amt, currency)} from ${goal.name}!');
                   Navigator.pop(context);
                 }
@@ -824,7 +824,7 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
                             ),
                             onPressed: () async {
                               await ref.read(budgetsProvider.notifier).applyOptimizations(optResult.suggestions);
-                              if (mounted) {
+                              if (context.mounted) {
                                 ToastNotification.show(context, 'Budgets successfully optimized!');
                               }
                             },

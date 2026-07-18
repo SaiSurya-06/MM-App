@@ -101,22 +101,31 @@ android {
             signingConfig = (keyPasswordVal != null && storePasswordVal != null) ? signingConfigs.release : null
         }
         release {
-            signingConfig = signingConfigs.release
+            signingConfig = (keyPasswordVal != null && storePasswordVal != null && storeFileVal != null && file(storeFileVal).exists())
+                ? signingConfigs.release
+                : signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
-    // Fail release builds gracefully if any configuration is missing
+    // Fail release builds gracefully if any configuration is missing, unless running on CI
     gradle.taskGraph.whenReady { taskGraph ->
         if (taskGraph.hasTask(':app:assembleRelease') || taskGraph.hasTask(':app:bundleRelease')) {
             if (keyPasswordVal == null || storePasswordVal == null || storeFileVal == null) {
-                throw new GradleException("Release signing configuration is missing. " +
-                    "Please configure keyAlias, keyPassword, storePassword, and storeFile in key.properties, " +
-                    "local.properties, or via environment variables (KEY_ALIAS, KEY_PASSWORD, KEYSTORE_PASSWORD, KEYSTORE_FILE).")
-            }
-            if (storeFileVal != null && !file(storeFileVal).exists()) {
-                throw new GradleException("Keystore file not found at: " + file(storeFileVal).absolutePath + 
-                    ". Please check storeFile configuration.")
+                if (System.getenv("CI") == "true") {
+                    println "WARNING: Release signing configuration is missing. Falling back to debug signing config for CI build."
+                } else {
+                    throw new GradleException("Release signing configuration is missing. " +
+                        "Please configure keyAlias, keyPassword, storePassword, and storeFile in key.properties, " +
+                        "local.properties, or via environment variables (KEY_ALIAS, KEY_PASSWORD, KEYSTORE_PASSWORD, KEYSTORE_FILE).")
+                }
+            } else if (!file(storeFileVal).exists()) {
+                if (System.getenv("CI") == "true") {
+                    println "WARNING: Keystore file not found at: " + file(storeFileVal).absolutePath + ". Falling back to debug signing config for CI build."
+                } else {
+                    throw new GradleException("Keystore file not found at: " + file(storeFileVal).absolutePath + 
+                        ". Please check storeFile configuration.")
+                }
             }
         }
     }

@@ -196,7 +196,9 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
               displayText = summaryComp.data['text']?.toString() ?? "";
             }
           }
-        } catch (_) {}
+        } catch (e, stackTrace) {
+          debugPrint('Silent error parsing structured text in _loadMessages: $e\n$stackTrace');
+        }
 
         Widget? chartWidget;
         try {
@@ -254,7 +256,9 @@ class _ChatbotPageState extends ConsumerState<ChatbotPage> {
               );
             }
           }
-        } catch (_) {}
+        } catch (e, stackTrace) {
+          debugPrint('Silent error building chart widget in _loadMessages: $e\n$stackTrace');
+        }
 
         loaded.add(ChatMessage(
           text: displayText,

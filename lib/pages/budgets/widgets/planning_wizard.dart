@@ -788,11 +788,10 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
                   final updatedCat = existingCat.copyWith(name: newName);
                   final success = await ref.read(categoriesProvider.notifier).updateCategory(updatedCat);
                   if (!success) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to rename category in database.'), backgroundColor: Colors.redAccent),
-                      );
-                    }
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to rename category in database.'), backgroundColor: Colors.redAccent),
+                    );
                     Navigator.pop(context);
                     return;
                   }
@@ -816,7 +815,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
                   _categoryControllers[newName] = controller;
                 }
 
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                 }
               },
@@ -913,11 +912,10 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
 
                 final catId = await ref.read(categoriesProvider.notifier).addCategory(newCat);
                 if (catId == null) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to add category to database.'), backgroundColor: Colors.redAccent),
-                    );
-                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to add category to database.'), backgroundColor: Colors.redAccent),
+                  );
                   Navigator.pop(context);
                   return;
                 }
@@ -933,7 +931,7 @@ class _PlanningWizardState extends ConsumerState<PlanningWizard> {
                 notifier.setCustomCategoryGroup(name, groupKey);
                 _categoryControllers[name] = TextEditingController(text: '');
 
-                if (mounted) {
+                if (context.mounted) {
                   Navigator.pop(context);
                 }
               },
