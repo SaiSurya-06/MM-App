@@ -493,18 +493,23 @@ class BackupService {
       final file = pickerResult.files.single;
 
       if (format == 'sqlite') {
-        final dbFolder = await getApplicationDocumentsDirectory();
-        final localDbPath = p.join(dbFolder.path, 'money_manager.db');
-        await AppDatabase.instance.close();
-        await _clearDatabaseFiles(localDbPath);
-        if (file.bytes != null) {
-          await File(localDbPath).writeAsBytes(file.bytes!);
-          return true;
-        } else if (file.path != null) {
-          await File(file.path!).copy(localDbPath);
-          return true;
+        AppDatabase.isRestoring = true;
+        try {
+          final dbFolder = await getApplicationDocumentsDirectory();
+          final localDbPath = p.join(dbFolder.path, 'money_manager.db');
+          await AppDatabase.instance.close();
+          await _clearDatabaseFiles(localDbPath);
+          if (file.path != null) {
+            await File(file.path!).copy(localDbPath);
+            return true;
+          } else if (file.bytes != null) {
+            await File(localDbPath).writeAsBytes(file.bytes!);
+            return true;
+          }
+          return false;
+        } finally {
+          AppDatabase.isRestoring = false;
         }
-        return false;
       }
 
       // Get the file content as String (for JSON/CSV)
@@ -572,11 +577,16 @@ class BackupService {
       final tempDir = await getTemporaryDirectory();
       
       if (format == 'sqlite') {
-        final localDbPath = p.join(dbFolder.path, 'money_manager.db');
-        await AppDatabase.instance.close();
-        await _clearDatabaseFiles(localDbPath);
-        final success = await restoreFileFromDrive('money_manager_backup.db', File(localDbPath));
-        return success;
+        AppDatabase.isRestoring = true;
+        try {
+          final localDbPath = p.join(dbFolder.path, 'money_manager.db');
+          await AppDatabase.instance.close();
+          await _clearDatabaseFiles(localDbPath);
+          final success = await restoreFileFromDrive('money_manager_backup.db', File(localDbPath));
+          return success;
+        } finally {
+          AppDatabase.isRestoring = false;
+        }
       } else if (format == 'json') {
         final tempFile = File(p.join(tempDir.path, 'money_manager_backup.json'));
         final success = await restoreFileFromDrive('money_manager_backup.json', tempFile);

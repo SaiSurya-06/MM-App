@@ -22,10 +22,14 @@ class AppDatabase {
   // "check then initialise" pattern from being racy in hot-restart scenarios.
   static bool _isInitialising = false;
   static final List<Completer<Database>> _pendingInitialisers = [];
+  static bool isRestoring = false;
 
   AppDatabase._init();
 
   Future<Database> get database async {
+    while (isRestoring) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
     if (_database != null) return _database!;
 
     // Guard against concurrent calls racing to open the DB.
