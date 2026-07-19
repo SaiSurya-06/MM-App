@@ -451,6 +451,34 @@ class BackupService {
     }
   }
 
+  Future<void> _clearDatabaseFiles(String localDbPath) async {
+    final walFile = File('$localDbPath-wal');
+    final shmFile = File('$localDbPath-shm');
+    final dbFile = File(localDbPath);
+
+    if (await walFile.exists()) {
+      try {
+        await walFile.delete();
+      } catch (e, stackTrace) {
+        debugPrint('Failed to delete WAL file: $e\n$stackTrace');
+      }
+    }
+    if (await shmFile.exists()) {
+      try {
+        await shmFile.delete();
+      } catch (e, stackTrace) {
+        debugPrint('Failed to delete SHM file: $e\n$stackTrace');
+      }
+    }
+    if (await dbFile.exists()) {
+      try {
+        await dbFile.delete();
+      } catch (e, stackTrace) {
+        debugPrint('Failed to delete main DB file: $e\n$stackTrace');
+      }
+    }
+  }
+
   Future<bool> restoreFromLocal(String format) async {
     try {
       final pickerResult = await FilePicker.platform.pickFiles(
@@ -468,6 +496,7 @@ class BackupService {
         final dbFolder = await getApplicationDocumentsDirectory();
         final localDbPath = p.join(dbFolder.path, 'money_manager.db');
         await AppDatabase.instance.close();
+        await _clearDatabaseFiles(localDbPath);
         if (file.bytes != null) {
           await File(localDbPath).writeAsBytes(file.bytes!);
           return true;
@@ -545,6 +574,7 @@ class BackupService {
       if (format == 'sqlite') {
         final localDbPath = p.join(dbFolder.path, 'money_manager.db');
         await AppDatabase.instance.close();
+        await _clearDatabaseFiles(localDbPath);
         final success = await restoreFileFromDrive('money_manager_backup.db', File(localDbPath));
         return success;
       } else if (format == 'json') {
