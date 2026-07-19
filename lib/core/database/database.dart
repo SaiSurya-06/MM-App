@@ -631,8 +631,13 @@ class AppDatabase {
 
   Future close() async {
     if (_database != null) {
-      await _database!.close();
-      _database = null;
+      try {
+        await _database!.close();
+      } catch (e, stackTrace) {
+        debugPrint('Error closing database: $e\n$stackTrace');
+      } finally {
+        _database = null;
+      }
     }
   }
 

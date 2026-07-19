@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
+import 'package:sqflite/sqflite.dart' show deleteDatabase;
 import '../database/database.dart';
 import '../database/daos/category_dao.dart';
 
@@ -417,6 +418,7 @@ class BackupService {
       String fileName;
 
       if (format == 'sqlite') {
+        await AppDatabase.instance.close();
         final localDbPath = p.join(dbFolder.path, 'money_manager.db');
         final dbFile = File(localDbPath);
         if (!await dbFile.exists()) return false;
@@ -452,6 +454,12 @@ class BackupService {
   }
 
   Future<void> _clearDatabaseFiles(String localDbPath) async {
+    try {
+      await deleteDatabase(localDbPath);
+    } catch (e, stackTrace) {
+      debugPrint('Failed to delete database via sqflite deleteDatabase: $e\n$stackTrace');
+    }
+
     final walFile = File('$localDbPath-wal');
     final shmFile = File('$localDbPath-shm');
     final dbFile = File(localDbPath);
@@ -460,21 +468,21 @@ class BackupService {
       try {
         await walFile.delete();
       } catch (e, stackTrace) {
-        debugPrint('Failed to delete WAL file: $e\n$stackTrace');
+        debugPrint('Failed to delete WAL file manually: $e\n$stackTrace');
       }
     }
     if (await shmFile.exists()) {
       try {
         await shmFile.delete();
       } catch (e, stackTrace) {
-        debugPrint('Failed to delete SHM file: $e\n$stackTrace');
+        debugPrint('Failed to delete SHM file manually: $e\n$stackTrace');
       }
     }
     if (await dbFile.exists()) {
       try {
         await dbFile.delete();
       } catch (e, stackTrace) {
-        debugPrint('Failed to delete main DB file: $e\n$stackTrace');
+        debugPrint('Failed to delete main DB file manually: $e\n$stackTrace');
       }
     }
   }
@@ -548,6 +556,7 @@ class BackupService {
       String driveFileName;
 
       if (format == 'sqlite') {
+        await AppDatabase.instance.close();
         final localDbPath = p.join(dbFolder.path, 'money_manager.db');
         localFile = File(localDbPath);
         driveFileName = 'money_manager_backup.db';
