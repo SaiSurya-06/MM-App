@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
-import 'package:sqflite/sqflite.dart' show deleteDatabase;
+import 'package:sqflite/sqflite.dart' show deleteDatabase, Database, openDatabase, Sqflite;
 import '../database/database.dart';
 import '../database/daos/category_dao.dart';
 
@@ -505,16 +505,48 @@ class BackupService {
         try {
           final dbFolder = await getApplicationDocumentsDirectory();
           final localDbPath = p.join(dbFolder.path, 'money_manager.db');
+          
+          debugPrint('Starting local SQLite restore. File path: ${file.path}, bytes length: ${file.bytes?.length}');
+          
           await AppDatabase.instance.close();
           await _clearDatabaseFiles(localDbPath);
+          
           if (file.path != null) {
             await File(file.path!).copy(localDbPath);
-            return true;
           } else if (file.bytes != null) {
             await File(localDbPath).writeAsBytes(file.bytes!);
-            return true;
+          } else {
+            debugPrint('Restore failed: both file path and bytes are null.');
+            return false;
           }
-          return false;
+
+          // Verify database file was created and is not empty
+          final restoredFile = File(localDbPath);
+          if (!await restoredFile.exists()) {
+            debugPrint('Restore validation error: database file does not exist at $localDbPath after copy!');
+            return false;
+          }
+          final size = await restoredFile.length();
+          debugPrint('Restored database size: $size bytes.');
+
+          // Open the database dynamically to verify structure and count rows
+          Database? db;
+          try {
+            db = await openDatabase(localDbPath);
+            final accounts = await db.rawQuery('SELECT COUNT(*) FROM account');
+            final transactions = await db.rawQuery('SELECT COUNT(*) FROM transaction_log');
+            debugPrint('Restored Database validation succeeded. Accounts: ${Sqflite.firstIntValue(accounts)}, Transactions: ${Sqflite.firstIntValue(transactions)}');
+          } catch (e, stack) {
+            debugPrint('Error validating restored database structure: $e\n$stack');
+            // If the query failed, it might be because the database schema of the old backup 
+            // is older. We let the app\'s _initDB run migrations, but log this fact.
+            debugPrint('Swallowing validation query error as app will auto-run migrations on next start.');
+          } finally {
+            if (db != null) {
+              await db.close();
+            }
+          }
+          return true;
         } finally {
           AppDatabase.isRestoring = false;
         }

@@ -68,7 +68,116 @@ class AppDatabase {
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
+    await _verifySchemaIntegrity(db);
     return db;
+  }
+
+  Future<void> _verifySchemaIntegrity(Database db) async {
+    // Helper to check if a table exists
+    Future<bool> tableExists(String tableName) async {
+      final result = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        [tableName],
+      );
+      return result.isNotEmpty;
+    }
+
+    // Helper to check if a column exists in a table
+    Future<bool> columnExists(String tableName, String columnName) async {
+      if (!await tableExists(tableName)) return false;
+      final columns = await db.rawQuery("PRAGMA table_info($tableName)");
+      for (var col in columns) {
+        if (col['name'] == columnName) return true;
+      }
+      return false;
+    }
+
+    // 1. user_profile
+    if (await tableExists('user_profile')) {
+      if (!await columnExists('user_profile', 'pin_salt')) {
+        await db.execute("ALTER TABLE user_profile ADD COLUMN pin_salt TEXT");
+      }
+    }
+
+    // 2. chatbot_message
+    if (!await tableExists('chatbot_message')) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS chatbot_message (
+          id TEXT PRIMARY KEY,
+          profile_id INTEGER NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          timestamp INTEGER NOT NULL,
+          chart_type TEXT,
+          FOREIGN KEY (profile_id) REFERENCES user_profile(id) ON DELETE CASCADE
+        )
+      ''');
+    }
+
+    // 3. diagnostic_profile
+    if (!await tableExists('diagnostic_profile')) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS diagnostic_profile (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_profile_id INTEGER NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          current_act INTEGER NOT NULL DEFAULT 0,
+          current_section INTEGER NOT NULL DEFAULT 0,
+          completed INTEGER NOT NULL DEFAULT 0,
+          profile_json TEXT NOT NULL
+        )
+      ''');
+    }
+
+    // 4. transaction_log
+    if (await tableExists('transaction_log')) {
+      if (!await columnExists('transaction_log', 'tags')) {
+        await db.execute("ALTER TABLE transaction_log ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+      }
+      if (!await columnExists('transaction_log', 'parent_id')) {
+        await db.execute("ALTER TABLE transaction_log ADD COLUMN parent_id INTEGER");
+      }
+      if (!await columnExists('transaction_log', 'transfer_to_account_id')) {
+        await db.execute("ALTER TABLE transaction_log ADD COLUMN transfer_to_account_id INTEGER");
+      }
+      if (!await columnExists('transaction_log', 'subcategory_id')) {
+        await db.execute("ALTER TABLE transaction_log ADD COLUMN subcategory_id INTEGER");
+      }
+    }
+
+    // 5. category
+    if (await tableExists('category')) {
+      if (!await columnExists('category', 'type')) {
+        await db.execute("ALTER TABLE category ADD COLUMN type TEXT NOT NULL DEFAULT 'both'");
+      }
+      if (!await columnExists('category', 'parent_id')) {
+        await db.execute("ALTER TABLE category ADD COLUMN parent_id INTEGER");
+      }
+      if (!await columnExists('category', 'spending_limit')) {
+        await db.execute("ALTER TABLE category ADD COLUMN spending_limit REAL");
+      }
+      if (!await columnExists('category', 'dark_color')) {
+        await db.execute("ALTER TABLE category ADD COLUMN dark_color TEXT");
+      }
+    }
+
+    // 6. account
+    if (await tableExists('account')) {
+      if (!await columnExists('account', 'limit_amount')) {
+        await db.execute("ALTER TABLE account ADD COLUMN limit_amount REAL");
+      }
+    }
+
+    // 7. budget
+    if (await tableExists('budget')) {
+      if (!await columnExists('budget', 'recurrence')) {
+        await db.execute("ALTER TABLE budget ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'monthly'");
+      }
+      if (!await columnExists('budget', 'group_name')) {
+        await db.execute("ALTER TABLE budget ADD COLUMN group_name TEXT");
+      }
+    }
   }
 
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
