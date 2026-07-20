@@ -326,7 +326,7 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
 
   String _generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final rnd = Random();
+    final rnd = Random.secure(); // Use cryptographically secure random
     return List.generate(6, (index) => chars[rnd.nextInt(chars.length)]).join();
   }
 
@@ -336,7 +336,17 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
       final cleanedUrl = url.trim();
       if (cleanedUrl.isEmpty) return false;
 
-      final baseUri = Uri.parse(cleanedUrl);
+      // Enforce HTTPS - reject HTTP connections
+      Uri baseUri = Uri.parse(cleanedUrl);
+      if (baseUri.scheme != 'https') {
+        if (baseUri.scheme == 'http') {
+          debugPrint('Warning: HTTP connection rejected. Please use HTTPS.');
+          return false;
+        }
+        // Default to HTTPS if no scheme specified
+        baseUri = baseUri.replace(scheme: 'https');
+      }
+      
       final queryParams = Map<String, dynamic>.from(baseUri.queryParameters);
       queryParams['action'] = 'test';
       final uri = baseUri.replace(queryParameters: queryParams);
@@ -765,11 +775,16 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
     final chunks = _splitIntoChunks(payload, 4000);
     final total = chunks.length;
 
+    // Enforce HTTPS for upload
+    Uri baseUri = Uri.parse(state.webAppUrl);
+    if (baseUri.scheme != 'https') {
+      throw Exception('HTTPS required. Please update your sync server URL to use HTTPS.');
+    }
+
     final client = HttpClient();
     try {
       for (int i = 0; i < total; i++) {
         final chunk = chunks[i];
-        final baseUri = Uri.parse(state.webAppUrl);
         final queryParams = Map<String, dynamic>.from(baseUri.queryParameters);
         queryParams['action'] = 'set_chunk';
         queryParams['key'] = key;
@@ -821,7 +836,13 @@ class PartnerSyncNotifier extends StateNotifier<PartnerSyncState> {
   Future<String?> _downloadData() async {
     final partnerSlot = state.mySlot == 'A' ? 'B' : 'A';
     final key = '${state.roomCode}__${partnerSlot}_data';
-    final baseUri = Uri.parse(state.webAppUrl);
+    
+    // Enforce HTTPS for download
+    Uri baseUri = Uri.parse(state.webAppUrl);
+    if (baseUri.scheme != 'https') {
+      throw Exception('HTTPS required. Please update your sync server URL to use HTTPS.');
+    }
+    
     final queryParams = Map<String, dynamic>.from(baseUri.queryParameters);
     queryParams['action'] = 'get';
     queryParams['key'] = key;

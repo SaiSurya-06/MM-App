@@ -354,6 +354,7 @@ class AppDatabase {
         name TEXT NOT NULL,
         preferred_currency TEXT NOT NULL,
         pin_hash TEXT NOT NULL,
+        pin_salt TEXT,
         biometric_enabled INTEGER NOT NULL DEFAULT 0,
         theme_preference TEXT NOT NULL DEFAULT 'dark',
         reminder_enabled INTEGER NOT NULL DEFAULT 1,

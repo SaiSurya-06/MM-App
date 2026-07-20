@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
 import '../core/database/daos/user_profile_dao.dart';
 import '../models/user_profile.dart';
 import '../core/notifications/notification_service.dart';
+import '../core/utils/encryption_service.dart';
 
 enum AuthStatus {
   undetermined,
@@ -151,11 +154,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> setupPin(String name, String currency, String pin) async {
     try {
-      final pinHash = _hashPin(pin);
+      // Generate a unique salt for this user
+      final salt = EncryptionService.instance.generateSalt();
+      final pinHash = _hashPin(pin, salt);
       final profile = UserProfile(
         name: name,
         preferredCurrency: currency,
         pinHash: pinHash,
+        pinSalt: salt, // Store the salt with the profile
         biometricEnabled: false,
         themePreference: 'dark',
         reminderEnabled: true,
@@ -191,7 +197,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return false;
     }
 
-    final inputHash = _hashPin(pin);
+    // Use the stored salt to hash the input PIN
+    final salt = profile.pinSalt ?? '';
+    final inputHash = _hashPin(pin, salt);
     if (profile.pinHash == inputHash) {
       state = state.copyWith(
         status: AuthStatus.authenticated,
@@ -268,8 +276,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  String _hashPin(String pin) {
-    final bytes = utf8.encode(pin);
+  String _hashPin(String pin, String salt) {
+    // Use PBKDF2-based key derivation with salt for secure PIN hashing
+    final key = EncryptionService.instance.deriveKey(pin, salt);
+    // Hash the derived key to create the stored PIN hash
+    final bytes = key.bytes;
     final digest = sha256.convert(bytes);
     return digest.toString();
   }

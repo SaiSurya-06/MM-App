@@ -7,6 +7,53 @@ const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'db.json');
 const VERSION_FILE = path.join(__dirname, 'versions.json');
 
+// Rate limiting: Track request counts per IP
+const rateLimitStore = {};
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute window
+const MAX_REQUESTS_PER_WINDOW = 60; // Max 60 requests per minute per IP
+
+function cleanupRateLimitStore() {
+  const now = Date.now();
+  for (const ip in rateLimitStore) {
+    if (now - rateLimitStore[ip].windowStart > RATE_LIMIT_WINDOW_MS) {
+      delete rateLimitStore[ip];
+    }
+  }
+}
+
+// Run cleanup every 5 minutes
+setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  if (!rateLimitStore[ip]) {
+    rateLimitStore[ip] = { count: 1, windowStart: now };
+    return true;
+  }
+  
+  if (now - rateLimitStore[ip].windowStart > RATE_LIMIT_WINDOW_MS) {
+    // Reset window
+    rateLimitStore[ip] = { count: 1, windowStart: now };
+    return true;
+  }
+  
+  rateLimitStore[ip].count++;
+  if (rateLimitStore[ip].count > MAX_REQUESTS_PER_WINDOW) {
+    return false; // Rate limit exceeded
+  }
+  return true;
+}
+
+// Apply rate limiting middleware
+app.use((req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  if (!checkRateLimit(ip)) {
+    console.log(`Rate limit exceeded for IP: ${ip}`);
+    return res.status(429).send('Too many requests. Please try again later.');
+  }
+  next();
+});
+
 function readDb() {
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -45,6 +92,25 @@ function writeVersions(v) {
 app.use(express.text({ limit: '10mb' }));
 
 // Health check
+// In-memory store for auth tokens: { roomCode: { token: string, createdAt: number } }
+const authTokens = {};
+const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// Generate a secure random token
+function generateAuthToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Clean up expired tokens
+setInterval(() => {
+  const now = Date.now();
+  for (const roomCode in authTokens) {
+    if (now - authTokens[roomCode].createdAt > TOKEN_EXPIRY_MS) {
+      delete authTokens[roomCode];
+    }
+  }
+}, 60 * 60 * 1000); // Run every hour
+
 app.get('/', (req, res) => {
   res.send('ok');
 });
@@ -54,10 +120,38 @@ app.get('/?action=test', (req, res) => {
   res.send('ok');
 });
 
-// Get data (full or incremental by version)
+// Request auth token for a room
+app.post('/auth', (req, res) => {
+  const { roomCode } = req.body;
+  if (!roomCode || typeof roomCode !== 'string' || roomCode.length !== 6) {
+    return res.status(400).send('Error: Invalid room code');
+  }
+  
+  // Generate a new token for this room
+  const token = generateAuthToken();
+  authTokens[roomCode.toUpperCase()] = {
+    token: token,
+    createdAt: Date.now()
+  };
+  
+  console.log(`Auth token generated for room: ${roomCode}`);
+  res.send(JSON.stringify({ token: token }));
+});
+
+// Get data (full or incremental by version) - requires auth token
 app.get('/?action=get', (req, res) => {
-  const { key, since_version } = req.query;
+  const { key, since_version, auth_token } = req.query;
   if (!key) return res.status(400).send('Error: Missing key parameter');
+  
+  // Extract room code from key (format: ROOMCODE__SLOT_data)
+  const roomCode = key.split('__')[0].toUpperCase();
+  const providedToken = auth_token;
+  
+  // Validate auth token
+  if (!providedToken || !authTokens[roomCode] || authTokens[roomCode].token !== providedToken) {
+    console.log(`Invalid or missing auth token for room: ${roomCode}`);
+    return res.status(401).send('Error: Unauthorized - invalid or missing auth token');
+  }
 
   const db = readDb();
   if (db[key] === undefined) return res.send('404');
@@ -83,13 +177,22 @@ app.get('/?action=get', (req, res) => {
   res.send(db[key]);
 });
 
-// Set data (full or incremental)
+// Set data (full or incremental) - requires auth token
 app.post('/', (req, res) => {
-  const { key, action } = req.query;
+  const { key, action, auth_token } = req.query;
   const value = req.body;
 
   if (!key) return res.status(400).send('Error: Missing key parameter');
   if (value === undefined || value === null) return res.status(400).send('Error: Missing body content');
+
+  // Extract room code from key (format: ROOMCODE__SLOT_data)
+  const roomCode = key.split('__')[0].toUpperCase();
+  
+  // Validate auth token for write operations
+  if (!auth_token || !authTokens[roomCode] || authTokens[roomCode].token !== auth_token) {
+    console.log(`Invalid or missing auth token for room: ${roomCode} (write operation)`);
+    return res.status(401).send('Error: Unauthorized - invalid or missing auth token');
+  }
 
   const db = readDb();
   const versions = readVersions();

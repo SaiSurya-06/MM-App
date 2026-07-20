@@ -1,20 +1,37 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
+import 'package:pbkdf2/pbkdf2.dart';
 
 class EncryptionService {
   static final EncryptionService instance = EncryptionService._internal();
   EncryptionService._internal();
-
-  static const int keyStretchingIterations = 5000;
-
-  /// Derives a 32-byte key from password (PIN) and a salt using SHA-256 stretching.
-  enc.Key deriveKey(String password, String salt) {
-    List<int> keyBytes = utf8.encode(password + salt);
-    for (int i = 0; i < keyStretchingIterations; i++) {
-      keyBytes = sha256.convert(keyBytes).bytes;
+  
+  static const int pbkdf2Iterations = 100000;
+  static const int saltLength = 32;
+  
+  /// Generates a cryptographically secure random salt
+  String generateSalt() {
+    final random = Random.secure();
+    final saltBytes = Uint8List(saltLength);
+    for (int i = 0; i < saltLength; i++) {
+      saltBytes[i] = random.nextInt(256);
     }
+    return base64Url.encode(saltBytes);
+  }
+  
+  /// Derives a 32-byte key from password (PIN) and salt using PBKDF2-HMAC-SHA256.
+  enc.Key deriveKey(String password, String salt) {
+    final saltBytes = base64Url.decode(salt);
+    final hmac = Hmac(sha256, saltBytes);
+    final keyBytes = pbkdf2(
+      hmac,
+      utf8.encode(password),
+      pbkdf2Iterations,
+      32,
+    );
     return enc.Key(Uint8List.fromList(keyBytes));
   }
 
