@@ -661,6 +661,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       final pickerResult = await FilePicker.platform.pickFiles(
         type: FileType.any,
         withData: true,
+        withReadStream: true,
       );
       if (pickerResult == null || pickerResult.files.isEmpty) {
         // User cancelled file selection or picker closed — do nothing

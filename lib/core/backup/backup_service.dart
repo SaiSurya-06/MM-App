@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
+import 'package:sqflite/sqflite.dart' show getDatabasesPath;
 import '../database/database.dart';
 import '../database/daos/category_dao.dart';
 
@@ -471,6 +472,45 @@ class BackupService {
     }
   }
 
+  Future<Uint8List?> _readPlatformFileBytes(PlatformFile file) async {
+    // 1. Direct in-memory bytes from FilePicker
+    if (file.bytes != null && file.bytes!.isNotEmpty) {
+      return file.bytes;
+    }
+
+    // 2. Read stream if provided (supports content:// URIs on Android)
+    if (file.readStream != null) {
+      try {
+        final List<int> allBytes = [];
+        await for (final chunk in file.readStream!) {
+          allBytes.addAll(chunk);
+        }
+        if (allBytes.isNotEmpty) {
+          return Uint8List.fromList(allBytes);
+        }
+      } catch (e) {
+        debugPrint('Read stream error: $e');
+      }
+    }
+
+    // 3. File path via dart:io
+    if (file.path != null && file.path!.isNotEmpty) {
+      try {
+        final ioFile = File(file.path!);
+        if (await ioFile.exists()) {
+          final bytes = await ioFile.readAsBytes();
+          if (bytes.isNotEmpty) {
+            return bytes;
+          }
+        }
+      } catch (e) {
+        debugPrint('File path read error: $e');
+      }
+    }
+
+    return null;
+  }
+
   Future<bool> restoreFromLocal(String format, [PlatformFile? prePickedFile]) async {
     try {
       final PlatformFile file;
@@ -480,6 +520,7 @@ class BackupService {
         final pickerResult = await FilePicker.platform.pickFiles(
           type: FileType.any,
           withData: true,
+          withReadStream: true,
         );
 
         if (pickerResult == null || pickerResult.files.isEmpty) {
@@ -491,9 +532,18 @@ class BackupService {
 
       if (format == 'sqlite') {
         AppDatabase.isRestoring = true;
+        
+        // Resolve primary database path in App Documents
         final dbFolder = await getApplicationDocumentsDirectory();
         final localDbPath = p.join(dbFolder.path, 'money_manager.db');
         final backupTempPath = p.join(dbFolder.path, 'money_manager.db.bak');
+
+        // Resolve secondary database path in sqflite default databases folder (Android fallback)
+        String? sqfliteDbPath;
+        try {
+          final sqfliteFolder = await getDatabasesPath();
+          sqfliteDbPath = p.join(sqfliteFolder, 'money_manager.db');
+        } catch (_) {}
 
         // Step 1: Close active database connection and reset singleton reference
         await AppDatabase.instance.close();
@@ -511,26 +561,40 @@ class BackupService {
         }
 
         try {
-          // Step 3: Delete active DB journal/WAL/SHM files
+          // Step 3: Delete active DB journal/WAL/SHM files for both locations
           await _clearDatabaseFiles(localDbPath);
-
-          // Step 4: Write new backup data to local DB path
-          if (file.bytes != null && file.bytes!.isNotEmpty) {
-            await File(localDbPath).writeAsBytes(file.bytes!, flush: true);
-          } else if (file.path != null && file.path!.isNotEmpty) {
-            await File(file.path!).copy(localDbPath);
-          } else {
-            throw Exception('File bytes are empty and file path is null');
+          if (sqfliteDbPath != null && sqfliteDbPath != localDbPath) {
+            await _clearDatabaseFiles(sqfliteDbPath);
           }
 
-          // Step 5: Verify restored database file exists and is valid size
+          // Step 4: Extract file bytes robustly (handles bytes, streams, content URIs, paths)
+          final restoredBytes = await _readPlatformFileBytes(file);
+          if (restoredBytes == null || restoredBytes.isEmpty) {
+            throw Exception('Could not read backup file bytes. File may be restricted or corrupt.');
+          }
+
+          // Step 5: Write restored bytes to primary DB path
+          await File(localDbPath).writeAsBytes(restoredBytes, flush: true);
+
+          // Step 6: Also write to sqfliteDbPath if distinct
+          if (sqfliteDbPath != null && sqfliteDbPath != localDbPath) {
+            try {
+              final parent = File(sqfliteDbPath).parent;
+              if (!await parent.exists()) await parent.create(recursive: true);
+              await File(sqfliteDbPath).writeAsBytes(restoredBytes, flush: true);
+            } catch (e) {
+              debugPrint('Warning: Could not write to sqfliteDbPath: $e');
+            }
+          }
+
+          // Step 7: Verify restored database file exists and is valid size (>= 1KB)
           final restoredFile = File(localDbPath);
           final size = await restoredFile.exists() ? await restoredFile.length() : 0;
           if (size < 1024) {
             throw Exception('Restored file size ($size bytes) is invalid or corrupted');
           }
 
-          // Step 6: Re-initialize the sqflite database connection immediately
+          // Step 8: Re-initialize the sqflite database connection immediately
           AppDatabase.isRestoring = false;
           await AppDatabase.instance.reopen();
 
@@ -548,7 +612,13 @@ class BackupService {
           if (createdBackup) {
             try {
               await _clearDatabaseFiles(localDbPath);
+              if (sqfliteDbPath != null && sqfliteDbPath != localDbPath) {
+                await _clearDatabaseFiles(sqfliteDbPath);
+              }
               await File(backupTempPath).copy(localDbPath);
+              if (sqfliteDbPath != null && sqfliteDbPath != localDbPath) {
+                await File(backupTempPath).copy(sqfliteDbPath);
+              }
               final bakFile = File(backupTempPath);
               if (await bakFile.exists()) await bakFile.delete();
             } catch (rollbackError) {
