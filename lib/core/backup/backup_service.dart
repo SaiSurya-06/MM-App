@@ -496,13 +496,16 @@ class BackupService {
           // Step 2: Delete old DB files (file-level only, no sqflite re-creation)
           await _clearDatabaseFiles(localDbPath);
 
-          // Step 3: Copy the backup file to the DB path
-          if (file.bytes != null) {
-            // withData:true gave us bytes — write them directly
+          // Step 3: Copy the backup file to the DB path.
+          // NOTE: withData:true should always populate file.bytes, but some
+          // Android versions return an empty list instead of null for content
+          // URIs. We treat length==0 the same as null and fall back to path.
+          if (file.bytes != null && file.bytes!.isNotEmpty) {
             await File(localDbPath).writeAsBytes(file.bytes!, flush: true);
-          } else if (file.path != null) {
+          } else if (file.path != null && file.path!.isNotEmpty) {
             await File(file.path!).copy(localDbPath);
           } else {
+            debugPrint('Restore failed: file bytes are empty and path is null.');
             return false;
           }
 

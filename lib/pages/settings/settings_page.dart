@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/accounts_provider.dart';
 import '../../providers/transactions_provider.dart';
@@ -655,7 +656,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     Navigator.pop(context); // Close bottom sheet
 
     if (!context.mounted) return;
-    ToastNotification.show(context, 'Restoring… please wait.');
+
+    // Show a blocking loading dialog so the user sees the restore is in progress.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Expanded(child: Text('Restoring your data…\nPlease wait.')),
+          ],
+        ),
+      ),
+    );
 
     try {
       bool success = false;
@@ -665,6 +680,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         if (!BackupService.instance.isSignedIn && !BackupService.instance.isSimulatedMode) {
           final signedIn = await BackupService.instance.signIn();
           if (!signedIn) {
+            if (context.mounted) Navigator.of(context, rootNavigator: true).pop(); // dismiss dialog
             if (context.mounted) {
               ToastNotification.show(context, 'Failed to sign in to Google Drive', isError: true);
             }
@@ -674,12 +690,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         success = await BackupService.instance.restoreFromGoogleDrive(format);
       }
 
+      // Dismiss the loading dialog
+      if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
       if (!context.mounted) return;
 
       if (success) {
-        // ── Step 1: Invalidate ALL providers so every provider throws away its
-        //    current in-memory state. They will re-read from the restored DB on
-        //    next access instead of returning the cached (pre-restore) values.
+        // ── Step 1: Invalidate ALL data providers so they discard stale
+        //    in-memory state and reload from the restored database on next read.
         ref.invalidate(accountsProvider);
         ref.invalidate(transactionsProvider);
         ref.invalidate(categoriesProvider);
@@ -688,28 +705,68 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ref.invalidate(savingsGoalsProvider);
         ref.invalidate(transactionTemplatesProvider);
 
-        // ── Step 2: Reload the auth profile from the restored database.
-        //    This is awaited so the auth status is fully resolved before we
-        //    show any message. GoRouter will redirect to /login automatically
-        //    because the restored profile requires PIN re-authentication.
-        await ref.read(authProvider.notifier).checkProfile();
+        // ── Step 2: ALSO invalidate authProvider so the auth notifier is
+        //    rebuilt fresh. Without this, checkProfile() still references the
+        //    old (pre-restore) profile object in state, which causes PIN
+        //    verification to use the wrong hash after restore.
+        ref.invalidate(authProvider);
+        // The new AuthNotifier constructor calls checkProfile() automatically,
+        // which reads the restored database's user_profile and sets status to
+        // AuthStatus.unauthenticated. GoRouter will then redirect to /login.
 
         if (!context.mounted) return;
-        ToastNotification.show(
-          context,
-          BackupService.instance.isSimulatedMode && destination == 'drive'
-              ? 'Restore simulated successfully (Sandbox Mode).'
-              : 'Restore successful! Enter your PIN to see your data.',
+
+        // ── Step 3: Show a clear success dialog so the user understands
+        //    what just happened and what they need to do next.
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Restore Complete'),
+              ],
+            ),
+            content: const Text(
+              'Your database has been restored successfully.\n\n'
+              'Please enter your PIN to access your data.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Enter PIN'),
+              ),
+            ],
+          ),
         );
+
+        // ── Step 4: Explicitly navigate to /login to guarantee the redirect
+        //    happens even if GoRouter's refreshListenable is slightly delayed.
+        if (context.mounted) {
+          GoRouter.of(context).go('/login');
+        }
       } else {
-        ToastNotification.show(context, 'Restore failed. No backup file found.', isError: true);
+        if (context.mounted) {
+          ToastNotification.show(
+            context,
+            'Restore failed. Please select a valid .db backup file.',
+            isError: true,
+          );
+        }
       }
     } catch (e) {
+      // Dismiss loading dialog if still open
+      if (context.mounted) {
+        try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+      }
       if (context.mounted) {
         ToastNotification.show(context, 'Restore error: $e', isError: true);
       }
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
