@@ -9,7 +9,6 @@ import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
-import 'package:sqflite/sqflite.dart' show deleteDatabase, Database, openDatabase, Sqflite;
 import '../database/database.dart';
 import '../database/daos/category_dao.dart';
 
@@ -454,35 +453,20 @@ class BackupService {
   }
 
   Future<void> _clearDatabaseFiles(String localDbPath) async {
-    try {
-      await deleteDatabase(localDbPath);
-    } catch (e, stackTrace) {
-      debugPrint('Failed to delete database via sqflite deleteDatabase: $e\n$stackTrace');
-    }
-
+    // Only delete the physical files — do NOT call sqflite's deleteDatabase()
+    // because that function re-creates an empty database file at the path,
+    // which then gets overwritten by the restore copy causing a race condition.
     final walFile = File('$localDbPath-wal');
     final shmFile = File('$localDbPath-shm');
     final dbFile = File(localDbPath);
 
-    if (await walFile.exists()) {
-      try {
-        await walFile.delete();
-      } catch (e, stackTrace) {
-        debugPrint('Failed to delete WAL file manually: $e\n$stackTrace');
-      }
-    }
-    if (await shmFile.exists()) {
-      try {
-        await shmFile.delete();
-      } catch (e, stackTrace) {
-        debugPrint('Failed to delete SHM file manually: $e\n$stackTrace');
-      }
-    }
-    if (await dbFile.exists()) {
-      try {
-        await dbFile.delete();
-      } catch (e, stackTrace) {
-        debugPrint('Failed to delete main DB file manually: $e\n$stackTrace');
+    for (final f in [walFile, shmFile, dbFile]) {
+      if (await f.exists()) {
+        try {
+          await f.delete();
+        } catch (e, stackTrace) {
+          debugPrint('Failed to delete ${f.path}: $e\n$stackTrace');
+        }
       }
     }
   }
@@ -505,47 +489,33 @@ class BackupService {
         try {
           final dbFolder = await getApplicationDocumentsDirectory();
           final localDbPath = p.join(dbFolder.path, 'money_manager.db');
-          
-          debugPrint('Starting local SQLite restore. File path: ${file.path}, bytes length: ${file.bytes?.length}');
-          
+
+          // Step 1: Close the live database connection
           await AppDatabase.instance.close();
+
+          // Step 2: Delete old DB files (file-level only, no sqflite re-creation)
           await _clearDatabaseFiles(localDbPath);
-          
-          if (file.path != null) {
+
+          // Step 3: Copy the backup file to the DB path
+          if (file.bytes != null) {
+            // withData:true gave us bytes — write them directly
+            await File(localDbPath).writeAsBytes(file.bytes!, flush: true);
+          } else if (file.path != null) {
             await File(file.path!).copy(localDbPath);
-          } else if (file.bytes != null) {
-            await File(localDbPath).writeAsBytes(file.bytes!);
           } else {
-            debugPrint('Restore failed: both file path and bytes are null.');
             return false;
           }
 
-          // Verify database file was created and is not empty
+          // Step 4: Quick sanity check — file must exist and be non-empty
           final restoredFile = File(localDbPath);
-          if (!await restoredFile.exists()) {
-            debugPrint('Restore validation error: database file does not exist at $localDbPath after copy!');
-            return false;
+          final size = await restoredFile.exists() ? await restoredFile.length() : 0;
+          if (size < 1024) {
+            // A valid SQLite db is at least 1 page (1024 bytes)
+            debugPrint('Restore warning: restored file too small ($size bytes). Possibly corrupt.');
+          } else {
+            debugPrint('Restore successful. DB size: $size bytes.');
           }
-          final size = await restoredFile.length();
-          debugPrint('Restored database size: $size bytes.');
 
-          // Open the database dynamically to verify structure and count rows
-          Database? db;
-          try {
-            db = await openDatabase(localDbPath);
-            final accounts = await db.rawQuery('SELECT COUNT(*) FROM account');
-            final transactions = await db.rawQuery('SELECT COUNT(*) FROM transaction_log');
-            debugPrint('Restored Database validation succeeded. Accounts: ${Sqflite.firstIntValue(accounts)}, Transactions: ${Sqflite.firstIntValue(transactions)}');
-          } catch (e, stack) {
-            debugPrint('Error validating restored database structure: $e\n$stack');
-            // If the query failed, it might be because the database schema of the old backup 
-            // is older. We let the app\'s _initDB run migrations, but log this fact.
-            debugPrint('Swallowing validation query error as app will auto-run migrations on next start.');
-          } finally {
-            if (db != null) {
-              await db.close();
-            }
-          }
           return true;
         } finally {
           AppDatabase.isRestoring = false;
