@@ -94,9 +94,27 @@ jobs:
           echo "flutter.versionCode=${VERSION_CODE}" >> android/local.properties
           echo "flutter.versionName=${VERSION}"      >> android/local.properties
 
+      # ── Setup Release Keystore for CI ────────────────────────────
+      - name: 🔑 Setup Release Keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/money_manager.keystore
+            echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > android/key.properties
+            echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+            echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+            echo "storeFile=money_manager.keystore" >> android/key.properties
+          else
+            keytool -genkey -v -keystore android/app/money_manager.keystore \
+              -storepass MoneyManager2026 -keypass MoneyManager2026 \
+              -alias money_manager -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=MoneyManager, OU=Dev, O=MoneyManager, L=IN, ST=IN, C=IN"
+            echo "storePassword=MoneyManager2026" > android/key.properties
+            echo "keyPassword=MoneyManager2026" >> android/key.properties
+            echo "keyAlias=money_manager" >> android/key.properties
+            echo "storeFile=money_manager.keystore" >> android/key.properties
+          fi
+
       # ── Build exactly ONE release APK ────────────────────────────
-      # Keystore and key.properties are committed in the repo.
-      # No secrets needed.
       - name: 🔨 Build release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 

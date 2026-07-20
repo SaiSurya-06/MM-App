@@ -67,10 +67,10 @@ android {
 
     signingConfigs {
         release {
-            keyAlias = System.getenv("KEY_ALIAS") ?: keyProperties["keyAlias"]
-            keyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties["keyPassword"]
-            storeFile = (System.getenv("KEYSTORE_FILE") ?: keyProperties["storeFile"]) ? file(System.getenv("KEYSTORE_FILE") ?: keyProperties["storeFile"]) : null
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keyProperties["storePassword"]
+            keyAlias = keyProperties["keyAlias"] ?: System.getenv("KEY_ALIAS") ?: "money_manager"
+            keyPassword = keyProperties["keyPassword"] ?: System.getenv("KEY_PASSWORD") ?: "MoneyManager2026"
+            storeFile = keyProperties["storeFile"] ? file(keyProperties["storeFile"]) : (file("money_manager.keystore").exists() ? file("money_manager.keystore") : null)
+            storePassword = keyProperties["storePassword"] ?: System.getenv("KEYSTORE_PASSWORD") ?: "MoneyManager2026"
         }
     }
 
