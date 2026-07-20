@@ -471,18 +471,23 @@ class BackupService {
     }
   }
 
-  Future<bool> restoreFromLocal(String format) async {
+  Future<bool> restoreFromLocal(String format, [PlatformFile? prePickedFile]) async {
     try {
-      final pickerResult = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        withData: true,
-      );
+      final PlatformFile file;
+      if (prePickedFile != null) {
+        file = prePickedFile;
+      } else {
+        final pickerResult = await FilePicker.platform.pickFiles(
+          type: FileType.any,
+          withData: true,
+        );
 
-      if (pickerResult == null || pickerResult.files.isEmpty) {
-        return false;
+        if (pickerResult == null || pickerResult.files.isEmpty) {
+          return false;
+        }
+
+        file = pickerResult.files.single;
       }
-
-      final file = pickerResult.files.single;
 
       if (format == 'sqlite') {
         AppDatabase.isRestoring = true;

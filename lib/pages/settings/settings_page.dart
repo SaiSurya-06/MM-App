@@ -657,7 +657,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (!context.mounted) return;
 
-    // Show a blocking loading dialog so the user sees the restore is in progress.
+    PlatformFile? prePickedFile;
+    if (destination == 'local') {
+      final pickerResult = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: true,
+      );
+      if (pickerResult == null || pickerResult.files.isEmpty) {
+        // User cancelled file selection or picker closed — do nothing
+        return;
+      }
+      prePickedFile = pickerResult.files.single;
+    }
+
+    if (!context.mounted) return;
+
+    // Show a blocking loading dialog ONLY after a file has been selected
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -675,7 +690,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     try {
       bool success = false;
       if (destination == 'local') {
-        success = await BackupService.instance.restoreFromLocal(format);
+        success = await BackupService.instance.restoreFromLocal(format, prePickedFile);
       } else {
         if (!BackupService.instance.isSignedIn && !BackupService.instance.isSimulatedMode) {
           final signedIn = await BackupService.instance.signIn();
