@@ -17,7 +17,7 @@ class ScaffoldWithBottomNavBar extends ConsumerStatefulWidget {
 }
 
 class _ScaffoldWithBottomNavBarState extends ConsumerState<ScaffoldWithBottomNavBar> {
-  static const _channel = MethodChannel('com.example.money_manager/widget_actions');
+  static const _channel = MethodChannel('com.saisurya.moneymanager/widget_actions');
 
   @override
   void initState() {

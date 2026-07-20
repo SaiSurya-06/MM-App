@@ -50,3 +50,10 @@ session-ses_*.md
 # Android NDK build cache
 android/app/.cxx/
 coverage/
+
+# Signing keys & secrets
+key.properties
+*.keystore
+*.jks
+keystore_base64.txt
+

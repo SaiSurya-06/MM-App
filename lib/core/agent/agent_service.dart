@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
 class AgentService {
-  static const MethodChannel _channel = MethodChannel('com.example.money_manager/agent');
+  static const MethodChannel _channel = MethodChannel('com.saisurya.moneymanager/agent');
 
   /// Sends a message to the native Android ADK agent and returns its response.
   static Future<String> sendMessage(String prompt) async {

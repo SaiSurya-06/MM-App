@@ -32,7 +32,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.money_manager"
+    namespace = "com.saisurya.moneymanager"
     compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
@@ -57,7 +57,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.money_manager"
+        applicationId = "com.saisurya.moneymanager"
         minSdk = 26
         targetSdk = 34
         versionCode = flutterVersionCode.toInteger()
@@ -67,20 +67,19 @@ android {
 
     signingConfigs {
         release {
-            keyAlias = keyProperties["keyAlias"]
-            keyPassword = keyProperties["keyPassword"]
-            storeFile = keyProperties["storeFile"] ? file("${keyProperties["storeFile"]}") : null
-            storePassword = keyProperties["storePassword"]
+            keyAlias = System.getenv("KEY_ALIAS") ?: keyProperties["keyAlias"]
+            keyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties["keyPassword"]
+            storeFile = (System.getenv("KEYSTORE_FILE") ?: keyProperties["storeFile"]) ? file(System.getenv("KEYSTORE_FILE") ?: keyProperties["storeFile"]) : null
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keyProperties["storePassword"]
         }
     }
 
     buildTypes {
         debug {
-            // Use the same stable key as release so debug APKs can always update
-            signingConfig = signingConfigs.release
+            signingConfig = signingConfigs.debug
         }
         release {
-            signingConfig = signingConfigs.release
+            signingConfig = (signingConfigs.release.storeFile != null && signingConfigs.release.storeFile.exists()) ? signingConfigs.release : signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
