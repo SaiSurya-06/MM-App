@@ -750,6 +750,14 @@ class AppDatabase {
     }
   }
 
+  /// Explicitly resets the database singleton instance to null and re-initializes
+  /// a connection to the file on disk. This runs schema integrity checks to
+  /// guarantee the new database connection is fully active and validated.
+  Future<Database> reopen() async {
+    await close();
+    return await database;
+  }
+
   static Future<void> queueSyncAction(String action, String tableName, int recordId, Map<String, dynamic> recordData) async {
     try {
       final db = await instance.database;

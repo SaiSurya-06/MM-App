@@ -486,42 +486,73 @@ class BackupService {
 
       if (format == 'sqlite') {
         AppDatabase.isRestoring = true;
+        final dbFolder = await getApplicationDocumentsDirectory();
+        final localDbPath = p.join(dbFolder.path, 'money_manager.db');
+        final backupTempPath = p.join(dbFolder.path, 'money_manager.db.bak');
+
+        // Step 1: Close active database connection and reset singleton reference
+        await AppDatabase.instance.close();
+
+        // Step 2: Create a temporary backup of current DB for rollback safety
+        final currentDbFile = File(localDbPath);
+        bool createdBackup = false;
+        if (await currentDbFile.exists()) {
+          try {
+            await currentDbFile.copy(backupTempPath);
+            createdBackup = true;
+          } catch (e) {
+            debugPrint('Warning: Could not create temporary backup file: $e');
+          }
+        }
+
         try {
-          final dbFolder = await getApplicationDocumentsDirectory();
-          final localDbPath = p.join(dbFolder.path, 'money_manager.db');
-
-          // Step 1: Close the live database connection
-          await AppDatabase.instance.close();
-
-          // Step 2: Delete old DB files (file-level only, no sqflite re-creation)
+          // Step 3: Delete active DB journal/WAL/SHM files
           await _clearDatabaseFiles(localDbPath);
 
-          // Step 3: Copy the backup file to the DB path.
-          // NOTE: withData:true should always populate file.bytes, but some
-          // Android versions return an empty list instead of null for content
-          // URIs. We treat length==0 the same as null and fall back to path.
+          // Step 4: Write new backup data to local DB path
           if (file.bytes != null && file.bytes!.isNotEmpty) {
             await File(localDbPath).writeAsBytes(file.bytes!, flush: true);
           } else if (file.path != null && file.path!.isNotEmpty) {
             await File(file.path!).copy(localDbPath);
           } else {
-            debugPrint('Restore failed: file bytes are empty and path is null.');
-            return false;
+            throw Exception('File bytes are empty and file path is null');
           }
 
-          // Step 4: Quick sanity check — file must exist and be non-empty
+          // Step 5: Verify restored database file exists and is valid size
           final restoredFile = File(localDbPath);
           final size = await restoredFile.exists() ? await restoredFile.length() : 0;
           if (size < 1024) {
-            // A valid SQLite db is at least 1 page (1024 bytes)
-            debugPrint('Restore warning: restored file too small ($size bytes). Possibly corrupt.');
-          } else {
-            debugPrint('Restore successful. DB size: $size bytes.');
+            throw Exception('Restored file size ($size bytes) is invalid or corrupted');
           }
 
-          return true;
-        } finally {
+          // Step 6: Re-initialize the sqflite database connection immediately
           AppDatabase.isRestoring = false;
+          await AppDatabase.instance.reopen();
+
+          // Cleanup rollback file on success
+          if (createdBackup) {
+            final bakFile = File(backupTempPath);
+            if (await bakFile.exists()) await bakFile.delete();
+          }
+
+          debugPrint('Restore & Re-initialization completed successfully. DB Size: $size bytes');
+          return true;
+        } catch (restoreError, stackTrace) {
+          debugPrint('Restore failed: $restoreError\n$stackTrace. Rolling back...');
+          // Rollback to previous state if backup existed
+          if (createdBackup) {
+            try {
+              await _clearDatabaseFiles(localDbPath);
+              await File(backupTempPath).copy(localDbPath);
+              final bakFile = File(backupTempPath);
+              if (await bakFile.exists()) await bakFile.delete();
+            } catch (rollbackError) {
+              debugPrint('Critical error during restore rollback: $rollbackError');
+            }
+          }
+          AppDatabase.isRestoring = false;
+          await AppDatabase.instance.reopen();
+          rethrow;
         }
       }
 
