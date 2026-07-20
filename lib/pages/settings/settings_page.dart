@@ -9,7 +9,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/accounts_provider.dart';
 import '../../providers/transactions_provider.dart';
@@ -710,32 +709,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (!context.mounted) return;
 
       if (success) {
-        // ── Step 1: Invalidate ALL data providers so they discard stale
-        //    in-memory state and reload from the restored database on next read.
-        ref.invalidate(accountsProvider);
-        ref.invalidate(transactionsProvider);
-        ref.invalidate(categoriesProvider);
-        ref.invalidate(budgetsProvider);
-        ref.invalidate(debtsProvider);
-        ref.invalidate(savingsGoalsProvider);
-        ref.invalidate(transactionTemplatesProvider);
+        // Save current active PIN credentials before restoring so the active PIN keeps working
+        final activeProfile = ref.read(authProvider).profile;
+        final activePinHash = activeProfile?.pinHash;
+        final activePinSalt = activeProfile?.pinSalt;
 
-        // ── Step 2: ALSO invalidate authProvider so the auth notifier is
-        //    rebuilt fresh. Without this, checkProfile() still references the
-        //    old (pre-restore) profile object in state, which causes PIN
-        //    verification to use the wrong hash after restore.
-        ref.invalidate(authProvider);
-        // The new AuthNotifier constructor calls checkProfile() automatically,
-        // which reads the restored database's user_profile and sets status to
-        // AuthStatus.unauthenticated. GoRouter will then redirect to /login.
+        // 1. Re-initialize auth with restored profile and sync active PIN credentials
+        await ref.read(authProvider.notifier).checkProfileAndKeepAuthenticated(
+          syncPinHash: activePinHash,
+          syncPinSalt: activePinSalt,
+        );
+
+        // 2. Explicitly force reload all data notifiers from the restored database
+        await ref.read(accountsProvider.notifier).loadAccounts();
+        await ref.read(transactionsProvider.notifier).loadTransactions();
+        await ref.read(categoriesProvider.notifier).loadCategories();
+        await ref.read(budgetsProvider.notifier).loadBudgetsForCurrentMonth();
+        await ref.read(debtsProvider.notifier).loadDebts();
+        await ref.read(savingsGoalsProvider.notifier).loadGoals();
+        await ref.read(transactionTemplatesProvider.notifier).loadTemplates();
 
         if (!context.mounted) return;
 
-        // ── Step 3: Show a clear success dialog so the user understands
-        //    what just happened and what they need to do next.
+        final accCount = ref.read(accountsProvider).accounts.length;
+        final txCount = ref.read(transactionsProvider).transactions.length;
+
+        // 3. Display clear success confirmation with exact record counts loaded
         await showDialog(
           context: context,
-          barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Row(
               children: [
@@ -744,24 +745,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Text('Restore Complete'),
               ],
             ),
-            content: const Text(
-              'Your database has been restored successfully.\n\n'
-              'Please enter your PIN to access your data.',
+            content: Text(
+              'Your database has been restored successfully!\n\n'
+              '• $accCount Accounts Loaded\n'
+              '• $txCount Transactions Loaded',
             ),
             actions: [
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Enter PIN'),
+                child: const Text('Great!'),
               ),
             ],
           ),
         );
-
-        // ── Step 4: Explicitly navigate to /login to guarantee the redirect
-        //    happens even if GoRouter's refreshListenable is slightly delayed.
-        if (context.mounted) {
-          GoRouter.of(context).go('/login');
-        }
       } else {
         if (context.mounted) {
           ToastNotification.show(

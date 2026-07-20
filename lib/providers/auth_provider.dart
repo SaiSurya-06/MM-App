@@ -137,6 +137,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> checkProfileAndKeepAuthenticated({String? syncPinHash, String? syncPinSalt}) async {
+    try {
+      final profiles = await _profileDao.getAllProfiles();
+      final isBioAvailable = await _checkBiometricsAvailability();
+      
+      if (profiles.isEmpty) {
+        state = AuthState(
+          status: AuthStatus.pinSetupRequired,
+          profiles: [],
+          isBiometricAvailable: isBioAvailable,
+        );
+      } else {
+        var activeProfile = profiles.first;
+        
+        // If active session PIN credentials were provided, sync them to the restored profile
+        if (syncPinHash != null && syncPinHash.isNotEmpty) {
+          activeProfile = activeProfile.copyWith(
+            pinHash: syncPinHash,
+            pinSalt: syncPinSalt,
+          );
+          await _profileDao.updateProfile(activeProfile);
+        }
+
+        AgentService.activeProfileId = activeProfile.id;
+
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          profile: activeProfile,
+          profiles: profiles,
+          isBiometricAvailable: isBioAvailable,
+          wrongAttempts: 0,
+        );
+        await _scheduleReminderIfEnabled(activeProfile);
+      }
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Database error: $e');
+    }
+  }
+
   Future<bool> _checkBiometricsAvailability() async {
     try {
       final bool canAuthenticateWithBiometrics = await _localAuth.canCheckBiometrics;
