@@ -29,7 +29,8 @@ class Category with _$Category {
 
   factory Category.fromMap(Map<String, dynamic> map) {
     final adjustedMap = Map<String, dynamic>.from(map);
-    adjustedMap['is_default'] = (map['is_default'] as int) == 1;
+    adjustedMap['is_default'] = map['is_default'] == 1 || map['is_default'] == true;
+    adjustedMap['type'] = (map['type'] as String?) ?? 'both';
     return Category.fromJson(adjustedMap);
   }
 }

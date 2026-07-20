@@ -40,14 +40,18 @@ class DebtLoan {
   factory DebtLoan.fromMap(Map<String, dynamic> map) {
     return DebtLoan(
       id: map['id'] as int?,
-      name: map['name'] as String,
-      type: map['type'] as String,
-      balance: (map['balance'] as num).toDouble(),
-      originalAmount: (map['original_amount'] as num).toDouble(),
-      interestRate: (map['interest_rate'] as num).toDouble(),
-      monthlyPayment: (map['monthly_payment'] as num).toDouble(),
-      startDate: DateTime.parse(map['start_date'] as String),
-      createdAt: DateTime.parse(map['created_at'] as String),
+      name: (map['name'] as String?) ?? 'Debt',
+      type: (map['type'] as String?) ?? 'loan',
+      balance: (map['balance'] as num?)?.toDouble() ?? 0.0,
+      originalAmount: (map['original_amount'] as num?)?.toDouble() ?? 0.0,
+      interestRate: (map['interest_rate'] as num?)?.toDouble() ?? 0.0,
+      monthlyPayment: (map['monthly_payment'] as num?)?.toDouble() ?? 0.0,
+      startDate: map['start_date'] != null
+          ? (DateTime.tryParse(map['start_date'].toString()) ?? DateTime.now())
+          : DateTime.now(),
+      createdAt: map['created_at'] != null
+          ? (DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

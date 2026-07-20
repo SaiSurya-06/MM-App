@@ -35,13 +35,15 @@ class SavingsGoal {
   factory SavingsGoal.fromMap(Map<String, dynamic> map) {
     return SavingsGoal(
       id: map['id'] as int?,
-      name: map['name'] as String,
-      targetAmount: (map['target_amount'] as num).toDouble(),
-      currentAmount: (map['current_amount'] as num).toDouble(),
-      targetDate: map['target_date'] != null ? DateTime.parse(map['target_date'] as String) : null,
-      color: map['color'] as String,
-      icon: map['icon'] as String,
-      createdAt: DateTime.parse(map['created_at'] as String),
+      name: (map['name'] as String?) ?? 'Goal',
+      targetAmount: (map['target_amount'] as num?)?.toDouble() ?? 0.0,
+      currentAmount: (map['current_amount'] as num?)?.toDouble() ?? 0.0,
+      targetDate: map['target_date'] != null ? DateTime.tryParse(map['target_date'].toString()) : null,
+      color: (map['color'] as String?) ?? '4CAF50',
+      icon: (map['icon'] as String?) ?? 'savings',
+      createdAt: map['created_at'] != null 
+          ? (DateTime.tryParse(map['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 

@@ -31,10 +31,15 @@ class Account with _$Account {
 
   factory Account.fromMap(Map<String, dynamic> map) {
     final adjustedMap = Map<String, dynamic>.from(map);
-    adjustedMap['is_shared'] = (map['is_shared'] as int) == 1;
-    adjustedMap['balance'] = ((map['balance'] as num).toDouble() * 100.0).roundToDouble() / 100.0;
+    adjustedMap['is_shared'] = map['is_shared'] == 1 || map['is_shared'] == true;
+    adjustedMap['balance'] = map['balance'] != null 
+        ? (((map['balance'] as num).toDouble() * 100.0).roundToDouble() / 100.0)
+        : 0.0;
     if (map['limit_amount'] != null) {
       adjustedMap['limit_amount'] = ((map['limit_amount'] as num).toDouble() * 100.0).roundToDouble() / 100.0;
+    }
+    if (map['created_at'] == null) {
+      adjustedMap['created_at'] = DateTime.now().toIso8601String();
     }
     return Account.fromJson(adjustedMap);
   }

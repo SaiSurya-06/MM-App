@@ -38,14 +38,14 @@ class UserProfile {
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
       id: map['id'] as int?,
-      name: map['name'] as String,
-      preferredCurrency: map['preferred_currency'] as String,
-      pinHash: map['pin_hash'] as String,
+      name: (map['name'] as String?) ?? 'User',
+      preferredCurrency: (map['preferred_currency'] as String?) ?? 'INR',
+      pinHash: (map['pin_hash'] as String?) ?? '',
       pinSalt: map['pin_salt'] as String?,
-      biometricEnabled: (map['biometric_enabled'] as int) == 1,
-      themePreference: map['theme_preference'] as String,
-      reminderEnabled: (map['reminder_enabled'] as int) == 1,
-      reminderTime: map['reminder_time'] as String,
+      biometricEnabled: map['biometric_enabled'] == 1 || map['biometric_enabled'] == true,
+      themePreference: (map['theme_preference'] as String?) ?? 'dark',
+      reminderEnabled: map['reminder_enabled'] == 1 || map['reminder_enabled'] == true,
+      reminderTime: (map['reminder_time'] as String?) ?? '20:00',
     );
   }
 

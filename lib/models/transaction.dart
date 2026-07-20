@@ -40,8 +40,15 @@ class Transaction with _$Transaction {
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
     final adjustedMap = Map<String, dynamic>.from(map);
-    adjustedMap['is_private'] = (map['is_private'] as int) == 1;
-    adjustedMap['amount'] = ((map['amount'] as num).toDouble() * 100.0).roundToDouble() / 100.0;
+    adjustedMap['is_private'] = map['is_private'] == 1 || map['is_private'] == true;
+    adjustedMap['amount'] = map['amount'] != null 
+        ? (((map['amount'] as num).toDouble() * 100.0).roundToDouble() / 100.0)
+        : 0.0;
+    adjustedMap['tags'] = (map['tags'] as String?) ?? '';
+    adjustedMap['recurrence'] = (map['recurrence'] as String?) ?? 'none';
+    if (map['created_at'] == null) {
+      adjustedMap['created_at'] = DateTime.now().toIso8601String();
+    }
     return Transaction.fromJson(adjustedMap);
   }
 }
