@@ -19,7 +19,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name=".MainActivity"
+            android:name="com.saisurya.moneymanager.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -53,7 +53,7 @@
         </receiver>
 
         <!-- App Widget Provider -->
-        <receiver android:name=".MoneyWidgetProvider"
+        <receiver android:name="com.saisurya.moneymanager.MoneyWidgetProvider"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

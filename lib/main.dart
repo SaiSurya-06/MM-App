@@ -27,9 +27,13 @@ void main() async {
       return true; // Mark as handled
     };
 
-    await NotificationService.instance.initialize();
-    await NotificationService.instance.scheduleWeeklyBackupReminder();
-    await NotificationService.instance.scheduleMonthEndBudgetReminder();
+    try {
+      await NotificationService.instance.initialize();
+      await NotificationService.instance.scheduleWeeklyBackupReminder();
+      await NotificationService.instance.scheduleMonthEndBudgetReminder();
+    } catch (e, stack) {
+      debugPrint('NotificationService initialization error: $e\n$stack');
+    }
 
     runApp(
       const ProviderScope(
