@@ -104,7 +104,8 @@ jobs:
             echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
             echo "storeFile=money_manager.keystore" >> android/key.properties
           else
-            keytool -genkey -v -keystore android/app/money_manager.keystore \
+            rm -f android/app/money_manager.keystore
+            keytool -genkeypair -v -keystore android/app/money_manager.keystore \
               -storepass MoneyManager2026 -keypass MoneyManager2026 \
               -alias money_manager -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=MoneyManager, OU=Dev, O=MoneyManager, L=IN, ST=IN, C=IN"
