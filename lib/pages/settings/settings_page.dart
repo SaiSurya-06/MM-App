@@ -653,7 +653,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _performRestore(BuildContext context, String format, String destination) async {
     Navigator.pop(context); // Close bottom sheet
-    ToastNotification.show(context, 'Starting restore...');
+
+    if (!context.mounted) return;
+    ToastNotification.show(context, 'Restoring… please wait.');
 
     try {
       bool success = false;
@@ -672,26 +674,35 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         success = await BackupService.instance.restoreFromGoogleDrive(format);
       }
 
-      if (context.mounted) {
-        if (success) {
-          ref.read(accountsProvider.notifier).loadAccounts();
-          ref.read(transactionsProvider.notifier).loadTransactions();
-          ref.read(authProvider.notifier).checkProfile();
-          ref.read(categoriesProvider.notifier).loadCategories();
-          ref.read(budgetsProvider.notifier).loadBudgetsForCurrentMonth();
-          ref.read(debtsProvider.notifier).loadDebts();
-          ref.read(savingsGoalsProvider.notifier).loadGoals();
-          ref.read(transactionTemplatesProvider.notifier).loadTemplates();
-          
-          ToastNotification.show(
-            context,
-            BackupService.instance.isSimulatedMode && destination == 'drive'
-                ? 'Restore simulated successfully (Sandbox Mode).'
-                : 'Database restored successfully!'
-          );
-        } else {
-          ToastNotification.show(context, 'Restore failed. No backup file found.', isError: true);
-        }
+      if (!context.mounted) return;
+
+      if (success) {
+        // ── Step 1: Invalidate ALL providers so every provider throws away its
+        //    current in-memory state. They will re-read from the restored DB on
+        //    next access instead of returning the cached (pre-restore) values.
+        ref.invalidate(accountsProvider);
+        ref.invalidate(transactionsProvider);
+        ref.invalidate(categoriesProvider);
+        ref.invalidate(budgetsProvider);
+        ref.invalidate(debtsProvider);
+        ref.invalidate(savingsGoalsProvider);
+        ref.invalidate(transactionTemplatesProvider);
+
+        // ── Step 2: Reload the auth profile from the restored database.
+        //    This is awaited so the auth status is fully resolved before we
+        //    show any message. GoRouter will redirect to /login automatically
+        //    because the restored profile requires PIN re-authentication.
+        await ref.read(authProvider.notifier).checkProfile();
+
+        if (!context.mounted) return;
+        ToastNotification.show(
+          context,
+          BackupService.instance.isSimulatedMode && destination == 'drive'
+              ? 'Restore simulated successfully (Sandbox Mode).'
+              : 'Restore successful! Enter your PIN to see your data.',
+        );
+      } else {
+        ToastNotification.show(context, 'Restore failed. No backup file found.', isError: true);
       }
     } catch (e) {
       if (context.mounted) {
